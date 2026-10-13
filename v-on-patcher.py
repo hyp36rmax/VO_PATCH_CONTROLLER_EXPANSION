@@ -6672,18 +6672,18 @@ FEATURES = [
      'Gamepad (XInput)\ttwelve named actions, bind them yourself\n'
      'Twin-stick (XInput)\tthe arcade levers, nothing to bind\n'
      'Twin-Stick (Custom)\tremap twelve gameplay inputs (retail/JPRE)\n'
-     'Tanita and HORI EX\tdedicated hardware profiles (retail/JPRE)\n'
+     'Dedicated Twin-Sticks\tTanita, HORI EX, Raphnet DC/Saturn (retail/JPRE)\n'
      'Keyboard (Simple)\tevery action on a bindable key\n'
      'Keyboard (Real)\tthe two-lever keyboard scheme\n'
      '\n'
      'Simple and the gamepad share one bind page, but each sees only its\n'
      'own inputs, and both bind sets are saved.\n'
      '\n'
-     'The players on a pad profile take the connected pads in order,\n'
-     '1P first. A accepts, Select is the camera, Start pauses, and the\n'
-     'D-pad works the menus. A or Select skips the win and lose screens\n'
-     'between rounds; A skips the intro movie. On-screen prompts name\n'
-     'the button rather than a key.\n'
+     'Retail/JPRE: release Start/Options, then press it on the intended\ncontroller to select it for the displayed player.\n'
+     'OEM/Japanese original: connected pads are assigned in order,\n1P first. Profiles and bindings are saved; retail/JPRE ownership\nis selected again each game session.\n'
+     '\nXInput: A accepts, Back is camera, Start pauses; D-pad navigates.\nA or Back skips round results; A skips the intro. Prompts name\nthe button rather than a key.\n'
+     'Tanita: Cross accepts, Share is camera, Options pauses; POV\nnavigates menus.\n'
+     'Raphnet: Start selects the controller, then accepts/skips intro.\nDC has a separate Pause button; Saturn has no Pause mapping.\n'
      '\n'
      'Stick deadzone\tEach player has one, 40% to start, set in the F11\n'
      '\tExtras dialog.\n'
@@ -7903,8 +7903,8 @@ def writable(folder):
     deleting a probe file is the only answer that holds on both platforms,
     and it costs nothing next to copying 95 MB.
 
-    A PyInstaller build carries a manifest, so Windows does not silently
-    redirect the write into VirtualStore: an unelevated write to a folder
+    The release runs under pythonw.exe, which carries a manifest, so
+    Windows does not silently redirect the write into VirtualStore: an unelevated write to a folder
     the user does not own arrives here as EACCES rather than appearing to
     succeed somewhere else."""
     probe = os.path.join(folder, '.v-on-patcher-write-test')
@@ -8052,8 +8052,8 @@ def install_tanita(gamedir):
 
 # --- netplay ------------------------------------------------------------
 # The DirectPlay replacement, compiled by net/build.py to net/dpctrl.dll,
-# which the release carries beside the exe (PyInstaller's _internal/) and a
-# source checkout has in net/. Unlike cnc-ddraw this is ours, and it
+# which both releases and a source checkout carry in net/ beside the
+# script. Unlike cnc-ddraw this is ours, and it
 # replaces a file the game already has, so the original is kept as
 # dpctrl.dll.stock.
 
@@ -8077,15 +8077,12 @@ NETPLAY_MARK = b'vo-net.log'
 
 
 def netplay_dll():
-    """The DLL bytes, from the file shipped with the program: the frozen
-    build's _internal/, a checkout's net/, or beside the script - where
-    the release's dpctrl.dll goes for the released .py."""
-    if getattr(sys, 'frozen', False):
-        paths = [os.path.join(sys._MEIPASS, NETPLAY_NAME)]
-    else:
-        here = os.path.dirname(os.path.abspath(__file__))
-        paths = [os.path.join(here, 'net', NETPLAY_NAME),
-                 os.path.join(here, NETPLAY_NAME)]
+    """The DLL bytes, from the file shipped with the program: net/ beside
+    the script, in a checkout and in both releases, or beside the script
+    itself."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    paths = [os.path.join(here, 'net', NETPLAY_NAME),
+             os.path.join(here, NETPLAY_NAME)]
     for path in paths:
         try:
             with open(path, 'rb') as f:
@@ -8252,7 +8249,7 @@ def _urlopen(req, timeout=30):
     Windows keeps only a small set of root certificates and fetches the rest
     on demand through CryptoAPI, which OpenSSL never consults - so a machine
     that has not needed this root before reports it as missing and the
-    download fails. certifi is bundled in the release build for that case.
+    download fails. certifi is bundled in the Windows release for that case.
     Anything else, including a genuinely bad certificate, is raised as it
     was."""
     try:
