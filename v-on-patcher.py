@@ -1947,7 +1947,8 @@ def build_sites(w, h, sec_va, span_va, rowtab_va, pool, A=None):
     if A is None:
         A = ADDR.__getitem__
     sites = []
-    stride = geometry['mask_row_pitch']
+    mask = mask_layout(geometry)
+    stride = mask['row_pitch']
     # Coverage mask at 0x6d1ce0 (twelve references), its row pointer
     # table at 0x6d0de0 (one). Buffer first, table after it.
     sites += imm_sites([0x1cd5da, 0x1cd605, 0x1cd8a5, 0x1cd9db, 0x1ce0f9,
@@ -1959,7 +1960,7 @@ def build_sites(w, h, sec_va, span_va, rowtab_va, pool, A=None):
                bytes.fromhex('e00d6d00' '8d05e01c6d00' 'b9e0010000'
                              '8907' '83c050' '894704' '83c050' '83c708'
                              '83e902' '7fed'),
-               u32(span_va + h * stride)
+               u32(span_va + mask['row_table_offset'])
                + b'\x8d\x05' + u32(span_va)          # lea eax, [buf]
                + b'\xb9' + u32(h)                    # mov ecx, h
                + b'\x89\x07'                        # mov [edi], eax
@@ -1969,7 +1970,7 @@ def build_sites(w, h, sec_va, span_va, rowtab_va, pool, A=None):
                + b'\x7f\xf3'                        # jg
                + b'\x90' * 6)]
     sites += imm_sites([0x1cd60c], 480 * MASK_ROW // 4,   # dwords to clear
-                       h * stride // 4)
+                       mask['clear_dwords'])
     # The stride itself, in the three forms the renderer has it.
     for off, n, between in MASK_ADVANCE:
         old = MASK_LOAD + bytes.fromhex(between) + MASK_ADD + MASK_STORE
@@ -2304,9 +2305,9 @@ def build_sites(w, h, sec_va, span_va, rowtab_va, pool, A=None):
     # imul reg, reg, imm32 and nops.
     sites += imm_sites([0x1c78f0, 0x1c794a, 0x1c7b72], 640, w)
     sites += imm_sites([0x1c7907, 0x1c7961, 0x1c7a2c, 0x1c7a8e, 0x1c7b89,
-                        0x1c7c0e], 0x28, (w // 2) // 8)
-    sites += imm_sites([0x1c79bd, 0x1c7bd0], 0x4b00, h // 2 * stride)
-    sites += imm_sites([0x1c7af4, 0x1c7c55], 0x2580, h // 4 * stride)
+                        0x1c7c0e], 0x28, mask_origin(geometry, w // 2))
+    sites += imm_sites([0x1c79bd, 0x1c7bd0], 0x4b00, mask_origin(geometry, y=h // 2))
+    sites += imm_sites([0x1c7af4, 0x1c7c55], 0x2580, mask_origin(geometry, y=h // 4))
     nop = b'\x90' * 3
     sites += [
         (0x1c7bb1, bytes.fromhex('8d04408d0480c1e004'),
@@ -2543,6 +2544,51 @@ def _hires_check_size(width, height):
                          'height a multiple of 8')
 
 
+def canvas_layout():
+    """Existing assembly-owned regions; generated constants are authoritative.
+
+    The first region is a guard, then the active canvas, staging/guard, and
+    saved pre-fill copy. This describes ownership; it allocates nothing.
+    """
+    region = UI_CANVAS_PITCH * UI_CANVAS_ROWS
+    offsets = tuple(UI_OFF + n * region for n in range(4))
+    assert region == UI_CANVAS_REGION
+    assert offsets[1:] == (UI_CANVAS_OFF, UI_CANVAS_STAGE, UI_CANVAS_COPY)
+    assert 4 * region == UI_OFF_SIZE
+    return {'pitch': UI_CANVAS_PITCH, 'rows': UI_CANVAS_ROWS,
+            'capacity': UI_CANVAS_PITCH // 2, 'region_bytes': region,
+            'region_offsets': offsets, 'storage_bytes': 4 * region,
+            'end_offset': UI_OFF + 4 * region}
+
+
+def mask_layout(geometry):
+    """Current admitted mode's mask plus its adjacent row-pointer table."""
+    if not geometry['patch_size_admitted']:
+        raise ValueError('mask allocation requires an admitted patch size')
+    pitch, height = geometry['mask_row_pitch'], geometry['visible_height']
+    used = geometry['mask_used_bytes']
+    if used > pitch or pitch % 4:
+        raise ValueError('mask rows must contain whole words and visible usage')
+    size = pitch * height
+    return {'row_pitch': pitch, 'used_bytes': used, 'mask_bytes': size,
+            'clear_dwords': size // 4, 'row_table_offset': size,
+            'row_table_bytes': height * 4, 'storage_bytes': size + height * 4}
+
+
+def mask_origin(geometry, x=0, y=0):
+    """Byte-addressable origin: vertical rows plus visible horizontal position.
+
+    Existing split origins can be half-word aligned; do not require dword
+    alignment or infer x from padded pitch. Bit-granular origins are unsupported.
+    """
+    layout = mask_layout(geometry)
+    if (type(x) is not int or type(y) is not int or
+            not 0 <= x < geometry['visible_width'] or
+            not 0 <= y < geometry['visible_height'] or x % 8):
+        raise ValueError('mask origin must be in bounds and byte aligned')
+    return y * layout['row_pitch'] + x // 8
+
+
 def resolution_geometry(width, height, framebuffer_pitch=None):
     """Patch-time single-view geometry, not a mode support whitelist.
 
@@ -2560,7 +2606,8 @@ def resolution_geometry(width, height, framebuffer_pitch=None):
     words, used, padded = _mask_geometry(width)
     supported = _hires_size_supported(width, height)
     logical = ((UI_CANVAS_ROWS * width // height) + 1) & ~1
-    capacity = UI_CANVAS_PITCH // 2
+    canvas = canvas_layout()
+    capacity = canvas['capacity']
     hud_width = min(Fraction(width), Fraction(16 * height, 9))
     return {
         'visible_width': width, 'visible_height': height,
@@ -2581,13 +2628,13 @@ def resolution_geometry(width, height, framebuffer_pitch=None):
         'hud_composition_width': hud_width,
         'hud_horizontal_origin': (width - hud_width) / 2,
         'hud_vertical_origin': 0, 'hud_composition_height': height,
-        'canvas_pitch': UI_CANVAS_PITCH, 'canvas_rows': UI_CANVAS_ROWS,
+        'canvas_pitch': canvas['pitch'], 'canvas_rows': canvas['rows'],
         'canvas_logical_width': logical, 'canvas_capacity': capacity,
         'canvas_fits': logical <= capacity,
         # The existing assembly caps its working canvas; expose that separately
         # without silently clamping requested dimensions or the research value.
         'canvas_active_width': min(logical, capacity),
-        'canvas_region_bytes': UI_CANVAS_PITCH * UI_CANVAS_ROWS,
+        'canvas_region_bytes': canvas['region_bytes'],
         'width_alignment_remainder': width % 32,
         'patch_size_admitted': supported,
         'physical_validation': 'UNKNOWN',
@@ -2754,9 +2801,9 @@ def hires_install(buf, width, height, alt=HIRES_ALT):
     aw, ah = alt
     geometry = resolution_geometry(w, hh)
     alternate = resolution_geometry(aw, ah)
-    mask_off = UI_OFF + UI_OFF_SIZE
-    rowtab_off = mask_off + max(hh * (geometry['mask_row_pitch'] + 4),
-                               ah * (alternate['mask_row_pitch'] + 4))
+    mask_off = canvas_layout()['end_offset']
+    rowtab_off = mask_off + max(mask_layout(geometry)['storage_bytes'],
+                               mask_layout(alternate)['storage_bytes'])
     size = rowtab_off + 2 * max(hh, ah) * 4
     pool_off = size
     size += 2 * (HIRES_POLYS * 0x3c + 8)   # pool, sides, list; both renderers
