@@ -58,10 +58,11 @@ REBASE = 0xe32                  # what the select's loader took off block 2
 
 
 class Emu:
-    def __init__(self, exe):
+    def __init__(self, exe, module=None):
         from unicorn import Uc, UC_ARCH_X86, UC_MODE_32
         import vonpatcher_hires as vp
         import uibuild
+        vp = module or vp
         self.vp = vp
         buf = bytearray(exe)
         vp.hires_install(buf, W, H)
@@ -78,7 +79,7 @@ class Emu:
             mu.mem_write(pe.base + s['vaddr'],
                          bytes(buf[s['raddr']:s['raddr'] + s['rsize']]))
         self.blob = pe.base + pe.sections[-1]['vaddr']
-        for addr, size in ((SURF, 0x800000), (STACK, 0x10000),
+        for addr, size in ((SURF, max(0x800000, ((W*H*2+0x100000+4095)//4096)*4096)), (STACK, 0x10000),
                            (RET, 0x1000), (TILES, 0x400000), (REC, 0x1000)):
             mu.mem_map(addr, size)
         mu.mem_write(RET, b'\xf4')
@@ -163,7 +164,7 @@ class Emu:
 
 
 def check_photo(e, label, vw, split, show, stub, ring, layout, scale,
-                yoff):
+                yoff, inset=0):
     """The walker and the blob over a viewport vw x H; a photo fills it."""
     e.viewport(vw, H, split)
     e.load_photo(ring, ring.replace('RING', 'SCRX'),
@@ -177,8 +178,8 @@ def check_photo(e, label, vw, split, show, stub, ring, layout, scale,
     y0 = ((PHOTO_H << 16) - 480 * step) >> 1
     bad = 0
     for vy in range(yoff, H - yoff, 37):
-        for vx in range(0, vw, 41):
-            cx, cy = int(vx / scale), int((vy - yoff) / scale)
+        for vx in range(inset, vw-inset, 41):
+            cx, cy = int((vx-inset) / scale), int((vy - yoff) / scale)
             sx, sy = (x0 + cx * step) >> 16, (y0 + cy * step) >> 16
             got = e.surface(vx, vy)
             near = {e.tile(min(47, max(0, sy // 8 + dy)),
@@ -186,7 +187,10 @@ def check_photo(e, label, vw, split, show, stub, ring, layout, scale,
                     for dy in (-1, 0, 1) for dx in (-1, 0, 1)}
             if got != e.tile(sy // 8, sx // 8) and got not in near:
                 bad += 1
-    edge = e.surface(vw - 1, H // 2) != 0
+    edge = e.surface(vw - 1 - inset, H // 2) != 0
+    if inset:
+        assert e.r32(D['XOFF']) == inset
+        assert all(e.surface(x,H//2)==0 for x in (0,vw-1))
     ok = bad == 0 and edge and e.r32(D['LAYOUT']) == layout
     print('  photo %-12s %s  (%d off-model samples, right edge %s)'
           % (label, 'ok' if ok else 'FAIL', bad, 'drawn' if edge else 'black'))

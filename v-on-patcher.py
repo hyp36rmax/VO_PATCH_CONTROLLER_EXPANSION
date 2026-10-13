@@ -2521,18 +2521,23 @@ def _mask_geometry(width):
     return words, used, ((used + 255) // 256) * 256
 
 
+_PRIVATE_3840 = False  # Set only on an isolated tools/engineering3840 module.
+
+
 def mask_pitch(width):
-    """Current patch policy; compact legacy rows, padded D01 rows only.
+    """Compact legacy rows; padded D01 and explicitly gated engineering rows.
 
     This width-only helper does not authorize a resolution. Generation must
     validate the complete width/height pair before consuming it.
     """
     _geometry_dimension(width)
-    return _mask_geometry(width)[2] if width == 2560 else width // 8
+    return (_mask_geometry(width)[2] if width == 2560 or
+            (_PRIVATE_3840 and width == 3840) else width // 8)
 
 
 def _hires_size_supported(width, height):
     return ((width, height) == (2560, 1080) or
+            (_PRIVATE_3840 and (width, height) == (3840, 1080)) or
             (width % 32 == 0 and height % 8 == 0 and width <= 2040))
 
 
@@ -2645,7 +2650,7 @@ def presentation_geometry(width, height):
     """Single-view HUD/artwork policy, with exact research and legacy encoding.
 
     This consumes the resolution contract, never admits a new mode. The
-    installed cap remains D01-only: changing other modes (including split
+    installed cap is D01 plus gated 3840: changing other modes (including split
     layouts) needs separate validation. Runtime x87/fixed-point placement
     remains in ui.asm; rational composition bounds are not pixel rounding.
     """
@@ -2654,7 +2659,8 @@ def presentation_geometry(width, height):
     frame_width = 640 * scale
     spread = max(Fraction(0), (g['hud_composition_width'] - frame_width) / 2)
     # D01 is exactly integral; never truncate a future fractional cap.
-    if (width, height) == (2560, 1080):
+    if ((width, height) == (2560, 1080) or
+            (_PRIVATE_3840 and (width, height) == (3840, 1080))):
         if spread.denominator != 1:
             raise ValueError('installed HUD spread must be integral')
         cap = int(spread)

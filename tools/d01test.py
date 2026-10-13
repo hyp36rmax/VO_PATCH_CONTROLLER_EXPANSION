@@ -56,7 +56,7 @@ def run(mu, start, stop=RET, count=1000000):
     assert mu.reg_read(UC_X86_REG_EIP) == stop, 'instruction limit / unexpected exit'
 
 
-def main(path):
+def main(path, width=2560, vp=vp):
     original, _ = selftest.pristine(path, vp)
     assert original is not None, 'pristine executable required'
     build = vp.BUILDS[hashlib.md5(original).hexdigest()]
@@ -87,6 +87,8 @@ def main(path):
     print(build.short, 'CE.2: 1920 values (26 UI hooks move +8), words, blobs, helper pins and non-display image identical')
 
     for w, h in [(3440, 1440), (3840, 1080), (5120, 1440), (2560, 720), (2559, 1080)]:
+        if width == 3840 and (w,h) == (3840,1080):
+            continue  # Explicit private proof only; default gate still rejects.
         try:
             vp._hires_check_size(w, h)
         except ValueError:
@@ -100,7 +102,7 @@ def main(path):
     assert [vp.UI_CANVAS_OFF, vp.UI_CANVAS_STAGE, vp.UI_CANVAS_COPY] == [vp.UI_OFF + n * vp.UI_CANVAS_REGION for n in (1, 2, 3)]
     assert len(vp.UI_CODE) == 6764 and vp.UI_PASS_STUBS - len(vp.UI_CODE) == 4
     wanted = dict.fromkeys(vp.by_key(build), True)
-    wanted['hires'] = (2560, 1080)
+    wanted['hires'] = (width, 1080)
     patched, _, skipped = vp.apply_selected(bytearray(original), wanted, build)
     assert not skipped, skipped
     mu, pe = image(patched)
@@ -115,11 +117,11 @@ def main(path):
     assert sec['vsize'] == 0x8f83b0
     assert u32(raw + vp.UI_SPREADMAX) == 240
     for off, sign in ((0x205d38,-1),(0x205d3c,1),(0x1fb4a0,-1),(0x1fb4a4,1)):
-        assert bytes(patched[translate(off):translate(off)+4]) == struct.pack('<f',sign*455.11111111111114)
+        assert bytes(patched[translate(off):translate(off)+4]) == struct.pack('<f',sign*(256.0*width/(1080/480)/640))
     for off in (0x147b60,0x147cc8,0x074ed0,0x075038):
-        assert u32(translate(off)) == 0x1f22
+        assert u32(translate(off)) == (0x1f22 if width == 2560 else 0x2753)
     for off in HORIZONTAL:
-        assert u32(translate(off)) == 160, 'horizontal origin must use visible width'
+        assert u32(translate(off)) == width//16, 'horizontal origin must use visible width'
     for off in (0x1c79bd, 0x1c7bd0):
         assert u32(translate(off)) == 540 * 512
     for off in (0x1c7af4, 0x1c7c55):
@@ -149,7 +151,7 @@ def main(path):
             assert not set(ins.regs_access()[1]) & {X86_REG_EAX, X86_REG_AX, X86_REG_AH, X86_REG_AL}
         # Execute the actual entry through the insertion, with padded as well
         # as tightly packed frame pitches; inspect EAX and untouched flags.
-        for fb_pitch in (5120, 5184, 8192):
+        for fb_pitch in (width*2, width*2+64, 8192):
             mu.mem_write(pitch, struct.pack('<I', fb_pitch))
             run(mu, vp._va_at(pe, entry), site)
             assert mu.reg_read(UC_X86_REG_EAX) == fb_pitch << 16
@@ -177,12 +179,12 @@ def main(path):
         # after PSRLD MM0,16. Store MM0 through a private probe instruction.
         seq = list(md.disasm(bytes(patched[actual:actual+150]), site))
         final = next(i for i in seq if i.mnemonic == 'psrld' and i.op_str == 'mm0, 0x10')
-        mu.reg_write(UC_X86_REG_EAX, (5120 << 16) | 512)
+        mu.reg_write(UC_X86_REG_EAX, (width*2 << 16) | 512)
         run(mu, site + 3, final.address + final.size)
         probe = b'\x0f\x7f\x05' + struct.pack('<I', RET + 0x800)  # movq [scratch],mm0
         mu.mem_write(RET, probe)
         run(mu, RET, RET + len(probe))
-        assert bytes(mu.mem_read(RET + 0x800, 8)) == struct.pack('<4H', 512, 0, 5120, 0)
+        assert bytes(mu.mem_read(RET + 0x800, 8)) == struct.pack('<4H', 512, 0, width*2, 0)
         consumer = next(i for i in seq if i.address > final.address and
                         i.mnemonic == 'pmaddwd' and i.op_str == 'mm2, mm0')
         for row in (1, 1079):
@@ -192,7 +194,7 @@ def main(path):
                      + struct.pack('<I', RET + 0x820))
             mu.mem_write(RET, probe)
             run(mu, RET, RET + len(probe))
-            assert bytes(mu.mem_read(RET + 0x820, 8)) == struct.pack('<II', row*512, row*5120)
+            assert bytes(mu.mem_read(RET + 0x820, 8)) == struct.pack('<II', row*512, row*width*2)
         print(' packed', hex(off), '->', hex(actual), 'b40290; EAX/flags/MMX PASS')
 
     # Run real row initialization/clear with sentinels, including padding.
@@ -256,7 +258,7 @@ def main(path):
         run(mu, apply_va)
         for record in records:
             assert bytes(mu.mem_read(record[0],len(record[1]))) == record[which]
-        active_w = 1280 if which == 2 else 2560
+        active_w = 1280 if which == 2 else width
         active_h = 720 if which == 2 else 1080
         pitch = vp.mask_pitch(active_w)
         rt = mask + active_h*pitch
@@ -278,8 +280,8 @@ def main(path):
 
     if build.short == 'retail':
         import uiemu
-        uiemu.W = 2560
-        e = uiemu.Emu(original)
+        uiemu.W = width
+        e = uiemu.Emu(original, module=vp)
         # All four regions keep row-tail canaries outside active columns.
         tails = [e.blob + vp.UI_OFF + region*vp.UI_CANVAS_REGION +
                  row*vp.UI_CANVAS_PITCH + vp.UI_CANVAS_PITCH - 64
@@ -288,16 +290,16 @@ def main(path):
             e.mu.mem_write(at, b'\xa5'*64)
         assert uiemu.check_spread(e)
         for stub, ring, split, show in [('stub1','RING1',0,0), ('stub3','RING2',1,2)]:
-            assert uiemu.check_photo(e, 'D01 '+stub, 2560, split, show, stub, ring, 0, 2.25, 0)
-            assert e.r32(uiemu.D['LW']) == 1138
+            assert uiemu.check_photo(e, 'D01 '+stub, width, split, show, stub, ring, 0, 2.25, 0, inset=1 if width==3840 else 0)
+            assert e.r32(uiemu.D['LW']) == vp.resolution_geometry(width,1080)['canvas_active_width']
         for at in tails:
             assert bytes(e.mu.mem_read(at,64)) == b'\xa5'*64, hex(at)
         # Padded framebuffer pitch: pre/post must leave untouched rows and
         # per-row padding intact when no UI pixels change.
-        e.viewport(2560,1080)
+        e.viewport(width,1080)
         e.d('BASEPTR',uiemu.G['FB_PTR']); e.d('PHASE',0); e.d('SHOW',0)
-        e.w32(uiemu.G['FB_PITCH'], 5184)
-        data = b'\x17\x29' * (5184*1080//2)
+        e.w32(uiemu.G['FB_PITCH'], width*2+64)
+        data = b'\x17\x29' * ((width*2+64)*1080//2)
         e.mu.mem_write(uiemu.SURF, data)
         e.routine('pre'); e.routine('post')
         assert bytes(e.mu.mem_read(uiemu.SURF,len(data))) == data
