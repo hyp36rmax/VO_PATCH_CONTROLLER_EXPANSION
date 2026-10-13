@@ -31,19 +31,19 @@ is stale, so the line numbers are current.
 | Lines | Region | Starts with |
 | --- | --- | --- |
 | 1–39 | header, imports, PE helpers | `#!/usr/bin/env python3` |
-| 40–2640 | widescreen: the layouts, `UI_CODE`, the port tables, the site builder | `# The resolution patch: the` |
-| 2641–2780 | widescreen apply: `hires_install`, section append, F4 table | `def hires_install(buf, width` |
-| 2781–2859 | disc images table, `Build` class, annex order | `DISC_IMAGES = {` |
-| 2860–3599 | the four builds: symbols, caves, site maps | `RETAIL = Build('English reta` |
-| 3600–4501 | generated site maps for the other three builds (`tools/buildsites.py`) | `# SITES JPRE BEGIN` |
-| 4502–5953 | the blobs, `BLOBS`, and `link()` | `BLOBS = {` |
-| 5954–6363 | banner and credit bitmaps, tile expansion | `LEVERS_CODE = link('LEVERS',` |
-| 6364–7130 | the patch table: `FEATURES`, `BY_KEY`, labels, tips, apply order | `FEATURES = [` |
-| 7131–8034 | ripping (`RAW = 2352`) and installing (`LOGICAL = 2048`) | `# --- ripping --------------` |
-| 8035–8861 | netplay setup, `SYNC_SITES`, cnc-ddraw, CD audio | `# --- netplay --------------` |
-| 8862–9351 | `Patcher`: reading a file, applying, restoring | `class Patcher:` |
-| 9352–9919 | the logo and icon (`tools/assets.py`), then the window strings | `# ASSETS BLOB BEGIN - tools/` |
-| 9920–11920 | the window (`run_tk`), the CLI, `main` | `def run_tk():` |
+| 40–2658 | widescreen: the layouts, `UI_CODE`, the port tables, the site builder | `# The resolution patch: the` |
+| 2659–2798 | widescreen apply: `hires_install`, section append, F4 table | `def hires_install(buf, width` |
+| 2799–2877 | disc images table, `Build` class, annex order | `DISC_IMAGES = {` |
+| 2878–3617 | the four builds: symbols, caves, site maps | `RETAIL = Build('English reta` |
+| 3618–4519 | generated site maps for the other three builds (`tools/buildsites.py`) | `# SITES JPRE BEGIN` |
+| 4520–5971 | the blobs, `BLOBS`, and `link()` | `BLOBS = {` |
+| 5972–6381 | banner and credit bitmaps, tile expansion | `LEVERS_CODE = link('LEVERS',` |
+| 6382–7148 | the patch table: `FEATURES`, `BY_KEY`, labels, tips, apply order | `FEATURES = [` |
+| 7149–8052 | ripping (`RAW = 2352`) and installing (`LOGICAL = 2048`) | `# --- ripping --------------` |
+| 8053–8879 | netplay setup, `SYNC_SITES`, cnc-ddraw, CD audio | `# --- netplay --------------` |
+| 8880–9369 | `Patcher`: reading a file, applying, restoring | `class Patcher:` |
+| 9370–9937 | the logo and icon (`tools/assets.py`), then the window strings | `# ASSETS BLOB BEGIN - tools/` |
+| 9938–11938 | the window (`run_tk`), the CLI, `main` | `def run_tk():` |
 <!-- REGIONS END -->
 
 ## 3. `v_on.exe`
