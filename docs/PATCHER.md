@@ -43,7 +43,7 @@ forwarding.
 ## Quick start
 
 **Download** `v-on-patcher-*-win.zip` from the
-[Controller Expansion build artifacts](https://github.com/hyp36rmax/vo_patch/actions/workflows/build.yml),
+[Controller Expansion build artifacts](https://github.com/hyp36rmax/VO_PATCH_CONTROLLER_EXPANSION/actions/workflows/build.yml),
 unzip it anywhere and run `v-on-patcher.exe`; the `_internal` folder
 beside it has to stay. If SmartScreen or a virus scanner objects, see
 [Virus warnings](#virus-warnings). On Linux, see
@@ -613,8 +613,11 @@ Four builds of the game exist, and all four patch:
 | Japanese original | 6,644,224 | `9764d946ffc8cee94788707c91753478` | patches |
 
 The USA, USA Alt and European discs all carry the same English retail
-`v_on.exe`, so any of them will do. Every patch works on all four builds,
-and the window names the build it is looking at.
+`v_on.exe`, so any of them will do. The window identifies the build.
+Upstream patches support all four builds; expanded controller profiles, Custom
+remapping and explicit physical-controller selection are available only on English
+retail and Japanese rerelease. USA OEM and Japanese original retain upstream
+profiles and connected-slot assignment. See [controller compatibility](../README.md#compatibility).
 
 **[The Japanese original](https://redump.info/disc/133978)** is the 1997
 1.04J pressing, also found in the Sega PC Greatest Hits Vol. 3 bundle. Its
@@ -638,13 +641,16 @@ with the new title prompt, after a copy is kept as `.bak`.
 
 Every run appends a section to `v_on.exe` for the patch code, and
 **No disc required**, **Disable menu bar** and **Native widescreen** each
-add one more; nothing else on disk changes.
+add one more. On English retail and Japanese rerelease, **XInput gamepad support**
+also installs the supplied `vontanita.dll` beside the game. The helper requires
+the Windows Universal C Runtime; keep the packaged copy intact.
 
 **Restore original** puts every backed-up file back - those three and the
 two roll files the credit line rewrites - keeping whatever the patched game
 wrote as `v_on.ini.patched`. Use it rather than copying a `.bak` over by
 hand: the artwork and `v_on.exe` have to match, and restoring one alone
-draws the title prompt as scrambled letters.
+draws the title prompt as scrambled letters. The controller helper may remain
+beside the restored game; the stock executable does not load it.
 
 ## Running the Python script
 
@@ -653,9 +659,10 @@ is that script with Python beside it. On Linux, or if you would rather
 not run the exe, run the script itself. Two ways to get it:
 
 - `v-on-patcher-*-python.zip` from the
-  [Controller Expansion build artifacts](https://github.com/hyp36rmax/vo_patch/actions/workflows/build.yml):
-  the script with the netplay DLL beside it in `net/`, nothing else.
-- A checkout of this repository; the same two files are in the same places.
+  [Controller Expansion build artifacts](https://github.com/hyp36rmax/VO_PATCH_CONTROLLER_EXPANSION/actions/workflows/build.yml):
+  the script with the netplay DLL in `net/` and the controller helper
+  `input/vontanita.dll`. Keep both directories beside the script.
+- A checkout of this repository; the script and helpers are in the same places.
 
 GitHub's own "Source code" zip on the release page is the whole repository,
 which also works, but carries the development tree with it.
