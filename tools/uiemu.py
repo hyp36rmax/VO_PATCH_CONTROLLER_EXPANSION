@@ -35,11 +35,13 @@ W, H = 1920, 1080
 SURF, STACK, RET, TILES, REC = (0x10000000, 0x20000000, 0x30000000,
                                 0x40000000, 0x50000000)
 # blob data offsets (asm/ui.asm D_*) the tests read or write
+import vonpatcher_hires as _layout
 D = dict(BASEPTR=0x1c1c, LW=0x1c28, XOFF=0x1c34, PHASE=0x1c38, S=0x1c5c,
          ROUND=0x1c88, SPREAD=0x1c98, S16=0x1cc8, CXH=0x1dc8, CYH=0x1dcc,
          OFFX16=0x1dd0, OFFY16=0x1dd4, PASSFN=0x1dc0, PINON=0x1e70,
-         PINSUB=0x1e74, SHOW=0x1e88, LAYOUT=0x1e8c, OFF=0xf3b00)
-OFF_PITCH = 2048
+         PINSUB=0x1e74, SHOW=0x1e88, LAYOUT=0x1e8c, OFF=_layout.UI_CANVAS_OFF)
+# Use the generated source layout; physical fixture sizes stay explicit.
+OFF_PITCH = _layout.UI_CANVAS_PITCH
 # game globals the blob and the walker read (retail)
 G = dict(FB_PTR=0x6bf5a8, FB_PITCH=0x6bf5ac, FB_ROW=0x6bf5b0,
          FB_ROW2=0x6bf5b4, FB_W=0x6bf5b8, FB_H=0x6bf5bc, SPLIT=0x6bc948,
@@ -204,7 +206,7 @@ def check_spread(e):
     bars = (320 - e.vp.HIRES_HUD_BARS) * e.r32(D['S16']) >> 16
     splitc, botrow, botcol = e.vp.HIRES_HUD_SPREAD
     band = e.vp.HIRES_HUD_BAND
-    ok = spread == xoff == 240 and e.r32(D['ROUND']) == 1
+    ok = spread == 240 and xoff == (W - 1440) // 2 and e.r32(D['ROUND']) == 1
 
     def dx(c, r):
         if r < band:

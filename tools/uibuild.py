@@ -14,7 +14,8 @@ from its own disassembly - is regenerated with capstone.
 tools/hiresport.py must be rerun after this for the non-retail tables.
 
 --check reassembles and compares against the committed blob; nasm is
-enough for that (CI has it). Without nasm it falls back to the recorded
+used with capstone for the full generated-byte/label/relocation check.
+Without nasm it falls back to the recorded
 fingerprint of the source that built the committed blob.
 """
 import os
@@ -35,7 +36,9 @@ LABELS = ['world_a', 'world_a2', 'world_b', 'world_b2', 'submit_a',
           'insert_a', 'insert_b', 'hangar_draw', 'frame_setup', 'flush_a',
           'flush_b', 'f4_toggle', 'dlg_init', 'dlg_ok', 'dlg_done',
           'ini_load', 'ini_save', 'roll_blit', 'rowsafe', 'credits_moon',
-          'pre', 'post', 'rescale']      # the last three for tools/uiemu.py
+          'pre', 'post', 'rescale', 'OFF_PITCH', 'CANVAS_ROWS',
+          'CANVAS_START', 'REGION_SIZE', 'D_OFF', 'D_STAGE', 'D_COPY',
+          'D_SPREADMAX', 'STUBS']      # routines and shared layout constants
 
 # Ends the label table a temporary copy of the source carries; the blob
 # is everything before it.
@@ -116,15 +119,9 @@ def main():
             return
         sys.exit('building needs nasm: sudo apt install nasm')
     blob, offs = assemble(src_asm)
-    if check:
-        sys.path.insert(0, HERE)
-        import vonpatcher_hires as hires
-        if hires.UI_CODE == blob:
-            print('asm/ui.asm matches the committed blob')
-            return
-        print('asm/ui.asm and the committed UI_CODE differ: run '
-              'tools/uibuild.py and tools/hiresport.py')
-        sys.exit(1)
+    if len(blob) > offs['STUBS']:
+        sys.exit('UI code overlaps pass stubs: %d bytes > %d' %
+                 (len(blob), offs['STUBS']))
     try:
         import capstone
     except ImportError:
@@ -143,9 +140,16 @@ def main():
             if o and sz == 4:
                 v = struct.unpack_from('<I', blob, i.address + o)[0]
                 if 0x401000 <= v < 0x3660000:
+                    # EBX is the UI section base. Its displacements are
+                    # section-relative, even if their numbers resemble VAs.
+                    if oa == 'disp_offset' and any(
+                            op.type == capstone.x86.X86_OP_MEM and
+                            op.mem.base == capstone.x86.X86_REG_EBX
+                            for op in i.operands):
+                        continue
                     refs.append((i.address + o, v))
 
-    src = open(HIRES).read()
+    original = src = open(HIRES).read()
 
     def setblock(begin, end, body):
         nonlocal src
@@ -157,6 +161,11 @@ def main():
     hexstr = blob.hex()
     rows = [hexstr[i:i + 72] for i in range(0, len(hexstr), 72)]
     setblock('# UI CODE BEGIN', '# UI CODE END',
+             ''.join('%s = %s\n' % (name, hex(offs[label])) for name, label in (
+                 ('UI_CANVAS_PITCH', 'OFF_PITCH'), ('UI_CANVAS_ROWS', 'CANVAS_ROWS'),
+                 ('UI_CANVAS_REGION', 'REGION_SIZE'), ('UI_CANVAS_OFF', 'D_OFF'),
+                 ('UI_CANVAS_STAGE', 'D_STAGE'), ('UI_CANVAS_COPY', 'D_COPY'),
+                 ('UI_SPREADMAX', 'D_SPREADMAX'))) +
              "UI_ASM_SHA = '%s'\n" % sha +
              "UI_CODE = bytes.fromhex(\n" +
              '\n'.join("    '%s'" % r for r in rows) + ')\n')
@@ -168,6 +177,7 @@ def main():
         nonlocal src
         src = re.sub(r'^%s = .*$' % name, '%s = %s' % (name, val),
                      src, count=1, flags=re.M)
+    setconst('UI_OFF', hex(offs['CANVAS_START']))
     setconst('UI_HUD_ENTER', hex(offs['hud_enter']))
     setconst('UI_INSERT_A, UI_INSERT_B',
              '%s, %s' % (hex(offs['insert_a']), hex(offs['insert_b'])))
@@ -206,6 +216,14 @@ def main():
         body = ',\n'.join('(%s, %s, 0x%x)' % (o, v, offs[lab[n]])
                           for n, (o, v) in enumerate(rows2))
         src = src.replace(block, '%s = (%s)' % (pat, body), 1)
+    if check:
+        if src != original:
+            sys.exit('generated UI bytes/labels/layout/relocations differ: '
+                     'run tools/uibuild.py')
+        print('UI source, bytes, labels, layout and relocations match; '
+              '%d bytes, %d bytes headroom' %
+              (len(blob), offs['STUBS'] - len(blob)))
+        return
     open(HIRES, 'w').write(src)
     print('blob %d bytes; ' % len(blob)
           + ' '.join('%s=%s' % (l, hex(offs[l])) for l in LABELS))

@@ -7,6 +7,7 @@
 
 Each region starts at the first line matching its anchor, in order, and
 ends where the next begins. check.py runs --check.
+VO_MAP_DOCUMENT selects a private copy for local research builds.
 """
 
 import os
@@ -16,7 +17,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 SCRIPT = os.path.join(ROOT, 'v-on-patcher.py')
-MAP = os.path.join(ROOT, 'docs', 'MAP.md')
+MAP = os.environ.get('VO_MAP_DOCUMENT', os.path.join(ROOT, 'docs', 'MAP.md'))
 BEGIN = '<!-- REGIONS BEGIN: tools/map.py -->'
 END = '<!-- REGIONS END -->'
 
@@ -69,7 +70,7 @@ def main(argv):
     new = doc[:a] + BEGIN + '\n' + text + '\n' + doc[b:]
     if argv[1] == '--check':
         if new != doc:
-            print('docs/MAP.md region table is stale: python3 tools/map.py --write')
+            print('%s region table is stale: python3 tools/map.py --write' % MAP)
             return 1
         return 0
     if argv[1] == '--write':

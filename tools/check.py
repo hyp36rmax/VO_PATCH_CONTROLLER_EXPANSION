@@ -71,7 +71,7 @@ CHECKS = [
       'tools/credittest.py', 'tools/vocredits.py', 'tools/disctest.py',
       'tools/guitest.py', 'tools/check.py', 'tools/buildsites.py',
       'tools/vomap.py', 'tools/votrans.py', 'tools/whereis.py',
-      'tools/uibuild.py', 'tools/hiresport.py', 'tools/vonpatcher_hires.py',
+      'tools/uibuild.py', 'tools/d01test.py', 'tools/hiresport.py', 'tools/vonpatcher_hires.py',
       'tools/rvload.py', 'tools/uiemu.py', 'tools/portaudit.py',
       'tools/assets.py', 'tools/map.py', 'net/rendezvous.py'], False,
      False),
@@ -85,6 +85,8 @@ CHECKS = [
      [PY, 'tools/bannertest.py', '{game}'], True, False),
     ('credit', 'the credit line reads back out of the roll',
      [PY, 'tools/credittest.py', '{game}'], True, False),
+    ('d01', 'private display mask, relocation and CE.2 regression gates',
+     [PY, 'tools/d01test.py', '{exe}'], True, False, ('retail', 'jpre')),
     ('uiemu', 'the resolution blob run under Unicorn',
      [PY, 'tools/uiemu.py', '{exe}'], True, False, ('retail',)),
 ]

@@ -82,7 +82,10 @@ PROJ_A    equ 0x6db4c8          ; renderer A projection: 3D, aspect, HUD
 ASPECT_A  equ 0x6bc1e8
 PROJ_B    equ 0x708818          ; renderer B projection: 3D, aspect, HUD
 ASPECT_B  equ 0x6c8b28
-OFF_PITCH equ 2048              ; canvas up to 1024 px wide
+OFF_PITCH equ 4096              ; 2048 pixels at 16bpp
+CANVAS_ROWS equ 480
+CANVAS_START equ 0x3b00
+REGION_SIZE equ OFF_PITCH * CANVAS_ROWS
 D_BASE    equ 0x1c00            ; data block; code below, stubs at 0x1a70
 D_PITCH   equ 0x1c04
 D_W       equ 0x1c08
@@ -138,6 +141,7 @@ D_VAR_A   equ 0x1cec            ; 1 if set by the variant without aspect
 D_SAVE_B  equ 0x1cf0            ; the same for renderer B
 D_SAVE_FB equ 0x1cfc
 D_VAR_B   equ 0x1d00
+D_SPREADMAX equ 0x1d04         ; generated cap; unrestricted for CE.2 modes
 D_DEPTH   equ 0x1d08            ; HUD pass nesting depth (see hud_enter)
 D_RETS    equ 0x1d0c            ; saved return addresses, D_RETS_N deep,
 D_RETS_N  equ 32                ; to 0x1d8c
@@ -286,10 +290,10 @@ D_BARDX   equ 0x1da8            ; HUD units PLAYER/ENEMY and the bars move,
                                 ; signed: what centres them (patcher)
 D_ROWLAST equ 0x1d98            ; composite: the canvas row last examined
 D_ROWSAME equ 0x1d9c            ; and whether it was all copy (skipped)
-D_STAGE   equ 0x1e3b00         ; the guard rows after the canvas: the
+D_STAGE   equ CANVAS_START + 2 * REGION_SIZE         ; the guard rows after the canvas: the
                                 ; photo's 496x384, staged for the rescale
-D_OFF     equ 0xf3b00          ; canvas; 480 guard rows either side
-D_COPY    equ 0x2d3b00         ; copy of the pre-fill, canvas rows only
+D_OFF     equ CANVAS_START + REGION_SIZE          ; canvas; 480 guard rows either side
+D_COPY    equ CANVAS_START + 3 * REGION_SIZE         ; copy of the pre-fill, canvas rows only
                               ; (layout: guard, canvas, guard, copy)
 
 ; Projection setup, replacing 0x51444d / 0x51448e / 0x5cc39d / 0x5cc3de
@@ -875,9 +879,9 @@ pre_layout:
     div dword [ebx+D_H]
     inc eax                         ; even, so the picture centres on a
     and eax, -2                     ; whole canvas column
-    cmp eax, 1024
+    cmp eax, OFF_PITCH / 2
     jle pre_lw
-    mov eax, 1024
+    mov eax, OFF_PITCH / 2
     jmp pre_lw
 pre_43:
     shl eax, 2
@@ -938,7 +942,7 @@ pre_round:
 pre_pin:
     ; the HUD spread: in a round, the post-3D call; the timer moves by
     ; as many px as the frame has to either side inside the viewport
-    mov dword [ebx+D_SPREAD], 0
+    and dword [ebx+D_SPREAD], byte 0
     cmp dword [ebx+D_SPLITC], 0
     je pre_spread_done
     cmp dword [ebx+D_PHASE], 0
@@ -957,6 +961,9 @@ pre_pin:
     jle pre_spread_min
     mov eax, ecx
 pre_spread_min:
+    mov ecx, [ebx+D_SPREADMAX]
+    cmp eax, ecx
+    cmovg eax, ecx
     test eax, eax
     jle pre_spread_done
     mov [ebx+D_SPREAD], eax
