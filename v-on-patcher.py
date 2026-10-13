@@ -18,6 +18,7 @@ https://github.com/pairomaniac/v-on-patcher
 import ctypes
 import errno
 import hashlib
+from fractions import Fraction
 import io
 import math
 import os
@@ -1940,11 +1941,13 @@ def add_section(buf, size, raw=b'', name=b'.vohr'):
 
 
 def build_sites(w, h, sec_va, span_va, rowtab_va, pool, A=None):
+    _hires_check_size(w, h)
+    geometry = resolution_geometry(w, h)
     sx, sy = w / BASE_W, h / BASE_H
     if A is None:
         A = ADDR.__getitem__
     sites = []
-    stride = mask_pitch(w)
+    stride = geometry['mask_row_pitch']
     # Coverage mask at 0x6d1ce0 (twelve references), its row pointer
     # table at 0x6d0de0 (one). Buffer first, table after it.
     sites += imm_sites([0x1cd5da, 0x1cd605, 0x1cd8a5, 0x1cd9db, 0x1ce0f9,
@@ -2504,17 +2507,91 @@ def _ui_words(w, hh):
     }
 
 
+def _geometry_dimension(value):
+    """Dimensions are exact positive integers, never rounded or substituted."""
+    if type(value) is not int or value <= 0:
+        raise ValueError('display dimensions must be positive integers')
+
+
+def _mask_geometry(width):
+    _geometry_dimension(width)
+    words = (width + 31) // 32
+    used = words * 4
+    return words, used, ((used + 255) // 256) * 256
+
+
 def mask_pitch(width):
-    """Byte distance between coverage rows, distinct from visible usage."""
-    return 512 if width == 2560 else width // 8
+    """Current patch policy; compact legacy rows, padded D01 rows only.
+
+    This width-only helper does not authorize a resolution. Generation must
+    validate the complete width/height pair before consuming it.
+    """
+    _geometry_dimension(width)
+    return _mask_geometry(width)[2] if width == 2560 else width // 8
+
+
+def _hires_size_supported(width, height):
+    return ((width, height) == (2560, 1080) or
+            (width % 32 == 0 and height % 8 == 0 and width <= 2040))
 
 
 def _hires_check_size(width, height):
-    if (width, height) == (2560, 1080):
-        return                         # private D01 engineering target only
-    if width <= 0 or height <= 0 or width % 32 or height % 8 or width > 2040:
+    _geometry_dimension(width)
+    _geometry_dimension(height)
+    if not _hires_size_supported(width, height):
         raise ValueError('width must be a multiple of 32 and at most 2040, '
                          'height a multiple of 8')
+
+
+def resolution_geometry(width, height, framebuffer_pitch=None):
+    """Patch-time single-view geometry, not a mode support whitelist.
+
+    Fractions describe policy exactly; original float/fixed-point encoders
+    remain responsible for generated values. Runtime surface pitch is unknown
+    until supplied by the display layer; the visible row size is only a lower
+    bound. No runtime structure, physical-monitor or camera ownership is added.
+    Unsupported positive dimensions may be inspected but never installed.
+    """
+    _geometry_dimension(width)
+    _geometry_dimension(height)
+    if framebuffer_pitch is not None:
+        if type(framebuffer_pitch) is not int or framebuffer_pitch < width * 2:
+            raise ValueError('framebuffer pitch must hold a positive 16-bit row')
+    words, used, padded = _mask_geometry(width)
+    supported = _hires_size_supported(width, height)
+    logical = ((UI_CANVAS_ROWS * width // height) + 1) & ~1
+    capacity = UI_CANVAS_PITCH // 2
+    hud_width = min(Fraction(width), Fraction(16 * height, 9))
+    return {
+        'visible_width': width, 'visible_height': height,
+        'framebuffer_bytes_per_pixel': 2,
+        'framebuffer_pitch': framebuffer_pitch,
+        'framebuffer_min_row_bytes': width * 2,
+        'mask_used_words': words, 'mask_used_bytes': used,
+        'candidate_mask_row_pitch': padded,
+        'mask_row_pitch': mask_pitch(width) if supported else None,
+        'viewport_x': 0, 'viewport_y': 0,
+        'viewport_width': width, 'viewport_height': height,
+        'aspect_ratio': Fraction(width, height),
+        'vertical_projection_scale': Fraction(height, 480),
+        # Relative horizontal extent versus a 4:3 view at the same height;
+        # this is not the game's internal projection aspect constant or FOV.
+        'horizontal_projection_extent': Fraction(3 * width, 4 * height),
+        'hud_reference_aspect': Fraction(16, 9),
+        'hud_composition_width': hud_width,
+        'hud_horizontal_origin': (width - hud_width) / 2,
+        'hud_vertical_origin': 0, 'hud_composition_height': height,
+        'canvas_pitch': UI_CANVAS_PITCH, 'canvas_rows': UI_CANVAS_ROWS,
+        'canvas_logical_width': logical, 'canvas_capacity': capacity,
+        'canvas_fits': logical <= capacity,
+        # The existing assembly caps its working canvas; expose that separately
+        # without silently clamping requested dimensions or the research value.
+        'canvas_active_width': min(logical, capacity),
+        'canvas_region_bytes': UI_CANVAS_PITCH * UI_CANVAS_ROWS,
+        'width_alignment_remainder': width % 32,
+        'patch_size_admitted': supported,
+        'physical_validation': 'UNKNOWN',
+    }
 
 
 def _va_at(pe, off):
@@ -2675,8 +2752,11 @@ def hires_install(buf, width, height, alt=HIRES_ALT):
         A = lambda name: port['va'][ADDR[name]]     # noqa: E731
     w, hh = width, height
     aw, ah = alt
+    geometry = resolution_geometry(w, hh)
+    alternate = resolution_geometry(aw, ah)
     mask_off = UI_OFF + UI_OFF_SIZE
-    rowtab_off = mask_off + max(hh * (mask_pitch(w) + 4), ah * (mask_pitch(aw) + 4))
+    rowtab_off = mask_off + max(hh * (geometry['mask_row_pitch'] + 4),
+                               ah * (alternate['mask_row_pitch'] + 4))
     size = rowtab_off + 2 * max(hh, ah) * 4
     pool_off = size
     size += 2 * (HIRES_POLYS * 0x3c + 8)   # pool, sides, list; both renderers
