@@ -2504,7 +2504,7 @@ def _ui_words(w, hh):
         UI_CMOON: f32(1.25),
         # D01 contains spread to the existing 16:9 composition. Stable
         # modes, including local VS, retain their unrestricted CE.2 inset.
-        UI_SPREADMAX: u32(240 if (w, hh) == (2560, 1080) else 0x7fffffff),
+        UI_SPREADMAX: u32(presentation_geometry(w, hh)['installed_spread_cap']),
     }
 
 
@@ -2638,6 +2638,48 @@ def resolution_geometry(width, height, framebuffer_pitch=None):
         'width_alignment_remainder': width % 32,
         'patch_size_admitted': supported,
         'physical_validation': 'UNKNOWN',
+    }
+
+
+def presentation_geometry(width, height):
+    """Single-view HUD/artwork policy, with exact research and legacy encoding.
+
+    This consumes the resolution contract, never admits a new mode. The
+    installed cap remains D01-only: changing other modes (including split
+    layouts) needs separate validation. Runtime x87/fixed-point placement
+    remains in ui.asm; rational composition bounds are not pixel rounding.
+    """
+    g = resolution_geometry(width, height)
+    scale = min(Fraction(width, 640), Fraction(height, 480))
+    frame_width = 640 * scale
+    spread = max(Fraction(0), (g['hud_composition_width'] - frame_width) / 2)
+    # D01 is exactly integral; never truncate a future fractional cap.
+    if (width, height) == (2560, 1080):
+        if spread.denominator != 1:
+            raise ValueError('installed HUD spread must be integral')
+        cap = int(spread)
+    else:
+        cap = 0x7fffffff
+    active = g['canvas_active_width']
+    if active == 0:
+        raise ValueError('presentation requires at least one canvas column')
+    # Existing margins_photo uses a uniform 16.16 cover step, not stretch.
+    photo_step = min((496 << 16) // active, (384 << 16) // 480)
+    return {
+        'viewport': (0, 0, width, height),
+        'hud_rect': (g['hud_horizontal_origin'], g['hud_vertical_origin'],
+                     g['hud_composition_width'], g['hud_composition_height']),
+        'hud_scale': scale, 'hud_frame_width': frame_width,
+        'composition_spread': spread, 'installed_spread_cap': cap,
+        'world_indicator_rect': (0, 0, width, height),
+        'canvas_logical_width': g['canvas_logical_width'],
+        'canvas_active_width': active, 'canvas_pitch': g['canvas_pitch'],
+        'canvas_fits': g['canvas_fits'],
+        'active_row_bytes': active * 2,
+        'photo_step_16': photo_step,
+        'photo_origin_16': (((496 << 16) - active * photo_step) // 2,
+                            ((384 << 16) - 480 * photo_step) // 2),
+        'patch_size_admitted': g['patch_size_admitted'],
     }
 
 
