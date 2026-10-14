@@ -50,7 +50,7 @@ typedef struct {int unused;} MSG;
 static struct {int cs,width,height,bpp;HWND hwnd;struct {int run;}render;} g_ddraw;
 static struct {D3DPRESENT_PARAMETERS params;int tex_width,tex_height;void *device,*surface_tex[2],*vertex_buf;} g_d3d9;
 static VoMonitor monitors[VO_MAX_MONITORS];static WCHAR config[MAX_PATH];static unsigned count;
-static struct {int calls,fail_at,live,draws,presents,restores,streams,destroyed,foreground,enabled,closed;int minimized,p1_topmost,p1_above,position_calls[2],original_moves;HWND windows[2];void *bound,*texture[16];CUSTOMVERTEX vertices[16][4];} fake;
+static struct {int clears;unsigned clear_color;int calls,fail_at,live,draws,presents,restores,streams,destroyed,foreground,enabled,closed;int minimized,p1_topmost,p1_above,position_calls[2],original_moves;HWND windows[2];void *bound,*texture[16];CUSTOMVERTEX vertices[16][4];} fake;
 static HRESULT api(void){return ++fake.calls==fake.fail_at?E_FAIL:0;}
 static HRESULT acquire(void **out){HRESULT h=api();if(SUCCEEDED(h)){*out=(void*)(uintptr_t)(100+ ++fake.live);}return h;}
 static int release(void *p){(void)p;--fake.live;return 0;}
@@ -102,7 +102,8 @@ static HRESULT set_texture(void *tex){fake.bound=tex;return api();}
 #define IDirect3DDevice9_SetSamplerState(...) api()
 #define IDirect3DDevice9_SetRenderTarget(...) api()
 #define IDirect3DDevice9_SetViewport(...) api()
-#define IDirect3DDevice9_Clear(...) api()
+static HRESULT clear_output(unsigned color){++fake.clears;fake.clear_color=color;return api();}
+#define IDirect3DDevice9_Clear(d,n,r,f,color,z,s) clear_output(color)
 #define IDirect3DDevice9_BeginScene(...) api()
 static HRESULT draw(const CUSTOMVERTEX *v){HRESULT h=api();if(SUCCEEDED(h)){memcpy(fake.vertices[fake.draws],v,4*sizeof *v);fake.texture[fake.draws++]=fake.bound;}return h;}
 #define IDirect3DDevice9_DrawPrimitiveUP(d,t,n,v,s) draw(v)
@@ -116,3 +117,11 @@ static HRESULT present(void){HRESULT h=api();if(SUCCEEDED(h))++fake.presents;ret
 #define PostMessageA(...) (++fake.closed)
 #define DestroyWindow(...) (++fake.destroyed)
 static FILE *_wfopen(const WCHAR *path,const WCHAR *mode){(void)path;(void)mode;return NULL;}
+
+static unsigned test_policy=2;
+static unsigned vo_completed_policy(void){return test_policy;}
+#define GetPrivateProfileIntW(...) 0
+
+static unsigned vo_unknown_policy_count(void){return 0;}
+
+static unsigned vo_unknown_policy_value(unsigned i){(void)i;return 0;}

@@ -9,15 +9,16 @@ typedef struct { int32_t x,y,w,h; } VoRect;
 typedef struct { char id[VO_ID_CHARS]; VoRect desktop; unsigned primary,available; } VoMonitor;
 typedef struct { VoRect source,destination; unsigned monitor; } VoOutput;
 typedef enum { VO_DUAL_READY, VO_SINGLE_FALLBACK, VO_ASSIGNMENT_MISSING, VO_CLONED_OUTPUTS, VO_INVALID_GEOMETRY } VoResult;
-/* Contain 16:9 in physical desktop pixels. No extra framebuffer allocation. */
-static int vo_fit(VoRect m, VoRect *out) {
-    if(m.w<=0||m.h<=0) return 0;
+/* Contain the source aspect in physical pixels; no framebuffer allocation. */
+static int vo_fit_source(VoRect m,int sw,int sh, VoRect *out) {
+    if(m.w<=0||m.h<=0||sw<=0||sh<=0) return 0;
     int64_t w=m.w,h=m.h;
-    if(w*9>h*16) w=h*16/9; else h=w*9/16;
+    if(w*sh>h*sw) w=h*sw/sh; else h=w*sh/sw;
     int64_t x=(int64_t)m.x+(m.w-w)/2,y=(int64_t)m.y+(m.h-h)/2;
     if(w<1||h<1||x<INT32_MIN||y<INT32_MIN||x+w>INT32_MAX||y+h>INT32_MAX)return 0;
     *out=(VoRect){(int32_t)x,(int32_t)y,(int32_t)w,(int32_t)h};return 1;
 }
+static int vo_fit(VoRect m,VoRect *out){return vo_fit_source(m,16,9,out);}
 static int vo_find(const VoMonitor *m,unsigned n,const char *id) {
     for(unsigned i=0;i<n;i++)if(m[i].available&&id[0]&&!strcmp(id,m[i].id))return (int)i;
     return -1;

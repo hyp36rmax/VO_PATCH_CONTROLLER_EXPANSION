@@ -10,7 +10,12 @@ assert subprocess.check_output(['git','rev-parse','HEAD'],cwd=source,text=True).
 out.mkdir(parents=True,exist_ok=False)
 archive=subprocess.check_output(['git','archive',PIN],cwd=source)
 with tarfile.open(fileobj=io.BytesIO(archive)) as t:t.extractall(out,filter='data')
-for name in ('presentation.h','inventory.h','layout.h'):(out/'inc'/name).write_bytes((here/name).read_bytes())
+for name in ('presentation.h','inventory.h','layout.h','policy.h','state_bridge.h','game_profiles.h'):(out/'inc'/name).write_bytes((here/name).read_bytes())
+(out/'src/state_bridge.c').write_bytes((here/'state_bridge.c').read_bytes())
+f=out/'src/ddsurface.c';body=f.read_text();needle='HRESULT dds_Unlock(IDirectDrawSurfaceImpl* This, LPRECT lpRect)\n{'
+assert body.count(needle)==1
+body=body.replace(needle,needle+'\n    if (g_config.lock_surfaces && This == g_ddraw.primary) vo_capture_policy();')
+f.write_text('#include \"state_bridge.h\"\n'+body)
 f=out/'src/render_d3d9.c';s=f.read_text()
 def replace(old,new):
  global s
@@ -29,11 +34,11 @@ replace('        if (FAILED(IDirect3DDevice9_Present(g_d3d9.device, NULL, NULL, 
 replace('    if (g_config.vhack)\n        InterlockedExchange(&g_ddraw.upscale_hack_active, FALSE);','    vo_dual_end();\n    if (g_config.vhack)\n        InterlockedExchange(&g_ddraw.upscale_hack_active, FALSE);')
 f.write_text(s)
 # Avoid git metadata from the outer workspace influencing version metadata.
-(out/'inc/git.h').write_text(f'#define GIT_COMMIT "{PIN}-private-D04-P03"\n#define GIT_BRANCH "private-presentation"\n')
+(out/'inc/git.h').write_text(f'#define GIT_COMMIT "{PIN}-private-D04-P05"\n#define GIT_BRANCH "private-presentation"\n')
 # Compile directly: original Makefile rewrites git.h from its parent checkout.
 objects=[]
 for c in sorted((out/'src').glob('**/*.c')):
  obj=c.with_suffix('.o');subprocess.run([a.cc,'-I'+str(out/'inc'),'-O2','-Wall','-std=c99','-c',str(c),'-o',str(obj)],check=True);objects.append(str(obj))
 subprocess.run([a.windres,'-J','rc',str(out/'res.rc'),str(out/'res.o')],cwd=out,check=True)
 subprocess.run([a.cc,'-Wl,--enable-stdcall-fixup','-Wl,--no-insert-timestamp','-s','-static','-shared','-o',str(out/'ddraw.dll'),*objects,str(out/'res.o'),str(out/'exports.def'),'-lgdi32','-lwinmm','-lole32','-lmsimg32','-lavifil32','-luuid'],check=True)
-(out/'private-build.json').write_text(json.dumps({'base':PIN,'dll_sha256':hashlib.sha256((out/'ddraw.dll').read_bytes()).hexdigest(),'extension':{n:hashlib.sha256((here/n).read_bytes()).hexdigest() for n in ('presentation.h','inventory.h','layout.h','build_wrapper.py')}},indent=2)+'\n')
+(out/'private-build.json').write_text(json.dumps({'base':PIN,'dll_sha256':hashlib.sha256((out/'ddraw.dll').read_bytes()).hexdigest(),'extension':{n:hashlib.sha256((here/n).read_bytes()).hexdigest() for n in ('presentation.h','inventory.h','layout.h','policy.h','state_bridge.h','state_bridge.c','game_profiles.h','build_wrapper.py')}},indent=2)+'\n')

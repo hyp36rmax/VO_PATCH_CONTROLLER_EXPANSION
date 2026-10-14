@@ -20,17 +20,22 @@ for mode in ('dual','control'):
 for n in ('Launch.ps1','Collect-Results.ps1'):shutil.copy2(here/n,out/n)
 for mode,name in [('dual','START-DUAL-DISPLAY.cmd'),('control','START-LOCAL-VS-CONTROL.cmd')]:
  (out/name).write_bytes(('@echo off\r\nsetlocal\r\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Launch.ps1" -Mode '+mode+'\r\nif errorlevel 1 pause\r\n').encode('ascii'))
-(out/'READ-ME.txt').write_text('''D04-P03 PRIVATE WINDOWS UAT — runtime validation pending
+(out/'READ-ME.txt').write_text('''D04-P05 PRIVATE WINDOWS UAT — runtime validation pending
 
 Extract the entire ZIP to a writable folder.
-1. Launch START-DUAL-DISPLAY.cmd. Select the P1 and P2 displays and save.
-2. The original game starts automatically. Select original Local VS.
-3. Check independent cameras, HUD/targeting, P1/P2 controls, 16:9 shape,
-   stable motion and responsiveness. Try Alt+Tab, minimize/restore and exit.
-4. Closing the game must close both output windows. The results ZIP is selected.
-5. Run START-LOCAL-VS-CONTROL.cmd for the unchanged D03-P04 comparison.
-6. Return RETURN-THIS-D04-P03.zip and your observations.
-   If ZIP creation fails, the equally named return folder retains the logs.
+1. Launch START-DUAL-DISPLAY.cmd. Select both displays; leave secondary gameplay
+   at Player 2 and save. Settings persist between launches.
+2. Startup/menu: Display 1 shows the complete frame; Display 2 is black.
+   The known invisible intro picture is non-blocking if audio/skip still work.
+3. Enter Local VS: verify selection and pre-fight are mirrored without cropping.
+4. Play: verify independent cameras, HUD/targeting, P1/P2 controls and proportions.
+5. Return to menu: Display 2 should return to black. Test Alt+Tab/minimize/restore.
+6. Exit; verify both windows close. Relaunch and choose Mirror Player 1.
+   Verify only gameplay presentation changes: P2 still plays with its controller.
+7. Test available mixed-size/aspect displays; no display-setting changes needed.
+8. START-LOCAL-VS-CONTROL.cmd provides the unchanged D03-P04 comparison if needed.
+9. Return RETURN-THIS-D04-P05.zip and observations after the session.
+   If compression fails, the equally named return folder retains all run logs.
 
 Run normally, not as administrator. No privilege elevation is requested.
 
@@ -45,8 +50,9 @@ Windows execution, physical output, scanout alignment and latency are unverified
 No measured or zero-latency claim is made. The two outputs use the same uploaded
 texture generation, but their presents and physical scanouts are sequential.
 Source surface locking is enabled to prevent reading a partially written frame.
-No controller/game/renderer/camera code is changed. Menus and other shared screens
-are also divided at the midpoint; navigate in the original game as usual.
+The game executable, controllers and cameras are unchanged. Shared output contains
+the complete 32:9 framebuffer, fitted independently to each monitor. Letterboxing
+is expected on narrower displays. Three-phase Windows behavior NEEDS VALIDATION.
 ''')
 (out/'build-record.json').write_text(json.dumps({'source_head':subprocess.check_output(['git','rev-parse','HEAD'],cwd=here,text=True).strip(),'wrapper':json.loads((wrapper/'private-build.json').read_text()),'game_sha256':sha(source/'game/v_on.exe'),'observer_sha256':sha(source/'OBSERVER.exe'),'windows_runtime':'NEEDS VALIDATION','physical':'NEEDS VALIDATION'},indent=2)+'\n')
 # Include original wrapper provenance/license, and private extension sources.

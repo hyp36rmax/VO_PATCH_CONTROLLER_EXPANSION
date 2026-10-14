@@ -1,7 +1,11 @@
 /* Included only in the pinned render_d3d9.c, after g_d3d9.
- * No game memory hooks: consume the renderer's already uploaded texture. */
+ * Read-only producer policy accompanies the renderer's uploaded texture. */
 #ifndef VO_DUAL_TEST
 #include "inventory.h"
+#endif
+#include "policy.h"
+#ifndef VO_DUAL_TEST
+#include "state_bridge.h"
 #endif
 static struct {
     HWND window[2];
@@ -14,6 +18,9 @@ static struct {
     unsigned long frames, pairs, uploads;
     unsigned long generation[2], presented_generation[2];
     BOOL texture_valid[2];
+    VoPolicy policy[2];
+    int mirror;
+    unsigned long phase_pairs[4];
 } vo_dual;
 
 static LRESULT CALLBACK vo_output_proc(HWND window, UINT msg, WPARAM w, LPARAM l)
@@ -113,6 +120,7 @@ static BOOL vo_dual_init(void)
     if (!slash || slash-config+22 >= MAX_PATH) goto fail;
     wcscpy(slash+1, L"player-displays.ini");
     if (!discover()) goto fail;
+    vo_dual.mirror = GetPrivateProfileIntW(L"Presentation", L"MirrorPlayer1", 0, config) == 1;
     char a[VO_ID_CHARS], b[VO_ID_CHARS];
     load_id(L"Player1", a); load_id(L"Player2", b);
     if (vo_plan(monitors, count, a, b, vo_dual.output) != VO_DUAL_READY) goto fail;
@@ -174,6 +182,9 @@ static void vo_dual_present(int texture_index)
     VO_TRY(IDirect3DDevice9_SetSamplerState(g_d3d9.device, 0, D3DSAMP_MAGFILTER, D3DTEXF_POINT));
     for (int i = 0; i < 2; ++i) {
         VoOutput o = vo_dual.output[i]; VoRect monitor = monitors[o.monitor].desktop;
+        int black=0;
+        if(!vo_route(vo_dual.policy[texture_index],vo_dual.mirror,i,monitor,&o,&black)){hr=E_FAIL;goto restore;}
+        vo_dual.output[i]=o;
         float x = (float)(o.destination.x-monitor.x)-0.5f;
         float y = (float)(o.destination.y-monitor.y)-0.5f;
         float right = x+o.destination.w, bottom = y+o.destination.h;
@@ -185,6 +196,7 @@ static void vo_dual_present(int texture_index)
         VO_TRY(IDirect3DDevice9_SetRenderTarget(g_d3d9.device, 0, vo_dual.target[i]));
         VO_TRY(IDirect3DDevice9_SetViewport(g_d3d9.device, &viewport));
         VO_TRY(IDirect3DDevice9_Clear(g_d3d9.device, 0, NULL, D3DCLEAR_TARGET, 0, 1, 0));
+        if(black) continue;
         VO_TRY(IDirect3DDevice9_BeginScene(g_d3d9.device));
         hr = IDirect3DDevice9_DrawPrimitiveUP(g_d3d9.device, D3DPT_TRIANGLESTRIP, 2, vertices, sizeof vertices[0]);
         HRESULT end = IDirect3DDevice9_EndScene(g_d3d9.device);
@@ -211,7 +223,7 @@ restore:;
         }
     }
     if (FAILED(hr)) { vo_dual.failure=hr; vo_dual.disabled=TRUE; }
-    else { ++vo_dual.pairs; vo_dual_visibility(TRUE); }
+    else { ++vo_dual.pairs; ++vo_dual.phase_pairs[vo_dual.policy[texture_index]]; vo_dual_visibility(TRUE); }
 #undef VO_TRY
 done:
     if (vo_dual.disabled) { vo_dual_visibility(FALSE); vo_dual_release_gpu(); }
@@ -219,6 +231,7 @@ done:
 }
 static void vo_dual_uploaded(int index)
 {
+    vo_dual.policy[index] = (VoPolicy)vo_completed_policy();
     vo_dual.texture_valid[index] = TRUE;
     vo_dual.generation[index] = ++vo_dual.uploads;
 }
@@ -237,6 +250,9 @@ static void vo_dual_end(void)
             if(log) { fprintf(log,"uploads=%lu draw_frames=%lu presented_pairs=%lu fallback=%d hr=0x%08lx\n",vo_dual.uploads,vo_dual.frames,vo_dual.pairs,vo_dual.disabled,(unsigned long)vo_dual.failure);
                 for (int i=0;i<2;++i) { VoOutput o=vo_dual.output[i]; fprintf(log,"player=%d id=%s source=%d,%d,%d,%d destination=%d,%d,%d,%d\n",i+1,monitors[o.monitor].id,o.source.x,o.source.y,o.source.w,o.source.h,o.destination.x,o.destination.y,o.destination.w,o.destination.h); }
                 fprintf(log,"p1_generation=%lu p2_generation=%lu\n",vo_dual.presented_generation[0],vo_dual.presented_generation[1]);
+                fprintf(log,"primary_only=%lu local_vs_shared=%lu local_vs_gameplay=%lu unknown=%lu mirror_p1=%d\n",vo_dual.phase_pairs[0],vo_dual.phase_pairs[1],vo_dual.phase_pairs[2],vo_dual.phase_pairs[3],vo_dual.mirror);
+                fprintf(log,"unrecognized_state_samples=%u\n",vo_unknown_policy_count());
+                fprintf(log,"last_unknown_loop=%u mode=%u split=%u show=%u\n",vo_unknown_policy_value(0),vo_unknown_policy_value(1),vo_unknown_policy_value(2),vo_unknown_policy_value(3));
                 fclose(log); }
         }
     }
