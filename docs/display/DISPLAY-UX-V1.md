@@ -1,36 +1,27 @@
-# DUX-V1.0 — display configuration contract
+# F04 display configuration storage
 
-Recovered from the frozen project planning record; implemented incrementally.
-F04 adds launch-time selection. F-key integration and Unified Overlay are deferred.
+The authoritative design is [DUX-V1.0](DUX-V1.0.md). This document describes the
+current F04 implementation, not additional frozen requirements.
 
-| Setting or condition | Contract |
+The existing `game/player-displays.ini` is the single display configuration
+store. Controller and game configuration remain in their existing files.
+
+| Section / key | Meaning |
 |---|---|
-| Fresh installation | Single Display; Widescreen (16:9) |
-| One active monitor | Single Display; preserve any unavailable dual preference |
-| Two or more active monitors | Offer Single, Dual — Versus, Dual — Mirror; do not auto-enable dual |
-| Primary / secondary | Persistent stable display identities; reject duplicate/overlapping dual outputs |
-| Game aspect | Explicit saved preference; never inferred from physical width alone |
-| Presentation | Contain source aspect in each current desktop; no Windows mode change |
-| Missing display/profile | Resolve a temporary compatible selection; retain requested values |
-| Changes | Apply at next launch; no unvalidated live switching |
-| Configuration authority | Existing `game/player-displays.ini`, consumed by shared resolution services |
-| Controller configuration | Existing game/controller files; unchanged |
+| Players / Player1 | Primary display stable identity |
+| Players / Player2 | Secondary display stable identity |
+| Presentation / Mode | 0 Single, 1 Versus, 2 Mirror |
+| Presentation / GameAspect | 0 Original, 1 Widescreen, 2 Ultrawide, 3 Super-ultrawide |
 
-`[Players] Player1/Player2` retain the existing stable IDs. `[Presentation] Mode`
-is 0 Single, 1 Versus, 2 Mirror; `GameAspect` is 0 Original, 1 Widescreen,
-2 Ultrawide, 3 Super-ultrawide. These numeric values are implementation details.
-Absent aspect defaults to Widescreen. Legacy explicit pairs migrate from the
-existing MirrorPlayer1 setting; connecting extra monitors alone never selects dual.
-Requested settings remain authoritative. The launcher's effective selection and
-physical rectangle are session data, not another saved configuration authority.
+Absent aspect defaults to Widescreen. Legacy explicit display pairs migrate
+from the existing MirrorPlayer1 setting; connecting extra monitors alone never
+selects dual. Requested settings remain authoritative during temporary fallback.
+The launcher's effective selection and physical rectangle are session data,
+not another saved configuration authority.
 
-| Phase | Display 1 | Display 2 |
-|---|---|---|
-| Startup / movie / main menu | Original presentation | Black |
-| Local VS selection / pre-fight | Shared composition | Mirrored shared composition |
-| Versus gameplay | P1 | P2 |
-| Mirror gameplay | P1 | P1 |
-| Return to menu | Original presentation | Black |
+F04 exposes a private launch-time selector for Windows acceptance. Existing
+F-key menus remain operational; integrating the expanded display settings into
+them is deferred. Future interfaces must reuse the same configuration services.
 
-The existing F-key menus remain operational. Later integration must reuse this
-configuration model; no second settings store or overlay implementation is added.
+See the [F04 implementation and validation record](PRIVATE-DUAL-DISPLAY-P05-F04.md)
+for profile limitations and physical acceptance status.

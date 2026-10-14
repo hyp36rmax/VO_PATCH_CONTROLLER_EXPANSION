@@ -6,7 +6,7 @@ The user confirms visible movie, audio/skip, single and dual gameplay at that ba
 
 ## Selection and preservation
 
-The launcher resolves [DUX-V1.0](DISPLAY-UX-V1.md) before starting one game process.
+The launcher resolves [DUX-V1.0](DUX-V1.0.md) before starting one game process.
 One game directory retains controller and game configuration across all profiles.
 Immutable executable profiles are verified and copied into that directory before
 launch. No runtime renderer switch, second game, new camera or input backend is added.

@@ -89,5 +89,5 @@ Historical records: [P02B](../../docs/display/PRIVATE-DUAL-DISPLAY-P02B.md),
 
 F04 adds an opt-in mode-aware package using `package_modes.py` and
 `build_wrapper.py --mode-aware`. See [the F04 record](../../docs/display/PRIVATE-DUAL-DISPLAY-P05-F04.md)
-and [DUX-V1.0 configuration contract](../../docs/display/DISPLAY-UX-V1.md).
+and [DUX-V1.0 configuration contract](../../docs/display/DUX-V1.0.md).
 The original F03C package/build path remains available for recovery.
