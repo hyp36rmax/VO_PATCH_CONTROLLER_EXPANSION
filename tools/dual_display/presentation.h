@@ -1,0 +1,226 @@
+/* Included only in the pinned render_d3d9.c, after g_d3d9.
+ * No game memory hooks: consume the renderer's already uploaded texture. */
+#ifndef VO_DUAL_TEST
+#include "inventory.h"
+#endif
+static struct {
+    HWND window[2];
+    IDirect3DSwapChain9 *chain[2];
+    IDirect3DSurface9 *target[2];
+    IDirect3DStateBlock9 *state;
+    VoOutput output[2];
+    BOOL attempted, disabled, visible, registered;
+    HRESULT failure;
+    unsigned long frames, pairs, uploads;
+    BOOL texture_valid[2];
+} vo_dual;
+
+static LRESULT CALLBACK vo_output_proc(HWND window, UINT msg, WPARAM w, LPARAM l)
+{
+    if (msg == WM_MOUSEACTIVATE) return MA_NOACTIVATEANDEAT;
+    if (msg == WM_DISPLAYCHANGE || msg == WM_CLOSE) {
+        EnterCriticalSection(&g_ddraw.cs);
+        vo_dual.disabled = TRUE;
+        LeaveCriticalSection(&g_ddraw.cs);
+        return 0;
+    }
+    return DefWindowProcA(window, msg, w, l);
+}
+
+/* Caller holds g_ddraw.cs. Release every default-pool reference before Reset.
+ * Window destruction remains on the render thread that created the windows. */
+static void vo_dual_release_gpu(void)
+{
+    if (vo_dual.state) IDirect3DStateBlock9_Release(vo_dual.state);
+    vo_dual.state = NULL;
+    for (int i = 0; i < 2; ++i) {
+        if (vo_dual.target[i]) IDirect3DSurface9_Release(vo_dual.target[i]);
+        if (vo_dual.chain[i]) IDirect3DSwapChain9_Release(vo_dual.chain[i]);
+        vo_dual.target[i] = NULL;
+        vo_dual.chain[i] = NULL;
+    }
+}
+static void vo_dual_before_reset(void)
+{
+    EnterCriticalSection(&g_ddraw.cs);
+    if (vo_dual.attempted) vo_dual.disabled = TRUE;
+    vo_dual_release_gpu();
+    memset(vo_dual.texture_valid, 0, sizeof vo_dual.texture_valid);
+    LeaveCriticalSection(&g_ddraw.cs);
+}
+static void vo_dual_visibility(BOOL show)
+{
+    if (show == vo_dual.visible) return;
+    for (int i = 0; i < 2; ++i) if (vo_dual.window[i]) {
+        if (show) real_SetWindowPos(vo_dual.window[i], HWND_TOP, 0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+        else ShowWindow(vo_dual.window[i], SW_HIDE);
+    }
+    vo_dual.visible = show;
+}
+static void vo_dual_pump(void)
+{
+    MSG msg;
+    /* Do not remove messages for the game's window or other libraries. */
+    for (int i = 0; i < 2; ++i) if (vo_dual.window[i])
+        while (PeekMessageA(&msg, vo_dual.window[i], 0, 0, PM_REMOVE))
+            DispatchMessageA(&msg);
+    EnterCriticalSection(&g_ddraw.cs);
+    if (vo_dual.disabled || GetForegroundWindow() != g_ddraw.hwnd || IsIconic(g_ddraw.hwnd))
+        vo_dual_visibility(FALSE);
+    LeaveCriticalSection(&g_ddraw.cs);
+}
+static DWORD vo_dual_wait(HANDLE semaphore, DWORD timeout)
+{
+    if (!vo_dual.window[0] && !vo_dual.window[1]) return WaitForSingleObject(semaphore, timeout);
+    DWORD start = GetTickCount();
+    for (;;) {
+        vo_dual_pump();
+        DWORD elapsed = GetTickCount() - start;
+        DWORD slice = timeout == INFINITE ? 50 : (elapsed >= timeout ? 0 : min(50, timeout - elapsed));
+        DWORD result = WaitForSingleObject(semaphore, slice);
+        if (result != WAIT_TIMEOUT || (timeout != INFINITE && GetTickCount() - start >= timeout)) return result;
+        if (!g_ddraw.render.run) return WAIT_TIMEOUT;
+    }
+}
+static BOOL vo_dual_init(void)
+{
+    char enabled[2];
+    if (GetEnvironmentVariableA("VO_DUAL_DISPLAY", enabled, sizeof enabled) != 1 || enabled[0] != '1') return FALSE;
+    vo_dual.attempted = TRUE;
+    vo_dual.failure = E_FAIL;
+    if (!g_d3d9.params.Windowed || g_ddraw.width != 3840 || g_ddraw.height != 1080 || g_ddraw.bpp != 16) goto fail;
+    DWORD n = GetModuleFileNameW(NULL, config, MAX_PATH);
+    if (!n || n >= MAX_PATH) goto fail;
+    WCHAR *slash = wcsrchr(config, L'\\');
+    if (!slash || slash-config+22 >= MAX_PATH) goto fail;
+    wcscpy(slash+1, L"player-displays.ini");
+    if (!discover()) goto fail;
+    char a[VO_ID_CHARS], b[VO_ID_CHARS];
+    load_id(L"Player1", a); load_id(L"Player2", b);
+    if (vo_plan(monitors, count, a, b, vo_dual.output) != VO_DUAL_READY) goto fail;
+    WNDCLASSA wc = {0};
+    wc.lpfnWndProc = vo_output_proc; wc.hInstance = GetModuleHandleA(NULL);
+    wc.lpszClassName = "VoPrivatePlayerOutput";
+    if (!RegisterClassA(&wc)) goto fail;
+    vo_dual.registered = TRUE;
+    for (int i = 0; i < 2; ++i) {
+        VoRect r = monitors[vo_dual.output[i].monitor].desktop;
+        vo_dual.window[i] = real_CreateWindowExA(WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW,
+            wc.lpszClassName, i ? "Virtual-On Player 2" : "Virtual-On Player 1",
+            WS_POPUP, r.x, r.y, r.w, r.h, NULL, NULL, wc.hInstance, NULL);
+        if (!vo_dual.window[i]) goto fail;
+        D3DPRESENT_PARAMETERS params = {0};
+        params.Windowed = TRUE; params.SwapEffect = D3DSWAPEFFECT_DISCARD;
+        params.hDeviceWindow = vo_dual.window[i]; params.BackBufferCount = 1;
+        params.BackBufferWidth = r.w; params.BackBufferHeight = r.h;
+        params.BackBufferFormat = D3DFMT_UNKNOWN;
+        params.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+        vo_dual.failure = IDirect3DDevice9_CreateAdditionalSwapChain(g_d3d9.device, &params, &vo_dual.chain[i]);
+        if (FAILED(vo_dual.failure)) goto fail;
+        vo_dual.failure = IDirect3DSwapChain9_GetBackBuffer(vo_dual.chain[i], 0, D3DBACKBUFFER_TYPE_MONO, &vo_dual.target[i]);
+        if (FAILED(vo_dual.failure)) goto fail;
+    }
+    vo_dual.failure = IDirect3DDevice9_CreateStateBlock(g_d3d9.device, D3DSBT_ALL, &vo_dual.state);
+    if (FAILED(vo_dual.failure)) goto fail;
+    return TRUE;
+fail:
+    vo_dual.disabled = TRUE;
+    vo_dual_release_gpu();
+    return FALSE;
+}
+
+/* Same render thread and same texture for both draws; no independent upload,
+ * queue, CPU readback, or simulation. Sequential presents are not scanout sync. */
+static void vo_dual_present(int texture_index)
+{
+    vo_dual_pump();
+    EnterCriticalSection(&g_ddraw.cs);
+    if (vo_dual.disabled || !vo_dual.texture_valid[texture_index]) goto done;
+    if (!vo_dual.attempted && (g_ddraw.width != 3840 || g_ddraw.height != 1080 || g_ddraw.bpp != 16)) goto done;
+    if (!vo_dual.attempted && !vo_dual_init()) goto done;
+    if (GetForegroundWindow() != g_ddraw.hwnd || IsIconic(g_ddraw.hwnd)) goto done;
+    if (g_ddraw.width != 3840 || g_ddraw.height != 1080 || g_ddraw.bpp != 16) {
+        vo_dual.disabled = TRUE; goto done;
+    }
+    IDirect3DSurface9 *original = NULL;
+    HRESULT hr = IDirect3DDevice9_GetRenderTarget(g_d3d9.device, 0, &original);
+    if (FAILED(hr)) { vo_dual.failure = hr; vo_dual.disabled = TRUE; goto done; }
+    hr = IDirect3DStateBlock9_Capture(vo_dual.state);
+    if (FAILED(hr)) { IDirect3DSurface9_Release(original); vo_dual.failure = hr; vo_dual.disabled = TRUE; goto done; }
+    ++vo_dual.frames;
+#define VO_TRY(call) do { hr = (call); if (FAILED(hr)) goto restore; } while (0)
+    VO_TRY(IDirect3DDevice9_SetPixelShader(g_d3d9.device, NULL));
+    VO_TRY(IDirect3DDevice9_SetTexture(g_d3d9.device, 0, (IDirect3DBaseTexture9*)g_d3d9.surface_tex[texture_index]));
+    /* Point sampling cannot blend the other player's edge texel. */
+    VO_TRY(IDirect3DDevice9_SetSamplerState(g_d3d9.device, 0, D3DSAMP_MINFILTER, D3DTEXF_POINT));
+    VO_TRY(IDirect3DDevice9_SetSamplerState(g_d3d9.device, 0, D3DSAMP_MAGFILTER, D3DTEXF_POINT));
+    for (int i = 0; i < 2; ++i) {
+        VoOutput o = vo_dual.output[i]; VoRect monitor = monitors[o.monitor].desktop;
+        float x = (float)(o.destination.x-monitor.x)-0.5f;
+        float y = (float)(o.destination.y-monitor.y)-0.5f;
+        float right = x+o.destination.w, bottom = y+o.destination.h;
+        float u0 = (float)o.source.x/g_d3d9.tex_width;
+        float u1 = (float)(o.source.x+o.source.w)/g_d3d9.tex_width;
+        float v1 = (float)o.source.h/g_d3d9.tex_height;
+        CUSTOMVERTEX vertices[4] = {{x,bottom,0,1,u0,v1},{x,y,0,1,u0,0},{right,bottom,0,1,u1,v1},{right,y,0,1,u1,0}};
+        D3DVIEWPORT9 viewport = {0,0,monitor.w,monitor.h,0,1};
+        VO_TRY(IDirect3DDevice9_SetRenderTarget(g_d3d9.device, 0, vo_dual.target[i]));
+        VO_TRY(IDirect3DDevice9_SetViewport(g_d3d9.device, &viewport));
+        VO_TRY(IDirect3DDevice9_Clear(g_d3d9.device, 0, NULL, D3DCLEAR_TARGET, 0, 1, 0));
+        VO_TRY(IDirect3DDevice9_BeginScene(g_d3d9.device));
+        hr = IDirect3DDevice9_DrawPrimitiveUP(g_d3d9.device, D3DPT_TRIANGLESTRIP, 2, vertices, sizeof vertices[0]);
+        HRESULT end = IDirect3DDevice9_EndScene(g_d3d9.device);
+        if (FAILED(hr) || FAILED(end)) { if (SUCCEEDED(hr)) hr = end; goto restore; }
+    }
+restore:;
+    HRESULT rt = IDirect3DDevice9_SetRenderTarget(g_d3d9.device, 0, original);
+    HRESULT state = IDirect3DStateBlock9_Apply(vo_dual.state);
+    /* DrawPrimitiveUP clears stream 0; restore explicitly, including PUREDEVICE. */
+    HRESULT stream = IDirect3DDevice9_SetStreamSource(g_d3d9.device, 0, g_d3d9.vertex_buf, 0, sizeof(CUSTOMVERTEX));
+    IDirect3DSurface9_Release(original);
+    if (SUCCEEDED(hr) && FAILED(rt)) hr=rt;
+    if (SUCCEEDED(hr) && FAILED(state)) hr=state;
+    if (SUCCEEDED(hr) && FAILED(stream)) hr=stream;
+    if (FAILED(rt) || FAILED(state) || FAILED(stream)) {
+        /* A failed restoration cannot safely resume the original renderer. */
+        PostMessageA(g_ddraw.hwnd, WM_CLOSE, 0, 0);
+    }
+    if (SUCCEEDED(hr)) {
+        for (int i=0;i<2;++i) {
+            hr = IDirect3DSwapChain9_Present(vo_dual.chain[i],NULL,NULL,NULL,NULL,0);
+            if (FAILED(hr)) break;
+        }
+    }
+    if (FAILED(hr)) { vo_dual.failure=hr; vo_dual.disabled=TRUE; }
+    else { ++vo_dual.pairs; vo_dual_visibility(TRUE); }
+#undef VO_TRY
+done:
+    if (vo_dual.disabled) { vo_dual_visibility(FALSE); vo_dual_release_gpu(); }
+    LeaveCriticalSection(&g_ddraw.cs);
+}
+static void vo_dual_uploaded(int index)
+{
+    vo_dual.texture_valid[index] = TRUE;
+    ++vo_dual.uploads;
+}
+static void vo_dual_end(void)
+{
+    EnterCriticalSection(&g_ddraw.cs);
+    vo_dual_visibility(FALSE); vo_dual_release_gpu();
+    for(int i=0;i<2;++i) if(vo_dual.window[i]) DestroyWindow(vo_dual.window[i]);
+    if(vo_dual.registered) UnregisterClassA("VoPrivatePlayerOutput", GetModuleHandleA(NULL));
+    if(vo_dual.attempted) {
+        WCHAR path[MAX_PATH]; DWORD n=GetModuleFileNameW(NULL,path,MAX_PATH);
+        WCHAR *slash = n && n<MAX_PATH ? wcsrchr(path,L'\\') : NULL;
+        if(slash && slash-path+27<MAX_PATH) {
+            wcscpy(slash+1,L"D04-P02-presentation.log");
+            FILE *log=_wfopen(path,L"a");
+            if(log) { fprintf(log,"uploads=%lu draw_frames=%lu presented_pairs=%lu fallback=%d hr=0x%08lx\n",vo_dual.uploads,vo_dual.frames,vo_dual.pairs,vo_dual.disabled,(unsigned long)vo_dual.failure);
+                for (int i=0;i<2;++i) { VoOutput o=vo_dual.output[i]; fprintf(log,"player=%d id=%s source=%d,%d,%d,%d destination=%d,%d,%d,%d\n",i+1,monitors[o.monitor].id,o.source.x,o.source.y,o.source.w,o.source.h,o.destination.x,o.destination.y,o.destination.w,o.destination.h); }
+                fclose(log); }
+        }
+    }
+    memset(&vo_dual,0,sizeof vo_dual);
+    LeaveCriticalSection(&g_ddraw.cs);
+}
