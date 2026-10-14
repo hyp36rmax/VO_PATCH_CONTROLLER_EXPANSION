@@ -46,6 +46,8 @@ try {
     $env:VO_DUAL_DISPLAY = $(if ($mode -eq 0) {'0'} else {'1'})
     $env:VO_SESSION_CONFIG = $(if ($Entry -ne 'saved') {$sessionFile} else {''})
     $env:VO_STRICT_MODE = $(if ($mode -gt 0) {'1'} else {'0'})
+    $env:VO_COMPLETE_MIRROR = $(if ($mode -eq 2) {'1'} else {'0'})
+    $env:VO_SOURCE_SIZE = $chosen.internal -join ','
     $env:VO_PRIVATE_DISPLAY = '1'
     $env:VO_DESKTOP = $desktop
     $presentationLog = Join-Path $game 'D04-P02B-presentation.log'
@@ -59,7 +61,7 @@ try {
         if ($presentation -match 'fallback=1|strict_test_stopped=1') { throw ('Requested dual mode failed; no alternate mode is accepted. ' + ($presentation -split "`n" | Select-Object -First 1)) }
         if ($presentation -notmatch 'presented_pairs=[1-9][0-9]*') { throw 'No successful dual presentation pair was recorded.' }
         if ($mode -eq 1 -and $presentation -notmatch 'mirror_p1=0') { throw 'Independent Versus routing was not confirmed.' }
-        if ($mode -eq 2 -and $presentation -notmatch 'mirror_p1=1') { throw 'Mirror routing was not confirmed.' }
+        if ($mode -eq 2 -and $presentation -notmatch 'complete_mirror=1') { throw 'Mirror routing was not confirmed.' }
     }
     if ($process.ExitCode -ne 0) { throw "Observer returned $($process.ExitCode)" }
 } catch {
@@ -67,6 +69,7 @@ try {
     Write-Host "Launch could not complete: $_"
     $launchFailed = $true
 } finally {
+    $env:VO_COMPLETE_MIRROR = ''; $env:VO_SOURCE_SIZE = '';
     $env:VO_SESSION_CONFIG = ''; $env:VO_STRICT_MODE = '0'
     if ($owned -and $Entry -ne 'saved' -and $beforePreferenceHash) {
         $afterPreferenceHash = if (Test-Path -LiteralPath $preferences) { (Get-FileHash -LiteralPath $preferences).Hash } else { 'ABSENT' }

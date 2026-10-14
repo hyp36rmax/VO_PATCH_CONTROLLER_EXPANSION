@@ -19,13 +19,13 @@ subprocess.run([__import__('sys').executable,str(here.parent/'movie_observer/bui
 for n in ('LaunchModes.ps1','Collect-Modes.ps1'):shutil.copy2(here/n,out/n)
 for entry,label in (('single','SINGLE-DISPLAY'),('versus','DUAL-VERSUS'),('mirror','DUAL-MIRROR')):
  (out/f'START-{label}.cmd').write_bytes(('@echo off\r\nsetlocal\r\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0LaunchModes.ps1" -Entry '+entry+'\r\nif errorlevel 1 pause\r\n').encode())
-(out/'READ-ME.txt').write_text("""D04-P05-F04A ROUTING RECOVERY UAT — physical acceptance pending
-Reported P1 duplication is NOT yet reproduced or established as fixed.
+(out/'READ-ME.txt').write_text("""D04-P05-F04B COMPLETE MIRROR UAT — physical acceptance pending
+Mirror uses the selected Single profile and copies its entire final framebuffer.
 
 Extract the ZIP. Three explicit SESSION-ONLY tests:
 START-SINGLE-DISPLAY.cmd — Single Display
 START-DUAL-VERSUS.cmd — independent P1/P2 gameplay
-START-DUAL-MIRROR.cmd — P1 gameplay on both displays
+START-DUAL-MIRROR.cmd — complete Single presentation on both displays
 
 Each launcher fixes its requested mode. Review monitor/aspect selections and
 click Launch. Session changes never overwrite saved display preferences.
@@ -38,13 +38,13 @@ Single: use Widescreen (16:9) on your 2560x1440 desktop. Check movie centering,
 audio/skip, menu, Solo, original Local VS, controller input and exit.
 Versus: check movie only on Display 1, black Display 2, mirrored selection,
 independent gameplay, return to menu and exit.
-Mirror: check shared selection, P1 on both displays in gameplay, aspect and exit.
+Mirror: check shared selection, the full P1/P2 split-screen on both displays, aspect and exit.
 Also check focus/minimize/restore. Optional 21:9/32:9 profiles remain single-player.
 
 MOVIE LIMIT: F04 playback is deliberately preserved. The complete 320x240 AVI
 frame is 4:3 and already maximally fitted on a 16:9 monitor. Its central 16:9
 picture includes embedded black bars. Enlarging that picture to fill the monitor
-would crop part of the original frame or distort it, both prohibited in F04A.
+would crop part of the original frame or distort it, both prohibited in F04B.
 This package does not claim a movie enlargement. Actual physical pixel size
 remains to be compared with the calculated destination in the collected log.
 
@@ -53,7 +53,7 @@ toggle. Widescreen/ultrawide retain their existing F4/F5 behavior. Controller
 settings remain shared and unchanged. No expanded 21:9 Local VS is added.
 
 After each exit, results are collected and selected automatically. Return
-RETURN-THIS-D04-P05-F04A.zip with observations for all three modes. Raw copies
+RETURN-THIS-D04-P05-F04B.zip with observations for all three modes. Raw copies
 survive ZIP compression failure. No administrator privileges, INI edits,
 manual DLL copies, compilation or Windows display-mode changes are needed.
 """)

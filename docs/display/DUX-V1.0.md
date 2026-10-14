@@ -4,7 +4,10 @@ This is the canonical frozen design specification, confirmed by the project
 owner. Requirements below define the intended behavior; they do not establish
 implementation completion or physical validation.
 
-## Frozen requirements
+## Original frozen requirements (Mirror revised by F04B)
+
+The approved F04B amendment below supersedes P1-only Mirror and the requirement
+that every dual mode use the dual-view framebuffer. Other decisions remain in force.
 
 ### Display modes and discovery
 
@@ -93,3 +96,25 @@ presentation is preserved; F04A did not implement movie enlargement.
 
 These are requirements. The reported physical P1 duplication has not yet been
 reproduced by the existing internal routing tests; it is not established as fixed.
+
+## Approved F04B amendment — complete presentation Mirror
+
+This revision changes Mirror's source, not camera or controller ownership.
+It supersedes the P1-only Mirror rows above; they remain as revision history.
+
+| Mode | Rendering profile | Ordinary presentation / Local VS |
+|---|---|---|
+| Single | Selected original 4:3, 16:9, 21:9 or 32:9 | Original image; original P1/P2 split-screen |
+| Dual Versus | Dedicated 3840×1080 dual-view image | Existing three-phase policy; independent P1/P2 during gameplay |
+| Dual Mirror | The same selected profile as Single | Complete final image on both outputs, including both VS views and HUDs |
+
+Mirror scales the full source independently into each monitor's current desktop
+bounds, preserving aspect without cropping. Ordinary menu/shared/gameplay frames
+mirror regardless of gameplay classification. During the original AVI only,
+Display 1 retains native visible playback and Display 2 remains black.
+No Windows display-mode, camera, simulation or input ownership change is allowed.
+Saved preferences, session overrides and prelaunch recovery remain authoritative.
+
+**Implementation:** private F04B implements complete-source sampling using the
+existing output swapchains. **Validation:** internal API-double and generation
+checks; Windows physical acceptance pending. Native movie geometry is unchanged.

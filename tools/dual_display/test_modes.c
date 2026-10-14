@@ -28,7 +28,7 @@ int main(void){
  }
  assert(!vo_select_session(m,1,&p,VO_VERSUS,31,&s));
  assert(!vo_select_session(m,1,&p,VO_MIRROR,31,&s));
- assert(!vo_select_session(m,2,&p,VO_MIRROR,15,&s));
+ assert(vo_select_session(m,2,&p,VO_MIRROR,15,&s)&&s.profile==VO_WIDE);
  assert(!vo_select_session(m,2,&p,99,31,&s));assert(!memcmp(&p,&saved,sizeof p));
  puts("PASS explicit session overrides, no differently labeled fallback, immutable saved mode and monitor preferences");
  puts("PASS mode/profile defaults, explicit aspect, missing monitor recovery, preference immutability, versus/mirror, unavailable profile fallback, geometry and negative positions");

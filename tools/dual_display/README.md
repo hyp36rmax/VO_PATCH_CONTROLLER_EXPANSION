@@ -98,3 +98,5 @@ F04A routing recovery resolves unavailable dual output before startup to the
 selected Single profile, reports that fallback, and preserves preferences.
 The reported physical P1 duplication remains unconfirmed internally; see
 [the routing record](../../docs/display/PRIVATE-DUAL-DISPLAY-F04A-ROUTING.md).
+
+[F04B](../../docs/display/PRIVATE-DUAL-DISPLAY-P05-F04B.md) supersedes P1-only Mirror with complete Single-profile presentation mirroring; Versus remains independent.

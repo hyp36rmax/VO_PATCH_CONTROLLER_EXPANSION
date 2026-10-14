@@ -15,7 +15,10 @@ int main(void){
    assert(s.profile!=VO_DUAL_PROFILE);
    if(mode>0)assert(s.reasons&(1u<<VO_MODE_DUAL_UNAVAILABLE));
   }else{
-   assert(s.mode==mode&&s.profile==VO_DUAL_PROFILE);
+   assert(s.mode==mode&&s.profile==(mode==VO_MIRROR?aspect:VO_DUAL_PROFILE));
+   /* Complete Mirror texture coverage is exercised against emitted code in
+    * test_mode_presentation.py; the legacy crop policy belongs only to Versus. */
+   if(mode==VO_MIRROR)continue;
    const VoPolicy phases[]={VO_PRIMARY_ONLY,VO_LOCAL_VS_SHARED,VO_LOCAL_VS_GAMEPLAY,VO_PRIMARY_ONLY};
    for(unsigned phase=0;phase<4;phase++)for(unsigned player=0;player<2;player++){
     VoOutput out={0};int black;
@@ -28,7 +31,7 @@ int main(void){
   }
  }
  VoPreference p={VO_MIRROR,VO_WIDE,"A","B"};VoSelection s;
- assert(vo_select_launch(m,2,&p,VO_MIRROR,15,&s)&&s.mode==VO_SINGLE&&s.profile==VO_WIDE);
+ assert(vo_select_launch(m,2,&p,VO_MIRROR,15,&s)&&s.mode==VO_MIRROR&&s.profile==VO_WIDE);
  assert(!vo_select_launch(m,0,&p,VO_MIRROR,31,&s));
  assert(!vo_select_launch(m,2,&p,99,31,&s));
  assert(vo_policy(1,4,1,0)==VO_LOCAL_VS_GAMEPLAY);

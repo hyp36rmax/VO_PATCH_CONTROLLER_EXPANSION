@@ -22,3 +22,7 @@ print('PASS session-only configuration destination, locked mode UI, exact launch
 
 assert "REPORTED FALLBACK" in launch and "($fallback -band 4)" in launch
 assert "session_mode>=0?selected.mode:next.mode" in s
+assert '$env:VO_COMPLETE_MIRROR' in launch and '$env:VO_SOURCE_SIZE = $chosen.internal' in launch
+assert "'complete_mirror=1'" in launch
+assert 'vo_dual.mirror!=vo_complete_mirror()' in ext
+assert 'o.source=(VoRect){0,0,g_ddraw.width,g_ddraw.height}' in ext

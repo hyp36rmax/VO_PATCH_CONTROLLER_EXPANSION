@@ -59,3 +59,16 @@ def apply(out):
     edit('inc/presentation.h','    if (vo_dual.disabled || GetForegroundWindow()', '    vo_strict_stop();\n    if (vo_dual.disabled || GetForegroundWindow()')
     edit('inc/presentation.h','done:\n    if (vo_dual.disabled)', 'done:\n    vo_strict_stop();\n    if (vo_dual.disabled)')
     edit('inc/presentation.h','                vo_policy_log(log);', '                fprintf(log,"strict_test_stopped=%d\\n",vo_dual.strict_stopped);\n                vo_policy_log(log);')
+
+    # Full-composition Mirror uses the selected Single image. Environment is a
+    # validated launch projection; configuration Mode must agree before output.
+    edit('inc/presentation.h','static struct {', 'static BOOL vo_complete_mirror(void){\n char value[2]={0};return GetEnvironmentVariableA("VO_COMPLETE_MIRROR",value,2)==1&&value[0]==\'1\';\n}\nstatic BOOL vo_source_ready(void){\n if(!vo_complete_mirror())return g_ddraw.width==3840&&g_ddraw.height==1080;\n char size[64]={0},tail;int w,h;\n return GetEnvironmentVariableA("VO_SOURCE_SIZE",size,sizeof size)>0&&\n sscanf(size,"%9d,%9d%c",&w,&h,&tail)==2&&w>0&&h>0&&\n g_ddraw.width==w&&g_ddraw.height==h;\n}\nstatic struct {')
+    edit('inc/presentation.h','g_ddraw.width != 3840 || g_ddraw.height != 1080 || g_ddraw.bpp != 16) goto fail;', '!vo_source_ready() || g_ddraw.bpp != 16) goto fail;')
+    edit('inc/presentation.h','!vo_dual.attempted && (g_ddraw.width != 3840 || g_ddraw.height != 1080 || g_ddraw.bpp != 16)', '!vo_dual.attempted && (!vo_source_ready() || g_ddraw.bpp != 16)')
+    edit('inc/presentation.h','if (g_ddraw.width != 3840 || g_ddraw.height != 1080 || g_ddraw.bpp != 16) {', 'if (!vo_source_ready() || g_ddraw.bpp != 16) {')
+    edit('inc/presentation.h','    char a[VO_ID_CHARS], b[VO_ID_CHARS];', '    if(vo_dual.mirror!=vo_complete_mirror())goto fail;\n    char a[VO_ID_CHARS], b[VO_ID_CHARS];')
+    edit('inc/presentation.h','BOOL eligible=vo_dual.last_phase==VO_PRIMARY_ONLY && vo_completed_policy()==VO_PRIMARY_ONLY;', 'BOOL eligible=vo_complete_mirror() || (vo_dual.last_phase==VO_PRIMARY_ONLY && vo_completed_policy()==VO_PRIMARY_ONLY);')
+    edit('inc/presentation.h','        if(!vo_route(vo_dual.policy[texture_index],vo_dual.mirror,i,monitor,&o,&black)){hr=E_FAIL;goto restore;}', '        if(vo_complete_mirror()){\n            o.source=(VoRect){0,0,g_ddraw.width,g_ddraw.height};\n            if(!vo_fit_source(monitor,o.source.w,o.source.h,&o.destination)){hr=E_FAIL;goto restore;}\n        }else if(!vo_route(vo_dual.policy[texture_index],0,i,monitor,&o,&black)){hr=E_FAIL;goto restore;}')
+    edit('inc/presentation.h','                vo_policy_log(log);', '                fprintf(log,"complete_mirror=%d source_size=%dx%d\\n",vo_complete_mirror(),g_ddraw.width,g_ddraw.height);\n                vo_policy_log(log);')
+
+    edit('inc/presentation.h','vo_dual.phase_pairs[3],vo_dual.mirror);','vo_dual.phase_pairs[3],0);')

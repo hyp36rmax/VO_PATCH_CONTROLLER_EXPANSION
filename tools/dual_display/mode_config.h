@@ -20,7 +20,14 @@ static int vo_select(const VoMonitor *m,unsigned n,const VoPreference *p,unsigne
  if(p->mode<VO_SINGLE||p->mode>VO_MIRROR)s->reasons|=1u<<VO_MODE_INVALID;
  else if(p->mode!=VO_SINGLE){
   VoOutput outputs[2];VoResult r=vo_plan(m,n,p->primary,p->secondary,outputs);
-  if(r==VO_DUAL_READY&&(profiles&(1u<<VO_DUAL_PROFILE))){s->mode=p->mode;s->profile=VO_DUAL_PROFILE;s->primary=outputs[0].monitor;s->secondary=outputs[1].monitor;return 1;}
+  if(r==VO_DUAL_READY&&(p->mode==VO_MIRROR||(profiles&(1u<<VO_DUAL_PROFILE)))){
+   s->mode=p->mode;s->profile=p->mode==VO_MIRROR?p->aspect:VO_DUAL_PROFILE;
+   if(p->mode==VO_MIRROR&&(s->profile<VO_ORIGINAL||s->profile>VO_SUPER||!(profiles&(1u<<s->profile)))){
+    s->profile=VO_WIDE;s->reasons|=1u<<VO_MODE_PROFILE_UNAVAILABLE;
+    if(!(profiles&(1u<<VO_WIDE)))return 0;
+   }
+   s->primary=outputs[0].monitor;s->secondary=outputs[1].monitor;return 1;
+  }
   s->reasons|=1u<<VO_MODE_DUAL_UNAVAILABLE;
  }
  if(p->aspect>=VO_ORIGINAL&&p->aspect<=VO_SUPER&&(profiles&(1u<<p->aspect)))s->profile=p->aspect;

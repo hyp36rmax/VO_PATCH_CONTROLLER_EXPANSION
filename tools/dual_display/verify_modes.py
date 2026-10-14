@@ -29,7 +29,7 @@ assert 'Wait -PassThru' in launch and '$PSScriptRoot' in launch
 assert 'RunAs' not in launch and 'Remove-Item' not in collector
 assert collector.index('Copy-Item')<collector.index('Add-Type -AssemblyName System.IO.Compression')
 assert 'compression-status.txt' in collector and '/select,' in collector
-assert 'RETURN-THIS-D04-P05-F04A' in collector
+assert 'RETURN-THIS-D04-P05-F04B' in collector
 for f in root.glob('START-*.cmd'):assert b'\r\n' in f.read_bytes() and b'%~dp0' in f.read_bytes()
 with zipfile.ZipFile(root.with_suffix('.zip')) as z:
  assert z.testzip() is None
