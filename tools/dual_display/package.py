@@ -20,7 +20,7 @@ for mode in ('dual','control'):
 for n in ('Launch.ps1','Collect-Results.ps1'):shutil.copy2(here/n,out/n)
 for mode,name in [('dual','START-DUAL-DISPLAY.cmd'),('control','START-LOCAL-VS-CONTROL.cmd')]:
  (out/name).write_bytes(('@echo off\r\nsetlocal\r\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Launch.ps1" -Mode '+mode+'\r\nif errorlevel 1 pause\r\n').encode('ascii'))
-(out/'READ-ME.txt').write_text('''D04-P05 PRIVATE WINDOWS UAT — runtime validation pending
+(out/'READ-ME.txt').write_text('''D04-P05-F01 PRIVATE WINDOWS UAT — runtime validation pending
 
 Extract the entire ZIP to a writable folder.
 1. Launch START-DUAL-DISPLAY.cmd. Select both displays; leave secondary gameplay
@@ -34,7 +34,7 @@ Extract the entire ZIP to a writable folder.
    Verify only gameplay presentation changes: P2 still plays with its controller.
 7. Test available mixed-size/aspect displays; no display-setting changes needed.
 8. START-LOCAL-VS-CONTROL.cmd provides the unchanged D03-P04 comparison if needed.
-9. Return RETURN-THIS-D04-P05.zip and observations after the session.
+9. Return RETURN-THIS-D04-P05-F01.zip and observations after the session.
    If compression fails, the equally named return folder retains all run logs.
 
 Run normally, not as administrator. No privilege elevation is requested.

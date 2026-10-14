@@ -1,5 +1,10 @@
 # D04-P05 three-phase dual-display presentation
 
+**Historical checkpoint: physical UAT FAILED.** All recorded outputs remained
+primary-only. The missing backbuffer Flip capture is corrected in
+[the F01 record](PRIVATE-DUAL-DISPLAY-P05-F01.md). Statements below describe the
+original P05 implementation and its pre-UAT test boundary.
+
 Implementation and host validation: **VERIFIED**. Physical Windows acceptance:
 **NEEDS VALIDATION**. Starting private HEAD:
 `1d0147f46b3d24e13f0d0583a6347271f6cc4d51`.

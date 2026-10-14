@@ -21,7 +21,7 @@ int main(void){
  assert(vo_policy(1,4,0,0)==VO_POLICY_UNKNOWN);
  assert(vo_policy(1,4,1,3)==VO_POLICY_UNKNOWN);
  VoOutput fallback={0};int black;
- assert(vo_route(VO_POLICY_UNKNOWN,1,1,(VoRect){0,0,1920,1080},&fallback,&black)&&fallback.source.x==1920);
+ assert(vo_route(VO_POLICY_UNKNOWN,1,1,(VoRect){0,0,1920,1080},&fallback,&black)&&fallback.source.x==0&&fallback.source.w==3840&&!black);
  setup();
  unsigned sequence[]={0,1,2,1,0};
  for(unsigned j=0;j<5;j++){

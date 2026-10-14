@@ -17,12 +17,15 @@ for address in r[3:8]:assert pe.base<=address<pe.base+size
 s=(wrapper/'src/ddsurface.c').read_text();start=s.index('HRESULT dds_Unlock(');end=s.index('HRESULT dds_GetDDInterface',start);unlock=s[start:end]
 assert unlock.index('vo_capture_policy()')<unlock.index('surface_updated')<unlock.index('LeaveCriticalSection(&This->cs)')
 assert 'g_config.lock_surfaces && This == g_ddraw.primary' in unlock
+flip=s[s.index('HRESULT dds_Flip('):s.index('    This->skip_flip = FALSE;',s.index('HRESULT dds_Flip('))]
+assert flip.index('EnterCriticalSection(&g_ddraw.cs)')<flip.index('InterlockedExchangePointer(&This->surface')<flip.index('vo_capture_flip_policy()')<flip.index('LeaveCriticalSection(&g_ddraw.cs)')
+assert 'if (This == g_ddraw.primary) vo_capture_flip_policy();' in flip
 render=(wrapper/'src/render_d3d9.c').read_text();start=render.index('!TryEnterCriticalSection');end=render.index('LeaveCriticalSection(&g_ddraw.primary->cs)',start)
 assert start<render.index('vo_dual_uploaded(tex_index)',start)<end
 assert (package/'Launch.ps1').read_bytes()==subprocess.check_output(['git','show','7c676682175489adfa57c23e6b1335539878547c:tools/dual_display/Launch.ps1'],cwd=here)
 collector=(package/'Collect-Results.ps1').read_text()
 old=subprocess.check_output(['git','show','7c676682175489adfa57c23e6b1335539878547c:tools/dual_display/Collect-Results.ps1'],cwd=here,text=True)
-assert collector==old.replace('D04-P03','D04-P05')
+assert collector==old.replace('D04-P03','D04-P05-F01')
 ui=(here/'displays.c').read_text();assert 'Mirror Player 1' in ui and 'GetPrivateProfileIntW(L"Presentation",L"MirrorPlayer1",0,config)' in ui
 assert 'WritePrivateProfileStringW(L"Presentation",L"MirrorPlayer1"' in ui
-print('PASS exact packaged game signature/address profile, producer capture before publication/unlock, texture policy under same surface lock, unchanged launcher and preserved collector, persistent UI selection contract')
+print('PASS exact packaged game signature/address profile, producer capture after Flip buffer swap and before publication/unlock, texture policy under same surface lock, unchanged launcher and preserved collector, persistent UI selection contract')

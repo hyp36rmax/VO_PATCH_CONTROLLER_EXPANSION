@@ -125,3 +125,5 @@ static unsigned vo_completed_policy(void){return test_policy;}
 static unsigned vo_unknown_policy_count(void){return 0;}
 
 static unsigned vo_unknown_policy_value(unsigned i){(void)i;return 0;}
+
+static void vo_policy_log(FILE *log){(void)log;}

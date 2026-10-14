@@ -238,6 +238,8 @@ static void vo_dual_uploaded(int index)
 static void vo_dual_end(void)
 {
     EnterCriticalSection(&g_ddraw.cs);
+    unsigned output_mask = (vo_dual.window[0]?1u:0u)|(vo_dual.window[1]?2u:0u);
+    BOOL was_visible = vo_dual.visible;
     vo_dual_visibility(FALSE); vo_dual_release_gpu();
     for(int i=0;i<2;++i) if(vo_dual.window[i]) DestroyWindow(vo_dual.window[i]);
     if(vo_dual.registered) UnregisterClassA("VoPrivatePlayerOutput", GetModuleHandleA(NULL));
@@ -253,6 +255,8 @@ static void vo_dual_end(void)
                 fprintf(log,"primary_only=%lu local_vs_shared=%lu local_vs_gameplay=%lu unknown=%lu mirror_p1=%d\n",vo_dual.phase_pairs[0],vo_dual.phase_pairs[1],vo_dual.phase_pairs[2],vo_dual.phase_pairs[3],vo_dual.mirror);
                 fprintf(log,"unrecognized_state_samples=%u\n",vo_unknown_policy_count());
                 fprintf(log,"last_unknown_loop=%u mode=%u split=%u show=%u\n",vo_unknown_policy_value(0),vo_unknown_policy_value(1),vo_unknown_policy_value(2),vo_unknown_policy_value(3));
+                fprintf(log,"output_window_mask=0x%x visible_before_teardown=%d shutdown=render_thread_teardown phase_codes=0:PRIMARY_ONLY,1:LOCAL_VS_SHARED,2:LOCAL_VS_GAMEPLAY,3:UNKNOWN\n",output_mask,was_visible);
+                vo_policy_log(log);
                 fclose(log); }
         }
     }

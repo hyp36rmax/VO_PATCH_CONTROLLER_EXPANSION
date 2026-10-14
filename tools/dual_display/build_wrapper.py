@@ -14,7 +14,10 @@ for name in ('presentation.h','inventory.h','layout.h','policy.h','state_bridge.
 (out/'src/state_bridge.c').write_bytes((here/'state_bridge.c').read_bytes())
 f=out/'src/ddsurface.c';body=f.read_text();needle='HRESULT dds_Unlock(IDirectDrawSurfaceImpl* This, LPRECT lpRect)\n{'
 assert body.count(needle)==1
-body=body.replace(needle,needle+'\n    if (g_config.lock_surfaces && This == g_ddraw.primary) vo_capture_policy();')
+body=body.replace(needle,needle+'\n    if (g_config.lock_surfaces && This == g_ddraw.primary) { EnterCriticalSection(&g_ddraw.cs); vo_capture_policy(); LeaveCriticalSection(&g_ddraw.cs); }')
+flip='        if (g_config.flipclear && (This->caps & DDSCAPS_PRIMARYSURFACE))'
+assert body.count(flip)==1
+body=body.replace(flip,'        if (This == g_ddraw.primary) vo_capture_flip_policy();\n\n'+flip)
 f.write_text('#include \"state_bridge.h\"\n'+body)
 f=out/'src/render_d3d9.c';s=f.read_text()
 def replace(old,new):
@@ -34,7 +37,7 @@ replace('        if (FAILED(IDirect3DDevice9_Present(g_d3d9.device, NULL, NULL, 
 replace('    if (g_config.vhack)\n        InterlockedExchange(&g_ddraw.upscale_hack_active, FALSE);','    vo_dual_end();\n    if (g_config.vhack)\n        InterlockedExchange(&g_ddraw.upscale_hack_active, FALSE);')
 f.write_text(s)
 # Avoid git metadata from the outer workspace influencing version metadata.
-(out/'inc/git.h').write_text(f'#define GIT_COMMIT "{PIN}-private-D04-P05"\n#define GIT_BRANCH "private-presentation"\n')
+(out/'inc/git.h').write_text(f'#define GIT_COMMIT "{PIN}-private-D04-P05-F01"\n#define GIT_BRANCH "private-presentation"\n')
 # Compile directly: original Makefile rewrites git.h from its parent checkout.
 objects=[]
 for c in sorted((out/'src').glob('**/*.c')):

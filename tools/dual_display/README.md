@@ -1,8 +1,8 @@
 # Private dual-display presentation
 
-D04-P05 implements three-phase presentation on the physically validated D04-P03
+D04-P05-F01 corrects the missed Flip capture in P05 and implements three-phase presentation on the physically validated D04-P03
 backend. New phase behavior and the new setup option **NEED WINDOWS VALIDATION**.
-See [the P05 record](../../docs/display/PRIVATE-DUAL-DISPLAY-P05.md).
+See [the F01 record](../../docs/display/PRIVATE-DUAL-DISPLAY-P05-F01.md).
 
 | Phase | Display 1 | Display 2 |
 |---|---|---|
@@ -14,8 +14,9 @@ Each source is contained and centered independently on its assigned monitor.
 Shared 32:9 content is letterboxed on 16:9 displays; no centered-HUD crop is used.
 The persistent secondary gameplay option defaults to Player 2. It is available
 in the existing monitor assignment UI; monitor IDs and controller ownership are
-unchanged. Unknown game identity falls back to original P03 routing, ignoring
-the mirror option. An unrecognized state retains the last verified policy.
+unchanged. Unknown, invalid, unsupported or uninitialized observations mirror the full
+source without assuming gameplay. The mirror gameplay option is ignored in this
+explicit fallback. Valid gameplay retains the P03 rectangles.
 
 ## Implementation
 
@@ -23,7 +24,7 @@ the mirror option. An unrecognized state retains the last verified policy.
 |---|---|
 | `inventory.h`, `displays.c` | Discovery, stable assignments, saved gameplay option |
 | `layout.h`, `policy.h` | Aspect containment and three-phase routing |
-| `state_bridge.c`, `state_bridge.h`, `game_profiles.h` | Read-only original-state capture at primary-surface unlock |
+| `state_bridge.c`, `state_bridge.h`, `game_profiles.h` | Read-only original-state capture at primary Flip / direct primary Unlock |
 | `build_profiles.py` | Reproduce edition-specific identity and address tables |
 | `presentation.h` | Texture-generation policy, output draws and window lifecycle |
 | `build_wrapper.py` | Isolated build of the pinned wrapper plus private extension |
@@ -40,8 +41,9 @@ python build_wrapper.py PINNED_CHECKOUT NEW_BUILD_DIRECTORY --cc CLANG_PATH --wi
 
 The extension is enabled only by `VO_DUAL_DISPLAY=1`. It reads
 `player-displays.ini` beside the game. The private launcher selects D3D9 and
-surface locking. Policy is captured before primary Unlock publishes the frame;
-the texture upload copies policy while holding that same surface lock. Each
+surface locking. Policy is captured after primary Flip swaps the completed backbuffer under the
+wrapper global lock. Direct primary Unlock remains supported under that same
+global lock. The texture upload copies policy while holding the global lock. Each
 texture keeps its own policy until its next successful upload. The existing
 nonblocking lock retry avoids holding the global lock while waiting on the game.
 
@@ -61,11 +63,12 @@ added. The game, helper, observer and original control assets remain unchanged.
 
 Run `START-DUAL-DISPLAY.cmd`; choose monitors and secondary gameplay mode. The
 control launcher retains the original D03-P04 package. No elevation, manual DLL
-copying, INI editing or compilation is required. Return `RETURN-THIS-D04-P05.zip`.
+copying, INI editing or compilation is required. Return `RETURN-THIS-D04-P05-F01.zip`.
 If compression fails, its corresponding folder retains the collected logs.
 
 `D04-P02B-presentation.log` retains its inherited name for collection. It adds
-phase totals, mirror mode, unknown-state count and the last unknown input fields.
+phase totals, mirror mode, read validity, identity/RVAs, capture-path counts, last
+observed fields and up to 64 transition records. Rendering performs no disk writes.
 The external observer continues to record module loading, exceptions and exit.
 Host API doubles, cross-compilation and package checks do not establish physical
 phase transitions, native UI persistence, scanout timing or movie visibility.
