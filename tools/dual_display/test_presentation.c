@@ -17,6 +17,7 @@ int main(void) {
     reset_test();vo_dual_present(0);assert(!vo_dual.attempted&&fake.draws==0);
     vo_dual_uploaded(1);vo_dual_present(1);
     assert(vo_dual.pairs==1&&fake.draws==2&&fake.presents==2);
+    assert(vo_dual.presented_generation[0]==1&&vo_dual.presented_generation[1]==1);
     assert(fake.texture[0]==(void*)11&&fake.texture[1]==(void*)11);
     assert(fake.vertices[0][0].u==0&&fake.vertices[0][2].u==1920.0f/4096);
     assert(fake.vertices[1][0].u==1920.0f/4096&&fake.vertices[1][2].u==3840.0f/4096);

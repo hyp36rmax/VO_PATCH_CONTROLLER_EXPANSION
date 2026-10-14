@@ -20,12 +20,16 @@ replace('static D3D9RENDERER g_d3d9;','static D3D9RENDERER g_d3d9;\n#include "pr
 replace('                    IDirect3DTexture9_UnlockRect(g_d3d9.surface_tex[tex_index], 0);','                    if (SUCCEEDED(IDirect3DTexture9_UnlockRect(g_d3d9.surface_tex[tex_index], 0))) vo_dual_uploaded(tex_index);')
 replace('BOOL d3d9_reset(BOOL windowed)\n{','BOOL d3d9_reset(BOOL windowed)\n{\n    vo_dual_before_reset();')
 replace('BOOL d3d9_release_resources()\n{','BOOL d3d9_release_resources()\n{\n    vo_dual_before_reset();')
+# Never wait for a game-held surface lock while holding the global lock:
+# the game may be dispatching window messages from inside dds_Lock.
+replace('            if (g_config.lock_surfaces)\n                EnterCriticalSection(&g_ddraw.primary->cs);',
+        '            if (g_config.lock_surfaces && !TryEnterCriticalSection(&g_ddraw.primary->cs))\n            {\n                LeaveCriticalSection(&g_ddraw.cs);\n                ReleaseSemaphore(g_ddraw.render.sem, 1, NULL);\n                Sleep(1);\n                continue;\n            }')
 replace('WaitForSingleObject(g_ddraw.render.sem, timeout)','vo_dual_wait(g_ddraw.render.sem, timeout)')
 replace('        if (FAILED(IDirect3DDevice9_Present(g_d3d9.device, NULL, NULL, NULL, NULL)))','            vo_dual_present(tex_index);\n\n        if (FAILED(IDirect3DDevice9_Present(g_d3d9.device, NULL, NULL, NULL, NULL)))')
 replace('    if (g_config.vhack)\n        InterlockedExchange(&g_ddraw.upscale_hack_active, FALSE);','    vo_dual_end();\n    if (g_config.vhack)\n        InterlockedExchange(&g_ddraw.upscale_hack_active, FALSE);')
 f.write_text(s)
 # Avoid git metadata from the outer workspace influencing version metadata.
-(out/'inc/git.h').write_text(f'#define GIT_COMMIT "{PIN}-private-D04-P02"\n#define GIT_BRANCH "private-presentation"\n')
+(out/'inc/git.h').write_text(f'#define GIT_COMMIT "{PIN}-private-D04-P02B"\n#define GIT_BRANCH "private-presentation"\n')
 # Compile directly: original Makefile rewrites git.h from its parent checkout.
 objects=[]
 for c in sorted((out/'src').glob('**/*.c')):

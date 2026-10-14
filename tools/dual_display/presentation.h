@@ -12,6 +12,7 @@ static struct {
     BOOL attempted, disabled, visible, registered;
     HRESULT failure;
     unsigned long frames, pairs, uploads;
+    unsigned long generation[2], presented_generation[2];
     BOOL texture_valid[2];
 } vo_dual;
 
@@ -190,6 +191,7 @@ restore:;
         for (int i=0;i<2;++i) {
             hr = IDirect3DSwapChain9_Present(vo_dual.chain[i],NULL,NULL,NULL,NULL,0);
             if (FAILED(hr)) break;
+            vo_dual.presented_generation[i] = vo_dual.generation[texture_index];
         }
     }
     if (FAILED(hr)) { vo_dual.failure=hr; vo_dual.disabled=TRUE; }
@@ -202,7 +204,7 @@ done:
 static void vo_dual_uploaded(int index)
 {
     vo_dual.texture_valid[index] = TRUE;
-    ++vo_dual.uploads;
+    vo_dual.generation[index] = ++vo_dual.uploads;
 }
 static void vo_dual_end(void)
 {
@@ -214,10 +216,11 @@ static void vo_dual_end(void)
         WCHAR path[MAX_PATH]; DWORD n=GetModuleFileNameW(NULL,path,MAX_PATH);
         WCHAR *slash = n && n<MAX_PATH ? wcsrchr(path,L'\\') : NULL;
         if(slash && slash-path+27<MAX_PATH) {
-            wcscpy(slash+1,L"D04-P02-presentation.log");
+            wcscpy(slash+1,L"D04-P02B-presentation.log");
             FILE *log=_wfopen(path,L"a");
             if(log) { fprintf(log,"uploads=%lu draw_frames=%lu presented_pairs=%lu fallback=%d hr=0x%08lx\n",vo_dual.uploads,vo_dual.frames,vo_dual.pairs,vo_dual.disabled,(unsigned long)vo_dual.failure);
                 for (int i=0;i<2;++i) { VoOutput o=vo_dual.output[i]; fprintf(log,"player=%d id=%s source=%d,%d,%d,%d destination=%d,%d,%d,%d\n",i+1,monitors[o.monitor].id,o.source.x,o.source.y,o.source.w,o.source.h,o.destination.x,o.destination.y,o.destination.w,o.destination.h); }
+                fprintf(log,"p1_generation=%lu p2_generation=%lu\n",vo_dual.presented_generation[0],vo_dual.presented_generation[1]);
                 fclose(log); }
         }
     }

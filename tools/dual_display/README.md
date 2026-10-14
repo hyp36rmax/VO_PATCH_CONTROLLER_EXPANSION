@@ -1,8 +1,8 @@
 # Private dual-display presentation
 
-Status: **implementation checkpoint; NOT UAT-ready**. The D3D9 extension builds,
-but actual Windows game-frame delivery has not been executed. Do not distribute
-the internal DLL as an accepted dual-display package.
+Status: **D04-P02B private Windows UAT candidate; runtime acceptance pending**.
+The D3D9 extension and launch/collection integration pass applicable host checks.
+Cross-compilation and API doubles do not establish Windows or physical results.
 
 ## Components
 
@@ -13,6 +13,8 @@ the internal DLL as an accepted dual-display package.
 | `layout.h` | Fixed left/right sources and 16:9 destination containment |
 | `presentation.h` | Existing uploaded game texture to two additional D3D9 swap chains |
 | `build_wrapper.py` | Isolated build from the exact pinned wrapper revision |
+| `package.py`, `verify_package.py` | Self-contained candidate assembly and static integrity/relocation checks |
+| `Launch.ps1`, `Collect-Results.ps1` | Single-session launch, assignment UI and automatic diagnostic archive |
 | `test_layout.c` | Host geometry, identity and invalid-assignment tests |
 | `test_presentation.c`, `presentation_test_api.h` | Production lifecycle with fault-injected API doubles |
 
@@ -41,7 +43,12 @@ Python 3.12+, an i686 Windows C compiler and windres are required. Example:
 python build_wrapper.py PINNED_CHECKOUT NEW_BUILD_DIRECTORY --cc CLANG_PATH --windres WINDRES_PATH
 ```
 
-The existing renderer uploads the primary surface under its existing locks.
+The dual candidate explicitly selects D3D9 and enables the existing surface-lock
+option. The game holds that lock from DirectDraw Lock through Unlock; the existing
+renderer uploads the primary surface only after acquiring it. A nonblocking
+acquisition avoids waiting for the game while holding the wrapper global lock.
+On contention it drops the global lock, requeues its semaphore, sleeps 1 ms and
+retries, so the final unlock notification cannot be lost. This can add latency.
 Only successful texture unlocks mark an uploaded texture available. Immediately
 before the original device Present, the extension samples that same texture
 into P1 `(0,0,1920,1080)` and P2 `(1920,0,1920,1080)`. Texture coordinates use
@@ -71,10 +78,13 @@ requests normal game closure because continuing with unknown graphics state is
 unsafe. These policies have host tests; their Windows behavior is not yet proven.
 
 At render-thread exit, windows are destroyed by their owning thread and a compact
-`D04-P02-presentation.log` is appended beside the executable. It records uploads,
+`D04-P02B-presentation.log` is appended beside the executable. It records per-output uploaded generations, uploads,
 draw iterations, successful present pairs, fallback, HRESULT, identities and
-rectangles. There are no per-frame disk writes. This internal logger is not yet
-a verified automatic UAT collector and cannot guarantee a log after a crash.
+rectangles. There are no per-frame disk writes. The retained external observer also records module loading, exceptions and process
+exit. The PowerShell collector gathers both logs, assignments and launch status
+into `RETURN-THIS-D04-P02B.zip`. Missing logs are explicit failures to obtain
+evidence, never success. The collector has static/model checks; Windows execution
+and crash-path delivery remain pending.
 
 ## Verification boundary
 
@@ -83,7 +93,20 @@ Host tests exercise production lifecycle code through API doubles, including
 session. The inherited original-renderer flush tests use synthetic primitive
 records; they likewise do not establish actual game-frame delivery to monitors.
 
-The missing acceptance gate is a Windows integration run that verifies real game
-content at both targets, plus focus/reset/disconnect behavior. No ready-to-run UAT
-ZIP has been produced at this checkpoint. The original D03-P04 package remains
-unchanged. See [the engineering record](../../docs/display/PRIVATE-DUAL-DISPLAY.md).
+The next gate is the consolidated Windows UAT session: real game content at both
+targets, focus/reset/disconnect behavior, cameras, HUD/targeting, controller
+ownership, responsiveness and clean exit. Actual game-frame GPU delivery is
+NEEDS VALIDATION, not inferred from host doubles. The D03-P04 control assets and
+observer are byte-identical. The dual mode changes only wrapper/configuration and
+adds setup; game binaries and controller files remain unchanged.
+
+Launch either `START-DUAL-DISPLAY.cmd` or `START-LOCAL-VS-CONTROL.cmd` from the
+extracted candidate. The former runs existing display selection and then the
+observer/game. Cancellation does not start the game. A named mutex plus an
+existing-game check prevents duplicate package sessions. Relative paths support
+relocation; controller INIs are deliberately mutable across launches while DLLs
+and executable hashes remain checked. No manual DLL copying or INI editing is
+required.
+
+See [the D04-P02B record](../../docs/display/PRIVATE-DUAL-DISPLAY-P02B.md) and the
+[historical D04-P02 checkpoint](../../docs/display/PRIVATE-DUAL-DISPLAY.md).
