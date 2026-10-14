@@ -12,6 +12,9 @@ remains separate. Unified Overlay and the separately licensed native Experience
 component are not included. See [attribution and lineage](docs/project/ATTRIBUTION-AND-LINEAGE.md)
 for credit preservation, the blocked ending-roll extension and license boundaries.
 
+Private integrated testing and diagnostic exports are documented in
+[Experience diagnostics](docs/project/EXPERIENCE-DIAGNOSTICS.md).
+
 ## Overview
 
 Controller Expansion adds native USB HID Twin-Stick profiles, independent P1/P2

@@ -1,0 +1,57 @@
+VO PATCH EX — G03 PRIVATE WINDOWS UAT
+0.1-dev. Requires 64-bit Windows. Physical acceptance pending. No upload or administrator rights.
+
+Extract this ZIP to a writable folder. On first launch, choose your own pristine
+Retail or Japanese rerelease game installation when prompted. Its v_on.exe and
+original resource files must be present. The original folder is never modified.
+A private working copy and verified rendering profiles are prepared automatically.
+No game executables or assets are included in this ZIP. Preparation may take a
+minute. No Python installation, compilation, DLL copying or INI editing is needed.
+
+Run ONE at a time:
+ START-SINGLE-DISPLAY.cmd
+ START-DUAL-VERSUS.cmd
+ START-DUAL-MIRROR.cmd
+Review the display/aspect selection and click Launch. Session-only selections do
+not overwrite saved display preferences. Missing dual outputs are reported before
+startup; a fallback run is not a passing dual-display test. F-key menus continue
+to control game/controller settings. Close the game normally after each test.
+
+After exit (including launch failure), collection automatically creates/selects:
+ RETURN-THIS-VO-PATCH-EX-G03.zip
+EXPORT-DIAGNOSTICS.cmd retries collection independently. Original logs survive
+export failures. The timestamped VO-PATCH-EX-Diagnostics-*.zip is the same export.
+Return the stable ZIP with your observations; nothing is uploaded automatically.
+Keep this private package and its prepared game folder off public repositories.
+
+NORMAL diagnostics are automatic. DETAILED and DEVELOPMENT are optional explicit
+launch arguments (--level DETAILED / --level DEVELOPMENT). Neither records raw
+controller input. No level change is needed for the acceptance run.
+
+Record PASS / FAIL / NOT TESTED for each item, separately for Retail and JPRE.
+Use a fresh extracted copy for the second game revision.
+ 1. VO PATCH EX 0.1-dev title appears correctly.
+ 2. Original version / Pairomaniac attribution remains intact.
+ 3. Original main menu and Back navigation work.
+ 4. Movie visible, centered, correct aspect, original audio and skip work.
+ 5. Single Local VS retains original P1/P2 split-screen.
+ 6. Dual Versus: shared selection; independent P1/P2 during gameplay;
+    secondary black in menu, attract and movie; return to menu works.
+ 7. Dual Mirror: full presentation including complete Local VS on both displays;
+    movie remains Display 1 only, Display 2 black (existing F04B behavior).
+ 8. P1/P2 controllers remain independently assigned; disconnect/reconnect works.
+ 9. F-key menus, binds and settings persist after exit/relaunch.
+10. Normal exit and focus/minimize/restore work; no orphan game/observer remains.
+11. Diagnostic export succeeds after each run.
+12. Export contains only four JSON reports; no game assets or executables.
+
+Check the applicable 4:3 / 16:9 / 21:9 / 32:9 Single profiles and mixed physical
+resolutions/aspects. Expanded 21:9/32:9 Local VS is not a newly validated feature.
+The full AVI frame is preserved; embedded movie bars are not cropped or stretched.
+Ending roll remains original plus upstream attribution; the optional new ending
+lines are blocked pending a verified resource-allocation bound.
+
+Diagnostics report metadata and recorded module events, not visual correctness.
+Saved player settings do not prove runtime physical ownership. Missing events are
+explicitly unknown, not a successful test. Crash-interrupted runs retain flushed
+session events; end-of-session wrapper traces may be unavailable after a crash.
