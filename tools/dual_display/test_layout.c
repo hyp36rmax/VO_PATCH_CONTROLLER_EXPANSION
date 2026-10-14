@@ -5,8 +5,8 @@ int main(void){
  VoMonitor m[3]={{"stable-a",{0,0,1920,1080},1,1},{"stable-b",{-2560,-1440,2560,1440},0,1},{"stable-c",{0,1080,1080,1920},0,1}};
  VoOutput o[2],sentinel[2];memset(sentinel,0xa5,sizeof sentinel);
  unsigned cases=0;
- const int sizes[][2]={{1920,1080},{2560,1440},{3840,2160},{1080,1920},{3440,1440},{1280,1024}};
- for(unsigned i=0;i<6;i++)for(unsigned j=0;j<6;j++){
+ const int sizes[][2]={{1920,1080},{2560,1440},{3840,2160},{1080,1920},{3440,1440},{1280,1024},{5120,1440},{1600,1200}};
+ for(unsigned i=0;i<8;i++)for(unsigned j=0;j<8;j++){
   m[0].desktop=(VoRect){0,0,sizes[i][0],sizes[i][1]};m[1].desktop=(VoRect){-sizes[j][0],-sizes[j][1],sizes[j][0],sizes[j][1]};
   assert(vo_plan(m,2,"","",o)==VO_DUAL_READY);
   for(unsigned k=0;k<2;k++){
@@ -16,6 +16,7 @@ int main(void){
    assert(o[k].source.x==(int)k*1920&&o[k].source.w==1920&&o[k].source.h==1080);
   }cases++;
  }
+ m[0].desktop=(VoRect){0,0,1920,1080};
  assert(vo_plan(m,3,"stable-c","stable-a",o)==VO_DUAL_READY&&o[0].monitor==2&&o[1].monitor==0);
  VoMonitor swap=m[0];m[0]=m[1];m[1]=swap;
  assert(vo_plan(m,3,"stable-c","stable-a",o)==VO_DUAL_READY&&o[1].monitor==1);
@@ -25,5 +26,5 @@ int main(void){
  assert(vo_plan(m,3,"stable-a","stable-a",o)==VO_CLONED_OUTPUTS);
  m[0].desktop=m[1].desktop;assert(vo_plan(m,2,"","",o)==VO_CLONED_OUTPUTS);
  VoRect r;assert(!vo_fit((VoRect){0,0,0,1080},&r));assert(!vo_fit((VoRect){INT32_MAX,0,1920,1080},&r));
- puts("PASS: 36 mixed geometry pairs; negative/vertical positions, stable reorder, disconnect, missing/duplicate identities, clone and bounds rejection; failure outputs unchanged");return cases!=36;
+ puts("PASS: 64 mixed geometry pairs; negative/vertical positions, stable reorder, disconnect, missing/duplicate identities, clone and bounds rejection; failure outputs unchanged");return cases!=64;
 }
