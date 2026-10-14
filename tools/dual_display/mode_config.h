@@ -34,4 +34,12 @@ static int vo_select_session(const VoMonitor *m,unsigned n,const VoPreference *s
  VoPreference effective=*saved;effective.mode=mode;
  return vo_select(m,n,&effective,profiles,s)&&s->mode==mode;
 }
+/* Launch-time recovery is distinct from strict mode matching. Never switch a
+ * running dual framebuffer into a single profile. Saved preferences are input. */
+static int vo_select_launch(const VoMonitor *m,unsigned n,const VoPreference *saved,int mode,unsigned profiles,VoSelection *s){
+ if(vo_select_session(m,n,saved,mode,profiles,s))return 1;
+ if(mode<VO_SINGLE||mode>VO_MIRROR)return 0;
+ VoPreference effective=*saved;effective.mode=mode;
+ return vo_select(m,n,&effective,profiles,s);
+}
 #endif

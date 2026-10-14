@@ -24,7 +24,7 @@ static LRESULT CALLBACK proc(HWND h,UINT msg,WPARAM w,LPARAM l){
  if(msg==WM_CREATE){
   modebox=combo(h,10,10,L"Display Mode");
   SendMessageW(modebox,CB_ADDSTRING,0,(LPARAM)L"Single Display");
-  if(count>1){SendMessageW(modebox,CB_ADDSTRING,0,(LPARAM)L"Dual Display — Versus");SendMessageW(modebox,CB_ADDSTRING,0,(LPARAM)L"Dual Display — Mirror");}
+  if(count>1||session_mode>0){SendMessageW(modebox,CB_ADDSTRING,0,(LPARAM)L"Dual Display — Versus");SendMessageW(modebox,CB_ADDSTRING,0,(LPARAM)L"Dual Display — Mirror");}
   SendMessageW(modebox,CB_SETCURSEL,session_mode>=0?session_mode:selected.mode,0);
   EnableWindow(modebox,session_mode<0);
   for(int k=0;k<2;k++){
@@ -52,9 +52,13 @@ static LRESULT CALLBACK proc(HWND h,UINT msg,WPARAM w,LPARAM l){
    int index=(int)SendMessageW(displaybox[k],CB_GETCURSEL,0,0);
    if(index>=0&&index<(int)count)strcpy(k?next.secondary:next.primary,monitors[index].id);
   }
-  if(!(session_mode>=0?vo_select_session(monitors,count,&next,session_mode,available,&selected):vo_select(monitors,count,&next,available,&selected))){fprintf(stderr,"REQUEST_REJECTED mode=%d reason=missing-profile-or-distinct-active-monitor-assignment\n",next.mode);MessageBoxW(h,L"The requested mode cannot start. Choose distinct active displays for dual mode and check profile availability. No different mode will be launched.",L"Display setup",MB_OK|MB_ICONERROR);return 0;}
+  if(!(session_mode>=0?vo_select_launch(monitors,count,&next,session_mode,available,&selected):vo_select(monitors,count,&next,available,&selected))){fprintf(stderr,"REQUEST_REJECTED mode=%d reason=missing-profile-or-distinct-active-monitor-assignment\n",next.mode);MessageBoxW(h,L"The requested mode cannot start. Choose distinct active displays for dual mode and check profile availability. No different mode will be launched.",L"Display setup",MB_OK|MB_ICONERROR);return 0;}
+  if(session_mode>0&&selected.mode==VO_SINGLE){
+   fprintf(stderr,"FALLBACK requested_mode=%d effective_mode=0 reason_flags=%u profile=%d before_game_initialization=1\n",session_mode,selected.reasons,selected.profile);
+   MessageBoxW(h,L"Dual Display is unavailable. This session will use Single Display with original Local VS split-screen. Saved display preferences are unchanged.",L"Single Display fallback",MB_OK|MB_ICONINFORMATION);
+  }
   WCHAR ids[2][VO_ID_CHARS];MultiByteToWideChar(CP_UTF8,0,next.primary,-1,ids[0],VO_ID_CHARS);MultiByteToWideChar(CP_UTF8,0,next.secondary,-1,ids[1],VO_ID_CHARS);
-  WCHAR mode_text[16],aspect_text[16];swprintf(mode_text,16,L"%d",next.mode);swprintf(aspect_text,16,L"%d",next.aspect);
+  WCHAR mode_text[16],aspect_text[16];swprintf(mode_text,16,L"%d",session_mode>=0?selected.mode:next.mode);swprintf(aspect_text,16,L"%d",next.aspect);
   const WCHAR *destination=session_mode>=0?session_path:config;
   if(!(session_mode>=0?WritePrivateProfileStringW(L"Presentation",L"Mode",mode_text,destination):save_int(L"Mode",next.mode))||!WritePrivateProfileStringW(L"Presentation",L"GameAspect",aspect_text,destination)||!WritePrivateProfileStringW(L"Players",L"Player1",ids[0],destination)||!WritePrivateProfileStringW(L"Players",L"Player2",ids[1],destination)){MessageBoxW(h,L"Settings could not be saved.",L"Display setup",MB_OK|MB_ICONERROR);return 0;}
   pref=next;accepted=1;DestroyWindow(h);return 0;
@@ -76,10 +80,6 @@ int wmain(int argc,WCHAR **argv){
  }else if(argc>1&&!(argc==2&&(!wcscmp(argv[1],L"--resolve")||!wcscmp(argv[1],L"--settings"))))return 1;
  wcscpy(session_path,config);WCHAR *session_slash=wcsrchr(session_path,L'\\');wcscpy(session_slash+1,L"session-display.ini");
  if(!discover())return 1;read_preferences();saved_mode=pref.mode;
- if(session_mode>0&&(count<2||!(available&(1u<<VO_DUAL_PROFILE)))){
-  fprintf(stderr,"REQUEST_REJECTED mode=%d active_monitors=%u dual_profile_available=%d\n",session_mode,count,!!(available&(1u<<VO_DUAL_PROFILE)));
-  MessageBoxW(NULL,L"Dual test cannot start: two active monitors and the dual profile are required. No Single Display game will be launched.",L"Requested display mode unavailable",MB_OK|MB_ICONERROR);return 3;
- }
  if(!vo_select(monitors,count,&pref,available,&selected))return 1;
  if(argc>1&&!wcscmp(argv[1],L"--resolve"))accepted=1;
  else{

@@ -28,9 +28,13 @@ try {
     if ($setup.ExitCode -ne 0) { throw ('Requested mode could not start: ' + (Get-Content -LiteralPath (Join-Path $root 'selection-errors.txt') -Raw)) }
     $selection = Get-Content -LiteralPath (Join-Path $root 'selection.txt') | Where-Object { $_ -match '^SELECT ' } | Select-Object -Last 1
     if ($selection -notmatch '^SELECT mode=([0-2]) profile=([0-4]) desktop=(-?\d+,-?\d+,\d+,\d+) fallback=(\d+) ') { throw 'Invalid display selection result.' }
-    $mode = [int]$Matches[1]; $profile = [int]$Matches[2]; $desktop = $Matches[3]
+    $mode = [int]$Matches[1]; $profile = [int]$Matches[2]; $desktop = $Matches[3]; $fallback = [int]$Matches[4]
     $expected = @{single=0;versus=1;mirror=2}
-    if ($Entry -ne 'saved' -and $mode -ne $expected[$Entry]) { throw 'Session mode mismatch; game was not launched.' }
+    if ($Entry -ne 'saved' -and $mode -ne $expected[$Entry]) {
+        if ($expected[$Entry] -gt 0 -and $mode -eq 0 -and ($fallback -band 4)) {
+            "REPORTED FALLBACK: requested=$Entry effective=Single Display reason_flags=$fallback; original Local VS profile selected before startup" | Add-Content -LiteralPath $status
+        } else { throw 'Session mode mismatch; game was not launched.' }
+    }
     $selection | Add-Content -LiteralPath $status
     $names = @('original','wide','ultrawide','superwide','dual')
     $source = Join-Path $root ('profiles\' + $names[$profile] + '.exe')
@@ -41,7 +45,7 @@ try {
     if ((Get-FileHash -LiteralPath (Join-Path $game 'v_on.exe') -Algorithm SHA256).Hash -ne $chosen.sha256) { throw 'Selected executable integrity failed.' }
     $env:VO_DUAL_DISPLAY = $(if ($mode -eq 0) {'0'} else {'1'})
     $env:VO_SESSION_CONFIG = $(if ($Entry -ne 'saved') {$sessionFile} else {''})
-    $env:VO_STRICT_MODE = $(if ($Entry -ne 'saved' -and $mode -gt 0) {'1'} else {'0'})
+    $env:VO_STRICT_MODE = $(if ($mode -gt 0) {'1'} else {'0'})
     $env:VO_PRIVATE_DISPLAY = '1'
     $env:VO_DESKTOP = $desktop
     $presentationLog = Join-Path $game 'D04-P02B-presentation.log'
@@ -49,12 +53,13 @@ try {
     $stage = 'Run game with external window observer'
     $process = Start-Process -FilePath (Join-Path $root 'MOVIE-OBSERVER.exe') -WorkingDirectory $root -Wait -PassThru
     "Observer exit: $($process.ExitCode); Finished: $(Get-Date -Format o)" | Add-Content -LiteralPath $status
-    if ($Entry -in @('versus','mirror')) {
+    if ($mode -gt 0) {
         if (-not (Test-Path -LiteralPath $presentationLog)) { throw 'Dual initialization was not confirmed: no presentation log. This test did not pass.' }
         $presentation = Get-Content -LiteralPath $presentationLog -Raw
         if ($presentation -match 'fallback=1|strict_test_stopped=1') { throw ('Requested dual mode failed; no alternate mode is accepted. ' + ($presentation -split "`n" | Select-Object -First 1)) }
         if ($presentation -notmatch 'presented_pairs=[1-9][0-9]*') { throw 'No successful dual presentation pair was recorded.' }
-        if ($Entry -eq 'mirror' -and $presentation -notmatch 'mirror_p1=1') { throw 'Mirror routing was not confirmed.' }
+        if ($mode -eq 1 -and $presentation -notmatch 'mirror_p1=0') { throw 'Independent Versus routing was not confirmed.' }
+        if ($mode -eq 2 -and $presentation -notmatch 'mirror_p1=1') { throw 'Mirror routing was not confirmed.' }
     }
     if ($process.ExitCode -ne 0) { throw "Observer returned $($process.ExitCode)" }
 } catch {

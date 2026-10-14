@@ -69,3 +69,27 @@ The private test package is internally verified, not physically accepted.
 Implementation details and test boundaries are recorded in the
 [F04 engineering record](PRIVATE-DUAL-DISPLAY-P05-F04.md). The current settings
 schema is documented separately in [F04 configuration storage](DISPLAY-UX-V1.md).
+
+## Clarified Local VS routing contract — F04A
+
+Display discovery, selected presentation mode, gameplay state and player viewport
+ownership are independent. Entering Local VS must not change the selected mode.
+Monitor count does not determine gameplay or override saved mode preferences.
+
+| Effective mode | Local VS selection | Local VS gameplay |
+|---|---|---|
+| Single | Original game presentation | Original P1/P2 split-screen; upstream horizontal/vertical layouts |
+| Dual Versus | Shared selection on both displays | P1 on Display 1; P2 on Display 2 |
+| Dual Mirror | Shared selection on both displays | P1 on both displays; P2 remains independently controllable |
+
+Unavailable dual output falls back before game initialization to a Single Display
+profile, with the reason reported and saved mode, monitor IDs and aspect retained.
+A running dual profile must not be relabeled as recovered Single Display. Until
+runtime profile switching is validated, a later display loss ends that private
+test through normal closure and requires another launch to resolve recovery.
+Controller participation and camera ownership do not change with presentation.
+Startup/menu remain primary-only; dual secondary is black. Existing movie
+presentation is preserved; F04A did not implement movie enlargement.
+
+These are requirements. The reported physical P1 duplication has not yet been
+reproduced by the existing internal routing tests; it is not established as fixed.

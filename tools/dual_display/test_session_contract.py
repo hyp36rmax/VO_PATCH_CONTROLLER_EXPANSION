@@ -5,7 +5,7 @@ s=(h/'mode_select.c').read_text();launch=(h/'LaunchModes.ps1').read_text();ext=(
 assert 'session_mode>=0?session_path:config' in s
 assert 'session_mode>=0?WritePrivateProfileStringW' in s
 assert 'else if(changed&1)next.mode=' in s and 'EnableWindow(modebox,session_mode<0)' in s
-assert 'vo_select_session(monitors,count,&next,session_mode' in s
+assert 'vo_select_launch(monitors,count,&next,session_mode' in s
 assert 'SESSION-ONLY TEST' in s and 'preferences_written=%d' in s
 assert 'GetEnvironmentVariableW(L"VO_SESSION_CONFIG"' in ext
 assert 'if(session_len)wcscpy(config,session_config)' in ext
@@ -19,3 +19,6 @@ assert 'beforePreferenceHash' in launch and 'afterPreferenceHash' in launch
 # Temporary session projection is collected, not promoted to saved preferences.
 assert 'Copy-Item' not in s and 'MoveFile' not in s
 print('PASS session-only configuration destination, locked mode UI, exact launcher labels, wrapper handoff, strict failure reporting, preference hashes and post-collection cleanup; source contracts')
+
+assert "REPORTED FALLBACK" in launch and "($fallback -band 4)" in launch
+assert "session_mode>=0?selected.mode:next.mode" in s

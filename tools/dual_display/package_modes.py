@@ -19,7 +19,8 @@ subprocess.run([__import__('sys').executable,str(here.parent/'movie_observer/bui
 for n in ('LaunchModes.ps1','Collect-Modes.ps1'):shutil.copy2(here/n,out/n)
 for entry,label in (('single','SINGLE-DISPLAY'),('versus','DUAL-VERSUS'),('mirror','DUAL-MIRROR')):
  (out/f'START-{label}.cmd').write_bytes(('@echo off\r\nsetlocal\r\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0LaunchModes.ps1" -Entry '+entry+'\r\nif errorlevel 1 pause\r\n').encode())
-(out/'READ-ME.txt').write_text("""D04-P05-F04A PRIVATE WINDOWS UAT — physical acceptance pending
+(out/'READ-ME.txt').write_text("""D04-P05-F04A ROUTING RECOVERY UAT — physical acceptance pending
+Reported P1 duplication is NOT yet reproduced or established as fixed.
 
 Extract the ZIP. Three explicit SESSION-ONLY tests:
 START-SINGLE-DISPLAY.cmd — Single Display
@@ -29,7 +30,8 @@ START-DUAL-MIRROR.cmd — P1 gameplay on both displays
 Each launcher fixes its requested mode. Review monitor/aspect selections and
 click Launch. Session changes never overwrite saved display preferences.
 Dual tests require two separate active displays and the dual profile. If not
-available, the test reports why and does not start a Single Display game.
+available, setup explicitly reports Single Display fallback before launching its
+original Local VS profile. Saved dual preferences remain unchanged.
 The temporary session file is collected for diagnostics, then discarded.
 
 Single: use Widescreen (16:9) on your 2560x1440 desktop. Check movie centering,

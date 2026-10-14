@@ -93,3 +93,8 @@ and [DUX-V1.0 configuration contract](../../docs/display/DUX-V1.0.md).
 The original F03C package/build path remains available for recovery.
 
 [F04A](../../docs/display/PRIVATE-DUAL-DISPLAY-P05-F04A.md) adds explicit, disposable Single/Versus/Mirror test sessions and strict dual failure reporting. F04 movie presentation is preserved.
+
+F04A routing recovery resolves unavailable dual output before startup to the
+selected Single profile, reports that fallback, and preserves preferences.
+The reported physical P1 duplication remains unconfirmed internally; see
+[the routing record](../../docs/display/PRIVATE-DUAL-DISPLAY-F04A-ROUTING.md).
