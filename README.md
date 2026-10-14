@@ -1,9 +1,16 @@
-# Virtual-On PC Controller Expansion
+# VO PATCH EX
 
-Expanded controller compatibility for *Cyber Troopers Virtual-On* (PC, 1997).
+Private integration of Controller Expansion and Display Expansion for
+*Cyber Troopers Virtual-On* (PC, 1997).
 Maintained by [hyp36rmax](https://github.com/hyp36rmax/VO_PATCH_CONTROLLER_EXPANSION), built on
 [Pairomaniac's V-On Patcher](https://github.com/pairomaniac/v-on-patcher) for
 modern Windows systems.
+
+The local Experience branch includes Display F04B and the current Controller
+history. Windows integration acceptance is pending; the public CE pre-release
+remains separate. Unified Overlay and the separately licensed native Experience
+component are not included. See [attribution and lineage](docs/project/ATTRIBUTION-AND-LINEAGE.md)
+for credit preservation, the blocked ending-roll extension and license boundaries.
 
 ## Overview
 

@@ -69,6 +69,14 @@ titlever:
     cmp     eax, MENU
     jne     .out
 .draw:
+    ; Add the local integration identity above, leaving upstream's line intact.
+    push    48
+    push    43                 ; 18 characters, two cells each, ends at 79
+    call    CURSOR
+    add     esp, 8
+    push    extext
+    call    PRINT
+    add     esp, 4
     mov     edx, text           ; right-aligned on RIGHT, two cells a
     xor     ecx, ecx            ; character
 .len:
@@ -93,5 +101,8 @@ titlever:
     mov     eax, [PRIMARY]      ; the displaced load
     ret
 
+extext:
+    db 'VO PATCH EX 0.1-dev',0
+    db 1                       ; boundary marker before upstream version field
 text:
     times   TEXTLEN db 0

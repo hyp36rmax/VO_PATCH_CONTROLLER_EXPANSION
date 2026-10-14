@@ -2955,6 +2955,10 @@ NAME = 'v-on-patcher'
 # and the line the patched game prints on its title screen.
 LABEL = 'V-On Patcher'
 LOGO_CREDIT = 'Logo by SirRockEmSockEm'
+EX_ATTRIBUTION = ('VO PATCH EX 0.1-dev — hyp36rmax\n'
+                  'Controllers Expansion; Display Expansion (Windows acceptance pending).\n'
+                  'Unified Overlay Menu Expansion: not included.\n'
+                  'Independent community work; no SEGA or upstream endorsement.')
 REPO_URL = 'https://github.com/pairomaniac/v-on-patcher'
 
 EXE_SIZE = 6650880
@@ -5706,21 +5710,26 @@ BLOBS = {
         'prompt': 0x86,
     }),
     'TITLEVER': (bytes.fromhex(
-        'a10000000083f8017545a10000000083f806740a83f817740583f8117531ba55'
-        '00000031c9803c0a00740341ebf7b84f00000029c829c86a3250e8fcffffff83'
-        'c4086855000000e8fcffffff83c404a100000000c30000000000000000000000'
-        '00000000000000000000000000'
+        'a10000000083f801755ea10000000083f806740a83f817740583f811754a6a30'
+        '6a2be8fcffffff83c408686e000000e8fcffffff83c404ba8300000031c9803c'
+        '0a00740341ebf7b84f00000029c829c86a3250e8fcffffff83c4086883000000'
+        'e8fcffffff83c404a100000000c3564f20504154434820455820302e312d6465'
+        '760001000000000000000000000000000000000000000000000000'
     ), (
         (0x1, 'abs', 'MODE', 0),
         (0xb, 'abs', 'SUBMODE', 0),
-        (0x1f, 'abs', '.', 85),
-        (0x3b, 'rel', 'CURSOR', -4),
-        (0x43, 'abs', '.', 85),
-        (0x48, 'rel', 'PRINT', -4),
-        (0x50, 'abs', 'PRIMARY', 0),
+        (0x23, 'rel', 'CURSOR', -4),
+        (0x2b, 'abs', '.', 110),
+        (0x30, 'rel', 'PRINT', -4),
+        (0x38, 'abs', '.', 131),
+        (0x54, 'rel', 'CURSOR', -4),
+        (0x5c, 'abs', '.', 131),
+        (0x61, 'rel', 'PRINT', -4),
+        (0x69, 'abs', 'PRIMARY', 0),
     ), {
         'titlever': 0x0,
-        'text': 0x55,
+        'extext': 0x6e,
+        'text': 0x83,
     }),
     'ACTIVATE': (bytes.fromhex(
         '58a30000000068190000005589e581ece0000000e90500000085c0751ec70500'
@@ -11602,6 +11611,9 @@ def run_tk():
             tk.Frame(parent, height=1, background=PALETTE['line'],
                      borderwidth=0, highlightthickness=0).pack(
                          fill='x', pady=(10, 8))
+            self._static_label(ttk.Label(parent, text=EX_ATTRIBUTION,
+                                         style='Card.TLabel', wraplength=380)).pack(
+                                             anchor='w', pady=(4, 8))
             self._patch_body(parent, ABOUT, None)
 
         def _log_body(self, parent):

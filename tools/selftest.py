@@ -26,8 +26,8 @@ import sys
 # Everything ticked, per build: retail, the Japanese rerelease, the OEM,
 # the Japanese original.
 EXPECTED_ALL = {
-    'a464b0ff32d5bab499f265e45658504e': 'a0218f334a8a219768e7974ad1e23019',
-    'd19320bdc3381a48228990907910a391': 'a35244bdb0419b96034f5e442ee08036',
+    'a464b0ff32d5bab499f265e45658504e': '0501d4857bf07c55bc31559db5a4d0c2',
+    'd19320bdc3381a48228990907910a391': '0080608487ab547e4128fea38aa33671',
     # Previous-release pins: these editions still need pristine-file
     # validation and refreshed hashes after the controller blob regeneration.
     '4c70f780a7f0d98d74be62304fb99021': 'c4cf5d54055c3c906f26182a0e62868d',

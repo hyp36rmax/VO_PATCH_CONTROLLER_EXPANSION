@@ -32,6 +32,8 @@ def baseline_module():
     module = types.ModuleType('ce2_reference')
     module.__file__ = str(ROOT / 'v-on-patcher.py')
     exec(compile(source, module.__file__, 'exec'), module.__dict__)
+    from attribution_baseline import align
+    align(module, vp)
     return module
 
 

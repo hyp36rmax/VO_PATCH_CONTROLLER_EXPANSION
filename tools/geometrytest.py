@@ -106,6 +106,8 @@ def geometry(vp, old):
 
 
 def images(vp, old, path):
+    from attribution_baseline import align
+    align(old, vp)
     data, _ = selftest.pristine(path, vp)
     assert data is not None, 'pristine executable required'
     md5 = hashlib.md5(data).hexdigest()
