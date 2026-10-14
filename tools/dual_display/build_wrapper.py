@@ -19,6 +19,13 @@ flip='        if (g_config.flipclear && (This->caps & DDSCAPS_PRIMARYSURFACE))'
 assert body.count(flip)==1
 body=body.replace(flip,'        if (This == g_ddraw.primary) vo_capture_flip_policy();\n\n'+flip)
 f.write_text('#include \"state_bridge.h\"\n'+body)
+# The pinned wrapper resets the desktop to registry defaults before querying it.
+# Private windowed output must observe the current mode, including unsaved modes.
+f=out/'src/dd.c';body=f.read_text()
+old='    if (!g_ddraw.mode.dmPelsWidth)\n    {\n        ChangeDisplaySettings(NULL, 0);'
+new='    if (!g_ddraw.mode.dmPelsWidth)\n    {\n        char vo_native[2] = {0};\n        if (!g_config.windowed || GetEnvironmentVariableA("VO_DUAL_DISPLAY", vo_native, sizeof vo_native) != 1 || vo_native[0] != \'1\')\n            ChangeDisplaySettings(NULL, 0);'
+assert body.count(old)==1
+f.write_text(body.replace(old,new))
 f=out/'src/render_d3d9.c';s=f.read_text()
 def replace(old,new):
  global s
@@ -37,7 +44,7 @@ replace('        if (FAILED(IDirect3DDevice9_Present(g_d3d9.device, NULL, NULL, 
 replace('    if (g_config.vhack)\n        InterlockedExchange(&g_ddraw.upscale_hack_active, FALSE);','    vo_dual_end();\n    if (g_config.vhack)\n        InterlockedExchange(&g_ddraw.upscale_hack_active, FALSE);')
 f.write_text(s)
 # Avoid git metadata from the outer workspace influencing version metadata.
-(out/'inc/git.h').write_text(f'#define GIT_COMMIT "{PIN}-private-D04-P05-F01"\n#define GIT_BRANCH "private-presentation"\n')
+(out/'inc/git.h').write_text(f'#define GIT_COMMIT "{PIN}-private-D04-P05-F02"\n#define GIT_BRANCH "private-presentation"\n')
 # Compile directly: original Makefile rewrites git.h from its parent checkout.
 objects=[]
 for c in sorted((out/'src').glob('**/*.c')):

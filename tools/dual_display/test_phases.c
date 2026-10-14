@@ -31,10 +31,10 @@ int main(void){
   int draws=fake.draws,clears=fake.clears;vo_dual_present(j%2);
   assert(fake.clears-clears==2&&fake.clear_color==0);
   assert(fake.vertices[draws][0].u==0);
-  assert(fake.vertices[draws][2].u==(sequence[j]==2?1920.0f:3840.0f)/4096);
+  assert(fake.vertices[draws][2].u==1920.0f/4096);
   assert(vo_dual.pairs==j+1&&vo_dual.presented_generation[0]==j+1&&vo_dual.presented_generation[1]==j+1);
   assert(fake.draws-draws==(sequence[j]==0?1:2));
-  assert(vo_dual.output[0].source.w==(sequence[j]==2?1920:3840));
+  assert(vo_dual.output[0].source.w==1920);
   if(sequence[j]==1)assert(!memcmp(&vo_dual.output[0].source,&vo_dual.output[1].source,sizeof(VoRect)));
   if(sequence[j]==2)assert(vo_dual.output[1].source.x==1920);
   assert(fake.foreground==1&&!fake.original_moves);
@@ -58,5 +58,5 @@ int main(void){
   long long error=(long long)out.destination.w*out.source.h-(long long)out.destination.h*out.source.w;
   assert(error>-out.source.w&&error<out.source.w);
  }
- puts("PASS three-phase transitions, full shared source, black secondary, mirror P1, latched generations, mixed aspects and all graphics failure points per phase; API doubles only");
+ puts("PASS three-phase transitions, regenerated shared source, black secondary, mirror P1, latched generations, mixed aspects and all graphics failure points per phase; API doubles only");
 }

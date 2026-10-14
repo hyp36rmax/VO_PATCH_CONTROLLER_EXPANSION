@@ -12,6 +12,8 @@ static VoPolicy vo_policy(unsigned loop,unsigned mode,unsigned split,unsigned sh
 static int vo_route(VoPolicy phase,int mirror,unsigned player,VoRect monitor,VoOutput *o,int *black) {
  *black=phase==VO_PRIMARY_ONLY&&player==1;
  o->source=(VoRect){0,0,3840,1080};
+ if(phase==VO_PRIMARY_ONLY||phase==VO_LOCAL_VS_SHARED)
+  o->source=(VoRect){0,0,1920,1080};
  if(phase==VO_LOCAL_VS_GAMEPLAY)
   o->source=(VoRect){player&&!(phase==VO_LOCAL_VS_GAMEPLAY&&mirror)?1920:0,0,1920,1080};
  return vo_fit_source(monitor,o->source.w,o->source.h,&o->destination);

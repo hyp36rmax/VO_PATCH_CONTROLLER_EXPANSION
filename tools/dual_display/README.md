@@ -1,17 +1,18 @@
 # Private dual-display presentation
 
-D04-P05-F01 corrects the missed Flip capture in P05 and implements three-phase presentation on the physically validated D04-P03
-backend. New phase behavior and the new setup option **NEED WINDOWS VALIDATION**.
-See [the F01 record](../../docs/display/PRIVATE-DUAL-DISPLAY-P05-F01.md).
+D04-P05-F02 uses upstream 1920 shared composition inside the existing 3840×1080
+buffer. F01 is physically validated; F02 **NEEDS WINDOWS VALIDATION**.
+See [the F02 record](../../docs/display/PRIVATE-DUAL-DISPLAY-P05-F02.md).
 
 | Phase | Display 1 | Display 2 |
 |---|---|---|
-| Primary only | Complete 3840×1080 source | Black |
-| Local VS shared | Complete source | Same complete source |
+| Primary only | Regenerated 1920×1080 shared source | Black |
+| Local VS shared | Shared source | Same shared source |
 | Local VS gameplay | Left 1920×1080 viewport | Right viewport, or optional mirror of left |
 
 Each source is contained and centered independently on its assigned monitor.
-Shared 32:9 content is letterboxed on 16:9 displays; no centered-HUD crop is used.
+Shared artwork is recomposed using upstream geometry, not cropped from the wide
+frame. Original 4:3 content remains governed by upstream layout within the source.
 The persistent secondary gameplay option defaults to Player 2. It is available
 in the existing monitor assignment UI; monitor IDs and controller ownership are
 unchanged. Unknown, invalid, unsupported or uninitialized observations mirror the full
@@ -25,6 +26,7 @@ explicit fallback. Valid gameplay retains the P03 rectangles.
 | `inventory.h`, `displays.c` | Discovery, stable assignments, saved gameplay option |
 | `layout.h`, `policy.h` | Aspect containment and three-phase routing |
 | `state_bridge.c`, `state_bridge.h`, `game_profiles.h` | Read-only original-state capture at primary Flip / direct primary Unlock |
+| `build_shared_assets.py` | Generate the isolated shared image and matching observer |
 | `build_profiles.py` | Reproduce edition-specific identity and address tables |
 | `presentation.h` | Texture-generation policy, output draws and window lifecycle |
 | `build_wrapper.py` | Isolated build of the pinned wrapper plus private extension |
@@ -57,13 +59,15 @@ No per-transition resources are allocated.
 P03 foreground ownership, no-activate windows, focus hiding, stacking repair,
 reset/disconnect fallback, state restoration and render-thread teardown remain.
 The original game window stays active for input and fallback. No input hooks are
-added. The game, helper, observer and original control assets remain unchanged.
+added. The helper and original control assets remain unchanged. The dual executable
+changes only non-split width operands and their F4 primary entries; the observer
+is rebuilt with its matching executable hash.
 
 ## Delivery and evidence
 
 Run `START-DUAL-DISPLAY.cmd`; choose monitors and secondary gameplay mode. The
 control launcher retains the original D03-P04 package. No elevation, manual DLL
-copying, INI editing or compilation is required. Return `RETURN-THIS-D04-P05-F01.zip`.
+copying, INI editing or compilation is required. Return `RETURN-THIS-D04-P05-F02.zip`.
 If compression fails, its corresponding folder retains the collected logs.
 
 `D04-P02B-presentation.log` retains its inherited name for collection. It adds

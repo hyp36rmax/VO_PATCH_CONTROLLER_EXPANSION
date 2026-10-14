@@ -7,11 +7,13 @@ from unicorn import UC_HOOK_MEM_WRITE
 from unicorn.x86_const import UC_X86_REG_ESP,UC_X86_REG_EIP,UC_X86_REG_EBX,UC_X86_REG_EBP
 from capstone import Cs,CS_ARCH_X86,CS_MODE_32
 O=Path(sys.argv[3]);O.mkdir(parents=True,exist_ok=True)
-import engineering3840,engineering_vs,d01test
+import engineering3840,engineering_vs,engineering_shared,d01test
+image_builder = engineering_shared if sys.argv[4:] == ["--shared"] else engineering_vs
+assert sys.argv[4:] in ([], ["--shared"])
 v=engineering3840.load_private();md=Cs(CS_ARCH_X86,CS_MODE_32);md.detail=True;results=[]
 for edition,path in zip(('retail','jpre'),sys.argv[1:3]):
  raw=Path(path).read_bytes();b=v.BUILDS[hashlib.md5(raw).hexdigest()];assert b.short==edition
- d,_=engineering_vs.build(raw)
+ d,_=image_builder.build(raw)
  port=None if edition=='retail' else v.PORT['%08x'%v._pe_stamp(raw)]
  addr=lambda a:a if port is None else port['va'][a]
  m,p=d01test.image(d);surface=0x10000000;m.mem_map(surface,0xa00000)
