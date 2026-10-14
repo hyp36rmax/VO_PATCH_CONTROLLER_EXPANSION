@@ -1,6 +1,6 @@
 # Private dual-display presentation
 
-Status: **D04-P02B private Windows UAT candidate; runtime acceptance pending**.
+Status: **D04-P02B-LF01 launcher/log correction; Windows retest pending**.
 The D3D9 extension and launch/collection integration pass applicable host checks.
 Cross-compilation and API doubles do not establish Windows or physical results.
 
@@ -82,7 +82,7 @@ At render-thread exit, windows are destroyed by their owning thread and a compac
 draw iterations, successful present pairs, fallback, HRESULT, identities and
 rectangles. There are no per-frame disk writes. The retained external observer also records module loading, exceptions and process
 exit. The PowerShell collector gathers both logs, assignments and launch status
-into `RETURN-THIS-D04-P02B.zip`. Missing logs are explicit failures to obtain
+into `RETURN-THIS-D04-P02B-LF01.zip`. Missing logs are explicit failures to obtain
 evidence, never success. The collector has static/model checks; Windows execution
 and crash-path delivery remain pending.
 
@@ -110,3 +110,19 @@ required.
 
 See [the D04-P02B record](../../docs/display/PRIVATE-DUAL-DISPLAY-P02B.md) and the
 [historical D04-P02 checkpoint](../../docs/display/PRIVATE-DUAL-DISPLAY.md).
+
+## LF01 launcher correction
+
+The assignment utility is now `DISPLAY-ASSIGN.exe` with an embedded `asInvoker`
+manifest. The previous 32-bit `DISPLAY-SETUP.exe` had no execution-level manifest,
+meeting Windows installer-detection criteria. This is the identified packaging
+defect; the original physical failure did not retain an exact failing-process
+trace. Launch now logs each process path, arguments, working directory, exit code
+and native errors without requesting elevation or changing compatibility policy.
+
+Collection first copies diagnostics into timestamped subfolders of
+`RETURN-THIS-D04-P02B-LF01`, then explicitly loads both compression assemblies.
+A ZIP failure leaves that folder and original logs intact. Collection occurs after
+launch/session completion and is not a game-start dependency. The wrapper, game,
+controller helper, observer and renderer configuration are unchanged from P02B.
+See [the LF01 record](../../docs/display/PRIVATE-DUAL-DISPLAY-LF01.md).

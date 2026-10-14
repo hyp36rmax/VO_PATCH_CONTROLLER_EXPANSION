@@ -26,13 +26,13 @@ assert s.index('vo_dual_before_reset();')<s.index('IDirect3DDevice9_Reset(')
 for f in root.glob('START-*.cmd'):
  b=f.read_bytes();assert b'\r\n' in b and b'\\r\\n' not in b
  assert b'%~dp0Launch.ps1' in b and b'/Users/' not in b
-launch=(root/'Launch.ps1').read_text();assert '$PSScriptRoot' in launch and '-Wait -PassThru' in launch
+launch=(root/'Launch.ps1').read_text();assert '$PSScriptRoot' in launch and 'Wait=$true; PassThru=$true' in launch
 assert '$manifest.mutable_files -contains $entry.Name' in launch
 # Same mutable controller files can change between launches without bypassing DLL checks.
 assert all(n.endswith('.ini') and not n.endswith('/ddraw.ini') for n in m['mutable_files'])
 assert not any(n.endswith('.dll') for n in m['mutable_files'])
 collector=(root/'Collect-Results.ps1').read_text()
-assert 'RETURN-THIS-D04-P02B.zip' in collector and 'OpenRead($temporary)' in collector
+assert 'RETURN-THIS-D04-P02B-LF01' in collector and 'OpenRead($temporary)' in collector
 for bits in range(4):
  present=[mode for i,mode in enumerate(('dual','control')) if bits&(1<<i)]
  entries=['build-record.json','collection-status.txt']+[mode+'/launch-status.txt' for mode in present]

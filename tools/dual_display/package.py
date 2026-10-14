@@ -3,7 +3,7 @@ Cross-build/package verification is not Windows runtime acceptance.
 """
 import argparse, hashlib, json, shutil, subprocess, zipfile
 from pathlib import Path
-p=argparse.ArgumentParser();p.add_argument('control',type=Path);p.add_argument('wrapper',type=Path);p.add_argument('output',type=Path);p.add_argument('--cc',required=True);a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('control',type=Path);p.add_argument('wrapper',type=Path);p.add_argument('output',type=Path);p.add_argument('--cc',required=True);p.add_argument('--windres',required=True);a=p.parse_args()
 here=Path(__file__).resolve().parent;out=a.output.resolve();out.mkdir(parents=True,exist_ok=False)
 sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
 source=a.control.resolve();wrapper=a.wrapper.resolve()
@@ -13,11 +13,14 @@ for mode in ('dual','control'):
  if mode=='dual':
   shutil.copy2(wrapper/'ddraw.dll',out/mode/'game/ddraw.dll')
   ini=out/mode/'game/ddraw.ini';text=ini.read_text().replace('renderer=auto','renderer=direct3d9').replace('rgb555=false','rgb555=false\nlock_surfaces=true');ini.write_text(text)
-  subprocess.run([a.cc,'-std=c11','-O2','-Wall','-Wextra','-Werror','-municode',str(here/'displays.c'),'-luser32','-Wl,--no-insert-timestamp','-o',str(out/mode/'game/DISPLAY-SETUP.exe')],check=True)
+  resource=out/'display-manifest.o'
+  subprocess.run([a.windres,str(here/'displays.rc'),str(resource)],cwd=here,check=True)
+  subprocess.run([a.cc,'-std=c11','-O2','-Wall','-Wextra','-Werror','-municode',str(here/'displays.c'),str(resource),'-luser32','-Wl,--no-insert-timestamp','-o',str(out/mode/'game/DISPLAY-ASSIGN.exe')],check=True)
+  resource.unlink()
 for n in ('Launch.ps1','Collect-Results.ps1'):shutil.copy2(here/n,out/n)
 for mode,name in [('dual','START-DUAL-DISPLAY.cmd'),('control','START-LOCAL-VS-CONTROL.cmd')]:
  (out/name).write_bytes(('@echo off\r\nsetlocal\r\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Launch.ps1" -Mode '+mode+'\r\nif errorlevel 1 pause\r\n').encode('ascii'))
-(out/'READ-ME.txt').write_text('''D04-P02B PRIVATE WINDOWS UAT — runtime validation pending
+(out/'READ-ME.txt').write_text('''D04-P02B-LF01 PRIVATE WINDOWS UAT — runtime validation pending
 
 Extract the entire ZIP to a writable folder.
 1. Launch START-DUAL-DISPLAY.cmd. Select the P1 and P2 displays and save.
@@ -26,7 +29,10 @@ Extract the entire ZIP to a writable folder.
    stable motion and responsiveness. Try Alt+Tab, minimize/restore and exit.
 4. Closing the game must close both output windows. The results ZIP is selected.
 5. Run START-LOCAL-VS-CONTROL.cmd for the unchanged D03-P04 comparison.
-6. Return RETURN-THIS-D04-P02B.zip and your observations.
+6. Return RETURN-THIS-D04-P02B-LF01.zip and your observations.
+   If ZIP creation fails, the equally named return folder retains the logs.
+
+Run normally, not as administrator. No privilege elevation is requested.
 
 Only one game is launched. Display assignments persist between runs.
 The observer and launcher consoles may be visible during this private test.
