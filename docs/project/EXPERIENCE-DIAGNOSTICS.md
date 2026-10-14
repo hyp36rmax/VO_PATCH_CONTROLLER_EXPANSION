@@ -1,5 +1,9 @@
 # Experience diagnostics and private G03 acceptance
 
+The G03 coordinator is retained as prototype evidence, not the installation
+workflow. See [G03A installation workflow](INSTALLATION-WORKFLOW.md) for the
+normal patcher control and pending F-key integration.
+
 G03 adds an external coordinator around the existing F04B display launcher.
 Controller polling, camera ownership, renderer code, display selection, F-key
 menus and G02 attribution remain unchanged. Windows acceptance is pending.

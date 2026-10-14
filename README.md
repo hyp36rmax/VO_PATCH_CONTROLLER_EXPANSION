@@ -12,7 +12,9 @@ remains separate. Unified Overlay and the separately licensed native Experience
 component are not included. See [attribution and lineage](docs/project/ATTRIBUTION-AND-LINEAGE.md)
 for credit preservation, the blocked ending-roll extension and license boundaries.
 
-Private integrated testing and diagnostic exports are documented in
+The normal installation workflow and pending in-game display configuration are
+documented in [Installation workflow](docs/project/INSTALLATION-WORKFLOW.md).
+Earlier prototype diagnostic exports are documented in
 [Experience diagnostics](docs/project/EXPERIENCE-DIAGNOSTICS.md).
 
 ## Overview
