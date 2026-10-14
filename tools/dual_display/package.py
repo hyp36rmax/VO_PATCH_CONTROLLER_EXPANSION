@@ -3,7 +3,7 @@ Cross-build/package verification is not Windows runtime acceptance.
 """
 import argparse, hashlib, json, shutil, subprocess, zipfile
 from pathlib import Path
-p=argparse.ArgumentParser();p.add_argument('control',type=Path);p.add_argument('wrapper',type=Path);p.add_argument('output',type=Path);p.add_argument('--shared-assets',type=Path,required=True);p.add_argument('--cc',required=True);p.add_argument('--windres',required=True);a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('control',type=Path);p.add_argument('wrapper',type=Path);p.add_argument('output',type=Path);p.add_argument('--assignment-evidence',type=Path);p.add_argument('--shared-assets',type=Path,required=True);p.add_argument('--cc',required=True);p.add_argument('--windres',required=True);a=p.parse_args()
 here=Path(__file__).resolve().parent;out=a.output.resolve();out.mkdir(parents=True,exist_ok=False)
 sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
 source=a.control.resolve();wrapper=a.wrapper.resolve()
@@ -20,25 +20,34 @@ for mode in ('dual','control'):
   subprocess.run([a.windres,str(here/'displays.rc'),str(resource)],cwd=here,check=True)
   subprocess.run([a.cc,'-std=c11','-O2','-Wall','-Wextra','-Werror','-municode',str(here/'displays.c'),str(resource),'-luser32','-Wl,--no-insert-timestamp','-o',str(out/mode/'game/DISPLAY-ASSIGN.exe')],check=True)
   resource.unlink()
+if a.assignment_evidence:
+ with zipfile.ZipFile(a.assignment_evidence) as evidence:
+  names=[n for n in evidence.namelist() if n.replace('\\','/').endswith('/game/player-displays.ini')]
+  assert len(names)==1
+  (out/'dual/game/player-displays.ini').write_bytes(evidence.read(names[0]))
 for n in ('Launch.ps1','Collect-Results.ps1'):shutil.copy2(here/n,out/n)
-for mode,name in [('dual','START-DUAL-DISPLAY.cmd'),('control','START-LOCAL-VS-CONTROL.cmd')]:
+for mode,name in [('dual','START-DUAL-DISPLAY.cmd'),('control','START-SINGLE-DISPLAY.cmd')]:
  (out/name).write_bytes(('@echo off\r\nsetlocal\r\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Launch.ps1" -Mode '+mode+'\r\nif errorlevel 1 pause\r\n').encode('ascii'))
-(out/'READ-ME.txt').write_text('''D04-P05-F02 PRIVATE WINDOWS UAT — runtime validation pending
+(out/'READ-ME.txt').write_text('''D04-P05-F03C PRIVATE WINDOWS UAT — runtime validation pending
 
 Extract the entire ZIP to a writable folder.
-1. Launch START-DUAL-DISPLAY.cmd. Select both displays; leave secondary gameplay
-   at Player 2 and save. Settings persist between launches.
-2. Startup/menu: Display 1 shows the upstream 16:9 composition; Display 2 is black.
-   The known invisible intro picture is non-blocking if audio/skip still work.
-3. Enter Local VS: verify selection and pre-fight are mirrored without cropping.
-4. Play: verify independent cameras, HUD/targeting, P1/P2 controls and proportions.
-5. Return to menu: Display 2 should return to black. Test Alt+Tab/minimize/restore.
-6. Exit; verify both windows close. Relaunch and choose Mirror Player 1.
-   Verify only gameplay presentation changes: P2 still plays with its controller.
-7. Test available mixed-size/aspect displays; no display-setting changes needed.
-8. START-LOCAL-VS-CONTROL.cmd provides the unchanged D03-P04 comparison if needed.
-9. Return RETURN-THIS-D04-P05-F02.zip and observations after the session.
-   If compression fails, the equally named return folder retains all run logs.
+1. Launch START-DUAL-DISPLAY.cmd. The previous monitor assignment is retained.
+2. Confirm the intro movie is visible on Display 1 and Display 2 stays black.
+   Check original proportions, audio and the usual skip control.
+3. Skip normally and confirm the main menu returns without a black screen.
+4. Enter Local VS: check mirrored selection, independent P1/P2 gameplay,
+   controls, targeting and the existing Mirror Player 1 option if used.
+5. Return to menu; check focus/minimize/restore and exit normally.
+6. Launch START-SINGLE-DISPLAY.cmd. Check original movie/skip, menu,
+   split-screen Local VS, F-key controls and controllers, then exit.
+7. Return RETURN-THIS-D04-P05-F03C.zip with observations for BOTH modes.
+   If compression fails, the equally named return folder retains raw logs.
+
+This is a targeted occlusion correction, not a decoder replacement. The movie
+must be a unique visible AVIWnd32 child of this game, contained on the assigned
+Display 1. Otherwise the validated F02 presentation is preserved and rejection
+is logged. Different Display 2 dimensions do not affect movie identification.
+If the movie remains invisible, report it; do not change Windows configuration.
 
 Run normally, not as administrator. No privilege elevation is requested.
 
@@ -57,9 +66,9 @@ The internal buffer remains 3840x1080; neither monitor needs that display mode.
 Shared screens are composed using the upstream 1920x1080 viewport, then fitted
 independently to each desktop. Original 4:3 artwork/HUD behavior is retained
 inside that composition. Gameplay retains the original independent halves.
-Controllers and Local VS cameras are unchanged. Physical F02 behavior NEEDS VALIDATION.
+Controllers and Local VS cameras are unchanged. Physical F03C behavior NEEDS VALIDATION.
 ''')
-(out/'build-record.json').write_text(json.dumps({'source_head':subprocess.check_output(['git','rev-parse','HEAD'],cwd=here,text=True).strip(),'wrapper':json.loads((wrapper/'private-build.json').read_text()),'control_game_sha256':sha(source/'game/v_on.exe'),'control_observer_sha256':sha(source/'OBSERVER.exe'),'game_sha256':sha(out/'dual/game/v_on.exe'),'observer_sha256':sha(out/'dual/OBSERVER.exe'),'shared_geometry':json.loads((a.shared_assets/'geometry.json').read_text()),'windows_runtime':'NEEDS VALIDATION','physical':'NEEDS VALIDATION'},indent=2)+'\n')
+(out/'build-record.json').write_text(json.dumps({'source_head':subprocess.check_output(['git','rev-parse','HEAD'],cwd=here,text=True).strip(),'wrapper':json.loads((wrapper/'private-build.json').read_text()),'control_game_sha256':sha(source/'game/v_on.exe'),'control_observer_sha256':sha(source/'OBSERVER.exe'),'game_sha256':sha(out/'dual/game/v_on.exe'),'observer_sha256':sha(out/'dual/OBSERVER.exe'),'assignment_evidence_sha256':sha(a.assignment_evidence) if a.assignment_evidence else None,'shared_geometry':json.loads((a.shared_assets/'geometry.json').read_text()),'windows_runtime':'NEEDS VALIDATION','physical':'NEEDS VALIDATION'},indent=2)+'\n')
 # Include original wrapper provenance/license, and private extension sources.
 provenance=source.parent/'Provenance'
 if provenance.exists():shutil.copytree(provenance,out/'Provenance')

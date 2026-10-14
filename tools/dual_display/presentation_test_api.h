@@ -11,6 +11,11 @@ typedef struct {int Windowed,SwapEffect,BackBufferCount,BackBufferWidth,BackBuff
 typedef struct {DWORD x,y,w,h;float minz,maxz;} D3DVIEWPORT9;
 typedef struct {LRESULT (*lpfnWndProc)(HWND,UINT,WPARAM,LPARAM);void *hInstance;const char *lpszClassName;} WNDCLASSA;
 typedef struct {int unused;} MSG;
+typedef struct {long left,top,right,bottom;} RECT;
+#define GW_OWNER 4
+#define GA_ROOT 2
+#define GWL_STYLE -16
+#define WS_CHILD 0x40000000
 #define CALLBACK
 #define TRUE 1
 #define FALSE 0
@@ -50,7 +55,7 @@ typedef struct {int unused;} MSG;
 static struct {int cs,width,height,bpp;HWND hwnd;struct {int run;}render;} g_ddraw;
 static struct {D3DPRESENT_PARAMETERS params;int tex_width,tex_height;void *device,*surface_tex[2],*vertex_buf;} g_d3d9;
 static VoMonitor monitors[VO_MAX_MONITORS];static WCHAR config[MAX_PATH];static unsigned count;
-static struct {int clears;unsigned clear_color;int calls,fail_at,live,draws,presents,restores,streams,destroyed,foreground,enabled,closed;int minimized,p1_topmost,p1_above,position_calls[2],original_moves;HWND windows[2];void *bound,*texture[16];CUSTOMVERTEX vertices[16][4];} fake;
+static struct {int movie_present,movie_visible,movie_wrong_pid,movie_wrong_parent,movie_wrong_owner,movie_wrong_class,movie_bad_bounds,movie_nochild,movie_duplicate,movie_hide_fail,movie_restore_fail,movie_capped;int window_visible[2];int clears;unsigned clear_color;int calls,fail_at,live,draws,presents,restores,streams,destroyed,foreground,enabled,closed;int minimized,p1_topmost,p1_above,position_calls[2],original_moves;HWND windows[2];void *bound,*texture[16];CUSTOMVERTEX vertices[16][4];} fake;
 static HRESULT api(void){return ++fake.calls==fake.fail_at?E_FAIL:0;}
 static HRESULT acquire(void **out){HRESULT h=api();if(SUCCEEDED(h)){*out=(void*)(uintptr_t)(100+ ++fake.live);}return h;}
 static int release(void *p){(void)p;--fake.live;return 0;}
@@ -67,6 +72,8 @@ static BOOL real_SetWindowPos(HWND h,HWND after,int x,int y,int w,int height,int
     if(h==g_ddraw.hwnd){++fake.original_moves;return FALSE;}
     int i=h==fake.windows[0]?0:1;
     ++fake.position_calls[i];
+    if(i==0 && fake.movie_restore_fail)return FALSE;
+    if(flags&SWP_SHOWWINDOW)fake.window_visible[i]=1;
     if(!(flags&SWP_NOACTIVATE))fake.foreground=(int)(uintptr_t)h;
     if(i==0 && after==HWND_TOPMOST){fake.p1_topmost=1;fake.p1_above=1;}
     return TRUE;
@@ -77,7 +84,18 @@ static BOOL EnumWindows(BOOL (*callback)(HWND,LPARAM),LPARAM value){
     if(callback(first,value))callback(second,value);
     return TRUE;
 }
-#define ShowWindow(...) ((void)0)
+static BOOL IsWindow(HWND h){return h==(HWND)1000||h==(HWND)1001?fake.movie_present:h!=NULL;}
+static BOOL IsWindowVisible(HWND h){if(h==fake.windows[0])return fake.window_visible[0];if(h==fake.windows[1])return fake.window_visible[1];if(h==(HWND)1000||h==(HWND)1001)return fake.movie_present&&fake.movie_visible;return h==g_ddraw.hwnd;}
+static void ShowWindow(HWND h,int state){(void)state;if(h==fake.windows[0]){if(!fake.movie_hide_fail)fake.window_visible[0]=0;}else if(h==fake.windows[1])fake.window_visible[1]=0;}
+static DWORD GetCurrentProcessId(void){return 123;}
+static DWORD GetWindowThreadProcessId(HWND h,DWORD *pid){*pid=((h==(HWND)1000||h==(HWND)1001)&&fake.movie_wrong_pid)?456:123;return 1;}
+static int GetClassNameA(HWND h,char *name,int size){(void)h;(void)size;strcpy(name,fake.movie_wrong_class?"Other":"AVIWnd32");return (int)strlen(name);}
+static HWND GetParent(HWND h){(void)h;return fake.movie_wrong_parent?(HWND)99:g_ddraw.hwnd;}
+static HWND GetAncestor(HWND h,int flag){(void)h;(void)flag;return g_ddraw.hwnd;}
+static HWND GetWindow(HWND h,int flag){(void)h;(void)flag;return fake.movie_wrong_owner?(HWND)99:NULL;}
+static long real_GetWindowLongA(HWND h,int flag){(void)h;(void)flag;return fake.movie_nochild?0:WS_CHILD;}
+static BOOL GetWindowRect(HWND h,RECT *r){(void)h;VoRect m=monitors[0].desktop;*r=(RECT){m.x,m.y,m.x+m.w,m.y+m.h};if(fake.movie_bad_bounds)r->right+=100;return TRUE;}
+static BOOL EnumChildWindows(HWND h,BOOL (*cb)(HWND,LPARAM),LPARAM value){(void)h;if(fake.movie_present){if(!cb((HWND)1000,value))return FALSE;if(fake.movie_duplicate)cb((HWND)1001,value);if(fake.movie_capped)for(int i=0;i<70;i++)if(!cb((HWND)1000,value))break;}return TRUE;}
 #define PeekMessageA(...) 0
 #define DispatchMessageA(...) ((void)0)
 #define GetForegroundWindow() ((HWND)(uintptr_t)fake.foreground)

@@ -1,7 +1,12 @@
 # Private dual-display presentation
 
+F03C adds a dual-only, verified-movie-window visibility gate. It temporarily hides
+the covering P1 output and restores it on observed movie-window lifecycle changes.
+See [the F03C record](../../docs/display/PRIVATE-DUAL-DISPLAY-P05-F03C.md).
+Physical movie visibility remains **NEEDS VALIDATION**.
+
 D04-P05-F02 uses upstream 1920 shared composition inside the existing 3840×1080
-buffer. F01 is physically validated; F02 **NEEDS WINDOWS VALIDATION**.
+buffer. F02 is physically validated.
 See [the F02 record](../../docs/display/PRIVATE-DUAL-DISPLAY-P05-F02.md).
 
 | Phase | Display 1 | Display 2 |
@@ -67,7 +72,7 @@ is rebuilt with its matching executable hash.
 
 Run `START-DUAL-DISPLAY.cmd`; choose monitors and secondary gameplay mode. The
 control launcher retains the original D03-P04 package. No elevation, manual DLL
-copying, INI editing or compilation is required. Return `RETURN-THIS-D04-P05-F02.zip`.
+copying, INI editing or compilation is required. Return `RETURN-THIS-D04-P05-F03C.zip`.
 If compression fails, its corresponding folder retains the collected logs.
 
 `D04-P02B-presentation.log` retains its inherited name for collection. It adds

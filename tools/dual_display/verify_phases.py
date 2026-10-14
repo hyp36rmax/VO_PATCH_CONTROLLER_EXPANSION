@@ -26,7 +26,7 @@ assert start<render.index('vo_dual_uploaded(tex_index)',start)<end
 assert (package/'Launch.ps1').read_bytes()==subprocess.check_output(['git','show','7c676682175489adfa57c23e6b1335539878547c:tools/dual_display/Launch.ps1'],cwd=here)
 collector=(package/'Collect-Results.ps1').read_text()
 old=subprocess.check_output(['git','show','7c676682175489adfa57c23e6b1335539878547c:tools/dual_display/Collect-Results.ps1'],cwd=here,text=True)
-assert collector==old.replace('D04-P03','D04-P05-F02')
+assert collector==old.replace('D04-P03','D04-P05-F03C')
 ui=(here/'displays.c').read_text();assert 'Mirror Player 1' in ui and 'GetPrivateProfileIntW(L"Presentation",L"MirrorPlayer1",0,config)' in ui
 assert 'WritePrivateProfileStringW(L"Presentation",L"MirrorPlayer1"' in ui
 print('PASS exact packaged game signature/address profile, producer capture after Flip buffer swap and before publication/unlock, texture policy under same surface lock, unchanged launcher and preserved collector, persistent UI selection contract')

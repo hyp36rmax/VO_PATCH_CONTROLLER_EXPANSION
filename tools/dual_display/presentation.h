@@ -7,6 +7,7 @@
 #ifndef VO_DUAL_TEST
 #include "state_bridge.h"
 #endif
+#include "movie_window.h"
 static struct {
     HWND window[2];
     IDirect3DSwapChain9 *chain[2];
@@ -20,6 +21,9 @@ static struct {
     BOOL texture_valid[2];
     VoPolicy policy[2];
     int mirror;
+    VoPolicy last_phase;
+    VoMovie movie;
+    unsigned long movie_frames;
     unsigned long phase_pairs[4];
 } vo_dual;
 
@@ -66,8 +70,11 @@ static BOOL CALLBACK vo_p1_order(HWND window, LPARAM value)
 }
 static void vo_dual_visibility(BOOL show)
 {
+    if (show && !vo_dual.movie.active && !vo_movie_restore(&vo_dual.movie, vo_dual.window[0])) {
+        vo_dual.failure=E_FAIL;vo_dual.disabled=TRUE;show=FALSE;
+    }
     if (show == vo_dual.visible) {
-        if (show && vo_dual.window[0] && GetForegroundWindow() == g_ddraw.hwnd) {
+        if (show && !vo_dual.movie.active && vo_dual.window[0] && GetForegroundWindow() == g_ddraw.hwnd) {
             BOOL above = FALSE;
             EnumWindows(vo_p1_order, (LPARAM)&above);
             if (!above) real_SetWindowPos(vo_dual.window[0], HWND_TOPMOST, 0, 0, 0, 0,
@@ -76,6 +83,7 @@ static void vo_dual_visibility(BOOL show)
         return;
     }
     for (int i = 0; i < 2; ++i) if (vo_dual.window[i]) {
+        if (show && i==0 && vo_dual.movie.active) continue;
         if (show) real_SetWindowPos(vo_dual.window[i], i == 0 ? HWND_TOPMOST : HWND_TOP, 0, 0, 0, 0,
             SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
         else ShowWindow(vo_dual.window[i], SW_HIDE);
@@ -90,6 +98,13 @@ static void vo_dual_pump(void)
         while (PeekMessageA(&msg, vo_dual.window[i], 0, 0, PM_REMOVE))
             DispatchMessageA(&msg);
     EnterCriticalSection(&g_ddraw.cs);
+    if (vo_dual.attempted && !vo_dual.disabled && vo_dual.window[0] && vo_dual.pairs) {
+        BOOL eligible=vo_dual.last_phase==VO_PRIMARY_ONLY && vo_completed_policy()==VO_PRIMARY_ONLY;
+        BOOL may_show=vo_dual.visible && GetForegroundWindow()==g_ddraw.hwnd && !IsIconic(g_ddraw.hwnd);
+        if(!vo_movie_update(&vo_dual.movie,g_ddraw.hwnd,vo_dual.window[0],monitors[vo_dual.output[0].monitor].desktop,eligible,may_show)) {
+            vo_dual.failure=E_FAIL;vo_dual.disabled=TRUE;
+        }
+    }
     if (vo_dual.disabled || GetForegroundWindow() != g_ddraw.hwnd || IsIconic(g_ddraw.hwnd))
         vo_dual_visibility(FALSE);
     LeaveCriticalSection(&g_ddraw.cs);
@@ -184,6 +199,7 @@ static void vo_dual_present(int texture_index)
         VoOutput o = vo_dual.output[i]; VoRect monitor = monitors[o.monitor].desktop;
         int black=0;
         if(!vo_route(vo_dual.policy[texture_index],vo_dual.mirror,i,monitor,&o,&black)){hr=E_FAIL;goto restore;}
+        if(vo_dual.movie.active)black=1;
         vo_dual.output[i]=o;
         float x = (float)(o.destination.x-monitor.x)-0.5f;
         float y = (float)(o.destination.y-monitor.y)-0.5f;
@@ -217,13 +233,14 @@ restore:;
     }
     if (SUCCEEDED(hr)) {
         for (int i=0;i<2;++i) {
+            if(i==0 && vo_dual.movie.active)continue;
             hr = IDirect3DSwapChain9_Present(vo_dual.chain[i],NULL,NULL,NULL,NULL,0);
             if (FAILED(hr)) break;
             vo_dual.presented_generation[i] = vo_dual.generation[texture_index];
         }
     }
     if (FAILED(hr)) { vo_dual.failure=hr; vo_dual.disabled=TRUE; }
-    else { ++vo_dual.pairs; ++vo_dual.phase_pairs[vo_dual.policy[texture_index]]; vo_dual_visibility(TRUE); }
+    else { vo_dual.last_phase=vo_dual.policy[texture_index]; if(vo_dual.movie.active)++vo_dual.movie_frames;else ++vo_dual.pairs; ++vo_dual.phase_pairs[vo_dual.policy[texture_index]]; vo_dual_visibility(TRUE); }
 #undef VO_TRY
 done:
     if (vo_dual.disabled) { vo_dual_visibility(FALSE); vo_dual_release_gpu(); }
@@ -240,6 +257,7 @@ static void vo_dual_end(void)
     EnterCriticalSection(&g_ddraw.cs);
     unsigned output_mask = (vo_dual.window[0]?1u:0u)|(vo_dual.window[1]?2u:0u);
     BOOL was_visible = vo_dual.visible;
+    if(vo_dual.movie.active)vo_movie_event(&vo_dual.movie,MOVIE_SHUTDOWN,MOVIE_OK,vo_dual.movie.active,IsWindowVisible(vo_dual.window[0]),1);
     vo_dual_visibility(FALSE); vo_dual_release_gpu();
     for(int i=0;i<2;++i) if(vo_dual.window[i]) DestroyWindow(vo_dual.window[i]);
     if(vo_dual.registered) UnregisterClassA("VoPrivatePlayerOutput", GetModuleHandleA(NULL));
@@ -257,6 +275,8 @@ static void vo_dual_end(void)
                 fprintf(log,"last_unknown_loop=%u mode=%u split=%u show=%u\n",vo_unknown_policy_value(0),vo_unknown_policy_value(1),vo_unknown_policy_value(2),vo_unknown_policy_value(3));
                 fprintf(log,"output_window_mask=0x%x visible_before_teardown=%d shutdown=render_thread_teardown phase_codes=0:PRIMARY_ONLY,1:LOCAL_VS_SHARED,2:LOCAL_VS_GAMEPLAY,3:UNKNOWN\n",output_mask,was_visible);
                 vo_policy_log(log);
+                fprintf(log,"movie_p1_present_suppressed=%lu\n",vo_dual.movie_frames);
+                vo_movie_log(log,&vo_dual.movie);
                 fclose(log); }
         }
     }
