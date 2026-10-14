@@ -49,11 +49,27 @@ static void vo_dual_before_reset(void)
     memset(vo_dual.texture_valid, 0, sizeof vo_dual.texture_valid);
     LeaveCriticalSection(&g_ddraw.cs);
 }
+/* EnumWindows stops at the first of our P1 window and the input window.
+ * The original wrapper can raise its topmost combined window again on focus /
+ * renderer transitions. Repair only an actual P1 stacking inversion. */
+static BOOL CALLBACK vo_p1_order(HWND window, LPARAM value)
+{
+    if (window == vo_dual.window[0]) { *(BOOL*)value = TRUE; return FALSE; }
+    return window != g_ddraw.hwnd;
+}
 static void vo_dual_visibility(BOOL show)
 {
-    if (show == vo_dual.visible) return;
+    if (show == vo_dual.visible) {
+        if (show && vo_dual.window[0] && GetForegroundWindow() == g_ddraw.hwnd) {
+            BOOL above = FALSE;
+            EnumWindows(vo_p1_order, (LPARAM)&above);
+            if (!above) real_SetWindowPos(vo_dual.window[0], HWND_TOPMOST, 0, 0, 0, 0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+        }
+        return;
+    }
     for (int i = 0; i < 2; ++i) if (vo_dual.window[i]) {
-        if (show) real_SetWindowPos(vo_dual.window[i], HWND_TOP, 0, 0, 0, 0,
+        if (show) real_SetWindowPos(vo_dual.window[i], i == 0 ? HWND_TOPMOST : HWND_TOP, 0, 0, 0, 0,
             SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
         else ShowWindow(vo_dual.window[i], SW_HIDE);
     }

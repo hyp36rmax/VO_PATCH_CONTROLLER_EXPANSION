@@ -29,7 +29,7 @@ replace('        if (FAILED(IDirect3DDevice9_Present(g_d3d9.device, NULL, NULL, 
 replace('    if (g_config.vhack)\n        InterlockedExchange(&g_ddraw.upscale_hack_active, FALSE);','    vo_dual_end();\n    if (g_config.vhack)\n        InterlockedExchange(&g_ddraw.upscale_hack_active, FALSE);')
 f.write_text(s)
 # Avoid git metadata from the outer workspace influencing version metadata.
-(out/'inc/git.h').write_text(f'#define GIT_COMMIT "{PIN}-private-D04-P02B"\n#define GIT_BRANCH "private-presentation"\n')
+(out/'inc/git.h').write_text(f'#define GIT_COMMIT "{PIN}-private-D04-P03"\n#define GIT_BRANCH "private-presentation"\n')
 # Compile directly: original Makefile rewrites git.h from its parent checkout.
 objects=[]
 for c in sorted((out/'src').glob('**/*.c')):

@@ -1,7 +1,7 @@
 # Stage byte-preserving diagnostic copies before loading any compression library.
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
-$returnFolder = Join-Path $root 'RETURN-THIS-D04-P02B-LF01'
+$returnFolder = Join-Path $root 'RETURN-THIS-D04-P03'
 $zip = "$returnFolder.zip"
 $selected = $returnFolder
 try {
@@ -30,7 +30,7 @@ try {
         } else { $records += "Not present: $file" }
     }
     $records | Set-Content -LiteralPath (Join-Path $run 'collection-status.txt') -Encoding UTF8
-    $temporary = Join-Path $root ('RETURN-THIS-D04-P02B-LF01-' + [Guid]::NewGuid().ToString('N') + '.new.zip')
+    $temporary = Join-Path $root ('RETURN-THIS-D04-P03-' + [Guid]::NewGuid().ToString('N') + '.new.zip')
     try {
         # ZipArchive/ZipArchiveMode live in Compression, not FileSystem.
         Add-Type -AssemblyName System.IO.Compression

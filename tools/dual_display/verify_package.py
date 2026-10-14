@@ -32,7 +32,7 @@ assert '$manifest.mutable_files -contains $entry.Name' in launch
 assert all(n.endswith('.ini') and not n.endswith('/ddraw.ini') for n in m['mutable_files'])
 assert not any(n.endswith('.dll') for n in m['mutable_files'])
 collector=(root/'Collect-Results.ps1').read_text()
-assert 'RETURN-THIS-D04-P02B-LF01' in collector and 'OpenRead($temporary)' in collector
+assert 'RETURN-THIS-D04-P03' in collector and 'OpenRead($temporary)' in collector
 for bits in range(4):
  present=[mode for i,mode in enumerate(('dual','control')) if bits&(1<<i)]
  entries=['build-record.json','collection-status.txt']+[mode+'/launch-status.txt' for mode in present]

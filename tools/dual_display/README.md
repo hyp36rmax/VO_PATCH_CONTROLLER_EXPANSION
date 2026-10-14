@@ -1,6 +1,6 @@
 # Private dual-display presentation
 
-Status: **D04-P02B-LF01 launcher/log correction; Windows retest pending**.
+Status: **D04-P03 P1 stacking correction; physical retest pending**.
 The D3D9 extension and launch/collection integration pass applicable host checks.
 Cross-compilation and API doubles do not establish Windows or physical results.
 
@@ -82,7 +82,7 @@ At render-thread exit, windows are destroyed by their owning thread and a compac
 draw iterations, successful present pairs, fallback, HRESULT, identities and
 rectangles. There are no per-frame disk writes. The retained external observer also records module loading, exceptions and process
 exit. The PowerShell collector gathers both logs, assignments and launch status
-into `RETURN-THIS-D04-P02B-LF01.zip`. Missing logs are explicit failures to obtain
+into `RETURN-THIS-D04-P03.zip`. Missing logs are explicit failures to obtain
 evidence, never success. The collector has static/model checks; Windows execution
 and crash-path delivery remain pending.
 
@@ -126,3 +126,13 @@ A ZIP failure leaves that folder and original logs intact. Collection occurs aft
 launch/session completion and is not a game-start dependency. The wrapper, game,
 controller helper, observer and renderer configuration are unchanged from P02B.
 See [the LF01 record](../../docs/display/PRIVATE-DUAL-DISPLAY-LF01.md).
+
+## P03 P1 visibility
+
+The LF01 physical return confirms equal-generation successful target presents and
+working external P2; the laptop still showed the original combined window. P1 now
+uses no-activate topmost placement and repairs a stacking inversion relative to
+the original game window. P2's positioning and both GPU source/draw paths remain
+unchanged. The original window retains input focus and is not hidden/reparented.
+See [the P03 record](../../docs/display/PRIVATE-DUAL-DISPLAY-P03.md). Mirrored shared
+screens remain a future requirement using the original game's presentation state.

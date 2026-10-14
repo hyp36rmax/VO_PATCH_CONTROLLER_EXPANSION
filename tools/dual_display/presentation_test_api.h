@@ -25,6 +25,7 @@ typedef struct {int unused;} MSG;
 #define WM_MOUSEACTIVATE 33
 #define MA_NOACTIVATEANDEAT 4
 #define HWND_TOP ((HWND)0)
+#define HWND_TOPMOST ((HWND)(intptr_t)-1)
 #define SWP_NOMOVE 1
 #define SWP_NOSIZE 2
 #define SWP_NOACTIVATE 4
@@ -49,7 +50,7 @@ typedef struct {int unused;} MSG;
 static struct {int cs,width,height,bpp;HWND hwnd;struct {int run;}render;} g_ddraw;
 static struct {D3DPRESENT_PARAMETERS params;int tex_width,tex_height;void *device,*surface_tex[2],*vertex_buf;} g_d3d9;
 static VoMonitor monitors[VO_MAX_MONITORS];static WCHAR config[MAX_PATH];static unsigned count;
-static struct {int calls,fail_at,live,draws,presents,restores,streams,destroyed,foreground,enabled,closed;void *bound,*texture[16];CUSTOMVERTEX vertices[16][4];} fake;
+static struct {int calls,fail_at,live,draws,presents,restores,streams,destroyed,foreground,enabled,closed;int minimized,p1_topmost,p1_above,position_calls[2],original_moves;HWND windows[2];void *bound,*texture[16];CUSTOMVERTEX vertices[16][4];} fake;
 static HRESULT api(void){return ++fake.calls==fake.fail_at?E_FAIL:0;}
 static HRESULT acquire(void **out){HRESULT h=api();if(SUCCEEDED(h)){*out=(void*)(uintptr_t)(100+ ++fake.live);}return h;}
 static int release(void *p){(void)p;--fake.live;return 0;}
@@ -61,12 +62,26 @@ static void load_id(const WCHAR *key,char *id){(void)key;id[0]=0;}
 #define IDirect3DStateBlock9_Release(p) release(p)
 #define IDirect3DSurface9_Release(p) release(p)
 #define IDirect3DSwapChain9_Release(p) release(p)
-#define real_SetWindowPos(...) ((void)0)
+static BOOL real_SetWindowPos(HWND h,HWND after,int x,int y,int w,int height,int flags){
+    (void)x;(void)y;(void)w;(void)height;
+    if(h==g_ddraw.hwnd){++fake.original_moves;return FALSE;}
+    int i=h==fake.windows[0]?0:1;
+    ++fake.position_calls[i];
+    if(!(flags&SWP_NOACTIVATE))fake.foreground=(int)(uintptr_t)h;
+    if(i==0 && after==HWND_TOPMOST){fake.p1_topmost=1;fake.p1_above=1;}
+    return TRUE;
+}
+static BOOL EnumWindows(BOOL (*callback)(HWND,LPARAM),LPARAM value){
+    HWND first=fake.p1_above?fake.windows[0]:g_ddraw.hwnd;
+    HWND second=fake.p1_above?g_ddraw.hwnd:fake.windows[0];
+    if(callback(first,value))callback(second,value);
+    return TRUE;
+}
 #define ShowWindow(...) ((void)0)
 #define PeekMessageA(...) 0
 #define DispatchMessageA(...) ((void)0)
 #define GetForegroundWindow() ((HWND)(uintptr_t)fake.foreground)
-#define IsIconic(...) 0
+#define IsIconic(...) fake.minimized
 static DWORD GetTickCount(void){static DWORD t;return ++t;}
 static DWORD WaitForSingleObject(HANDLE h,DWORD timeout){(void)h;(void)timeout;return 0;}
 static DWORD GetEnvironmentVariableA(const char *key,char *out,DWORD size){(void)key;(void)size;out[0]=fake.enabled?'1':'0';return 1;}
@@ -75,7 +90,7 @@ static DWORD GetModuleFileNameW(void *module,WCHAR *out,DWORD size){(void)module
 #define RegisterClassA(...) 1
 #define UnregisterClassA(...) ((void)0)
 #define GetLastError() 0
-static HWND real_CreateWindowExA(int a,const char*b,const char*c,int d,int x,int y,int w,int h,void *i,void*j,void*k,void*l){(void)a;(void)b;(void)c;(void)d;(void)x;(void)y;(void)w;(void)h;(void)i;(void)j;(void)k;(void)l;static uintptr_t id=5;return (HWND)++id;}
+static HWND real_CreateWindowExA(int a,const char*b,const char*c,int d,int x,int y,int w,int h,void *i,void*j,void*k,void*l){(void)a;(void)b;(void)c;(void)d;(void)x;(void)y;(void)w;(void)h;(void)i;(void)j;(void)k;(void)l;static uintptr_t id=5;HWND window=(HWND)++id;if(!fake.windows[0])fake.windows[0]=window;else fake.windows[1]=window;return window;}
 #define IDirect3DDevice9_CreateAdditionalSwapChain(d,p,out) acquire((void**)out)
 #define IDirect3DSwapChain9_GetBackBuffer(d,i,t,out) acquire((void**)out)
 #define IDirect3DDevice9_CreateStateBlock(d,t,out) acquire((void**)out)

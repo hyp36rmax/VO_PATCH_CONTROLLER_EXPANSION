@@ -24,8 +24,16 @@ int main(void) {
     assert(fake.vertices[0][0].v==1080.0f/2048);
     assert(fake.vertices[1][2].x==2559.5f&&fake.vertices[1][0].y==1439.5f);
     assert(fake.restores==1&&fake.streams==1&&fake.live==5&&vo_dual.visible);
+    assert(fake.p1_topmost&&fake.p1_above&&fake.foreground==1&&!fake.original_moves);
+    int p1calls=fake.position_calls[0],p2calls=fake.position_calls[1];
+    vo_dual_visibility(TRUE);assert(fake.position_calls[0]==p1calls); /* no redundant raise */
+    fake.p1_above=0;vo_dual_visibility(TRUE); /* wrapper raised the combined window */
+    assert(fake.p1_above&&fake.position_calls[0]==p1calls+1&&fake.position_calls[1]==p2calls);
+    assert(fake.foreground==1&&!fake.original_moves);
     fake.foreground=0;vo_dual_present(1);assert(fake.draws==2&&!vo_dual.visible);
     fake.foreground=1;vo_dual_present(1);assert(vo_dual.pairs==2&&vo_dual.visible);
+    fake.minimized=1;vo_dual_pump();assert(!vo_dual.visible);
+    fake.minimized=0;vo_dual_present(1);assert(vo_dual.visible&&fake.foreground==1);
     vo_output_proc(vo_dual.window[0],WM_DISPLAYCHANGE,0,0);vo_dual_present(1);
     assert(fake.live==0&&vo_dual.disabled&&!vo_dual.visible);
     vo_dual_end();assert(fake.destroyed==2);

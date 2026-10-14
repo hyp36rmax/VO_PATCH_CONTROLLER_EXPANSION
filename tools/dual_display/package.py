@@ -20,7 +20,7 @@ for mode in ('dual','control'):
 for n in ('Launch.ps1','Collect-Results.ps1'):shutil.copy2(here/n,out/n)
 for mode,name in [('dual','START-DUAL-DISPLAY.cmd'),('control','START-LOCAL-VS-CONTROL.cmd')]:
  (out/name).write_bytes(('@echo off\r\nsetlocal\r\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Launch.ps1" -Mode '+mode+'\r\nif errorlevel 1 pause\r\n').encode('ascii'))
-(out/'READ-ME.txt').write_text('''D04-P02B-LF01 PRIVATE WINDOWS UAT — runtime validation pending
+(out/'READ-ME.txt').write_text('''D04-P03 PRIVATE WINDOWS UAT — runtime validation pending
 
 Extract the entire ZIP to a writable folder.
 1. Launch START-DUAL-DISPLAY.cmd. Select the P1 and P2 displays and save.
@@ -29,7 +29,7 @@ Extract the entire ZIP to a writable folder.
    stable motion and responsiveness. Try Alt+Tab, minimize/restore and exit.
 4. Closing the game must close both output windows. The results ZIP is selected.
 5. Run START-LOCAL-VS-CONTROL.cmd for the unchanged D03-P04 comparison.
-6. Return RETURN-THIS-D04-P02B-LF01.zip and your observations.
+6. Return RETURN-THIS-D04-P03.zip and your observations.
    If ZIP creation fails, the equally named return folder retains the logs.
 
 Run normally, not as administrator. No privilege elevation is requested.
