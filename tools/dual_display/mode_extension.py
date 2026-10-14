@@ -51,3 +51,11 @@ def apply(out):
     p.write_text(s)
     edit('inc/presentation.h','vo_dual.mirror = GetPrivateProfileIntW(L"Presentation", L"MirrorPlayer1", 0, config) == 1;',
          'vo_dual.mirror = GetPrivateProfileIntW(L"Presentation", L"Mode", 1, config) == 2;')
+
+    edit('inc/presentation.h','    if (!discover()) goto fail;',
+         '    WCHAR session_config[MAX_PATH]; DWORD session_len=GetEnvironmentVariableW(L"VO_SESSION_CONFIG",session_config,MAX_PATH);\n    if(session_len>=MAX_PATH)goto fail;\n    if(session_len)wcscpy(config,session_config);\n    if (!discover()) goto fail;')
+    edit('inc/presentation.h','    int mirror;', '    int mirror; BOOL strict_stopped;')
+    edit('inc/presentation.h','static LRESULT CALLBACK vo_output_proc', 'static void vo_strict_stop(void)\n{\n    char strict[2]={0};\n    if(vo_dual.attempted && vo_dual.disabled && !vo_dual.strict_stopped &&\n       GetEnvironmentVariableA("VO_STRICT_MODE",strict,sizeof strict)==1 && strict[0]==\'1\'){\n        vo_dual.strict_stopped=TRUE;\n        PostMessageA(g_ddraw.hwnd,WM_CLOSE,0,0);\n    }\n}\nstatic LRESULT CALLBACK vo_output_proc')
+    edit('inc/presentation.h','    if (vo_dual.disabled || GetForegroundWindow()', '    vo_strict_stop();\n    if (vo_dual.disabled || GetForegroundWindow()')
+    edit('inc/presentation.h','done:\n    if (vo_dual.disabled)', 'done:\n    vo_strict_stop();\n    if (vo_dual.disabled)')
+    edit('inc/presentation.h','                vo_policy_log(log);', '                fprintf(log,"strict_test_stopped=%d\\n",vo_dual.strict_stopped);\n                vo_policy_log(log);')

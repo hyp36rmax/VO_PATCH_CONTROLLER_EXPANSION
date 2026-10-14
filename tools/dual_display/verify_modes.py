@@ -29,7 +29,7 @@ assert 'Wait -PassThru' in launch and '$PSScriptRoot' in launch
 assert 'RunAs' not in launch and 'Remove-Item' not in collector
 assert collector.index('Copy-Item')<collector.index('Add-Type -AssemblyName System.IO.Compression')
 assert 'compression-status.txt' in collector and '/select,' in collector
-assert 'RETURN-THIS-D04-P05-F04' in collector
+assert 'RETURN-THIS-D04-P05-F04A' in collector
 for f in root.glob('START-*.cmd'):assert b'\r\n' in f.read_bytes() and b'%~dp0' in f.read_bytes()
 with zipfile.ZipFile(root.with_suffix('.zip')) as z:
  assert z.testzip() is None
@@ -37,3 +37,11 @@ with zipfile.ZipFile(root.with_suffix('.zip')) as z:
   z.extractall(td)
   for name,h in manifest['files'].items():assert sha(Path(td)/root.name/name)==h
 print('PASS F04 profile regeneration, only two movie bytes per image, original assets/controller files, i386 dependencies/manifests, shared configuration launch/collection contracts, package hashes/CRC and relocated extraction; native Windows pending')
+
+expected={'START-SINGLE-DISPLAY.cmd':'single','START-DUAL-VERSUS.cmd':'versus','START-DUAL-MIRROR.cmd':'mirror'}
+assert {f.name for f in root.glob('START-*.cmd')}==set(expected)
+for name,mode in expected.items():assert ('-Entry '+mode).encode() in (root/name).read_bytes()
+assert 'Session mode mismatch' in launch and 'VO_SESSION_CONFIG' in launch and 'VO_STRICT_MODE' in launch
+assert 'beforePreferenceHash' in launch and 'afterPreferenceHash' in launch
+assert launch.index("'Collect-Modes.ps1'")<launch.index('Remove-Item -LiteralPath $sessionFile')
+print('PASS explicit Single/Versus/Mirror launcher modes, preference hashes, strict dual result checks and temporary session cleanup')

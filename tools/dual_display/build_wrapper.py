@@ -46,7 +46,7 @@ f.write_text(s)
 if a.mode_aware:
  from mode_extension import apply
  apply(out)
-version='F04' if a.mode_aware else 'F03C'
+version='F04A' if a.mode_aware else 'F03C'
 # Avoid git metadata from the outer workspace influencing version metadata.
 (out/'inc/git.h').write_text(f'#define GIT_COMMIT "{PIN}-private-D04-P05-{version}"\n#define GIT_BRANCH "private-presentation"\n')
 # Compile directly: original Makefile rewrites git.h from its parent checkout.

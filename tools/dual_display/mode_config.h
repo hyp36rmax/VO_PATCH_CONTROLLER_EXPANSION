@@ -28,4 +28,10 @@ static int vo_select(const VoMonitor *m,unsigned n,const VoPreference *p,unsigne
  /* Explicit aspect preference is contained on the monitor, never inferred from width. */
  return 1;
 }
+/* An explicit UAT mode may fail; it must never resolve as another mode. */
+static int vo_select_session(const VoMonitor *m,unsigned n,const VoPreference *saved,int mode,unsigned profiles,VoSelection *s){
+ if(mode<VO_SINGLE||mode>VO_MIRROR)return 0;
+ VoPreference effective=*saved;effective.mode=mode;
+ return vo_select(m,n,&effective,profiles,s)&&s->mode==mode;
+}
 #endif

@@ -17,46 +17,45 @@ subprocess.run([a.cc,'-std=c11','-O2','-Wall','-Wextra','-Werror','-municode',st
 subprocess.run([__import__('sys').executable,str(here.parent/'movie_observer/build.py'),str(out),'--cc',a.cc,'--windres',a.windres],check=True)
 (out/'observer-res.o').unlink()
 for n in ('LaunchModes.ps1','Collect-Modes.ps1'):shutil.copy2(here/n,out/n)
-for entry in ('single','dual'):
- (out/f'START-{entry.upper()}-DISPLAY.cmd').write_bytes(('@echo off\r\nsetlocal\r\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0LaunchModes.ps1" -Entry '+entry+'\r\nif errorlevel 1 pause\r\n').encode())
-(out/'READ-ME.txt').write_text('''D04-P05-F04 PRIVATE WINDOWS ACCEPTANCE — physical validation pending
+for entry,label in (('single','SINGLE-DISPLAY'),('versus','DUAL-VERSUS'),('mirror','DUAL-MIRROR')):
+ (out/f'START-{label}.cmd').write_bytes(('@echo off\r\nsetlocal\r\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0LaunchModes.ps1" -Entry '+entry+'\r\nif errorlevel 1 pause\r\n').encode())
+(out/'READ-ME.txt').write_text("""D04-P05-F04A PRIVATE WINDOWS UAT — physical acceptance pending
 
-Extract the whole ZIP. Run START-SINGLE-DISPLAY.cmd.
-Both launchers open the same saved display settings; neither overrides them.
-Fresh installation defaults to Single Display and Widescreen (16:9).
-Choose Single Display / Widescreen for the first test, then Launch.
-On a 2560x1440 desktop the initial game profile is 1920x1080, not 3840x1080.
-F4 and existing saved game settings may select the profile's upstream alternate.
+Extract the ZIP. Three explicit SESSION-ONLY tests:
+START-SINGLE-DISPLAY.cmd — Single Display
+START-DUAL-VERSUS.cmd — independent P1/P2 gameplay
+START-DUAL-MIRROR.cmd — P1 gameplay on both displays
 
-Check centered, full-frame movie proportions (including its original black bars),
-audio and skip. Check menu, Solo, original Local VS horizontal/vertical options,
-controllers, focus/minimize/restore, return to menu and clean exit.
+Each launcher fixes its requested mode. Review monitor/aspect selections and
+click Launch. Session changes never overwrite saved display preferences.
+Dual tests require two separate active displays and the dual profile. If not
+available, the test reports why and does not start a Single Display game.
+The temporary session file is collected for diagnostics, then discarded.
 
-Run START-DUAL-DISPLAY.cmd. Choose Dual Display — Versus, assign two different
-monitors, then Launch. Check centered movie on Display 1, black Display 2,
-mirrored selection, independent P1/P2 gameplay, mixed-resolution scaling,
-return to menu and shutdown. Optional: Dual Display — Mirror.
+Single: use Widescreen (16:9) on your 2560x1440 desktop. Check movie centering,
+audio/skip, menu, Solo, original Local VS, controller input and exit.
+Versus: check movie only on Display 1, black Display 2, mirrored selection,
+independent gameplay, return to menu and exit.
+Mirror: check shared selection, P1 on both displays in gameplay, aspect and exit.
+Also check focus/minimize/restore. Optional 21:9/32:9 profiles remain single-player.
 
-Optional single-player checks: Ultrawide (21:9), Super-ultrawide (32:9).
-These reuse existing single-player profiles; expanded ultrawide Local VS is
-not added. Use Widescreen or Original for ordinary single-display Local VS.
-Original (4:3) uses original 640x480 rendering with the existing non-hires
-patches; it does not install the native-widescreen F4 resolution toggle.
-The widescreen/ultrawide profiles retain their existing F4/F5 controls.
+MOVIE LIMIT: F04 playback is deliberately preserved. The complete 320x240 AVI
+frame is 4:3 and already maximally fitted on a 16:9 monitor. Its central 16:9
+picture includes embedded black bars. Enlarging that picture to fill the monitor
+would crop part of the original frame or distort it, both prohibited in F04A.
+This package does not claim a movie enlargement. Actual physical pixel size
+remains to be compared with the calculated destination in the collected log.
 
-Settings are stored once in game/player-displays.ini; controller/game settings
-remain in the same game directory across all profiles. Display/profile fallback
-is recorded in selection.txt and does not erase saved preferences.
-If dual rendering fails after launch, F03C's original composed-window fallback
-is retained for that session. Exit and select Single Display to change profile;
-no second game or automatic restart is launched.
+Original 4:3 uses original 640x480 rendering without the native-widescreen F4
+toggle. Widescreen/ultrawide retain their existing F4/F5 behavior. Controller
+settings remain shared and unchanged. No expanded 21:9 Local VS is added.
 
-After each exit results are collected automatically. Return the selected
-RETURN-THIS-D04-P05-F04.zip with observations for both modes. All runs are retained.
-If ZIP compression fails, return its equally named folder with raw logs.
-No administrator privileges, compilation, INI edits or DLL copying are required.
-Do not change Windows display modes. Internal rendering is separate from desktop.
-''')
+After each exit, results are collected and selected automatically. Return
+RETURN-THIS-D04-P05-F04A.zip with observations for all three modes. Raw copies
+survive ZIP compression failure. No administrator privileges, INI edits,
+manual DLL copies, compilation or Windows display-mode changes are needed.
+""")
+
 provenance=out/'Provenance';shutil.copytree(here,provenance/'dual_display',ignore=shutil.ignore_patterns('__pycache__'))
 shutil.copytree(here.parent/'movie_observer',provenance/'movie_observer',ignore=shutil.ignore_patterns('__pycache__'))
 if (a.baseline/'Provenance').exists():shutil.copytree(a.baseline/'Provenance',provenance/'baseline')

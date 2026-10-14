@@ -1,13 +1,13 @@
 # Stage byte-preserving diagnostic copies before loading any compression library.
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
-$returnFolder = Join-Path $root 'RETURN-THIS-D04-P05-F04'
+$returnFolder = Join-Path $root 'RETURN-THIS-D04-P05-F04A'
 $zip = "$returnFolder.zip"
 $selected = $returnFolder
 try {
     $run = Join-Path $returnFolder ((Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [Guid]::NewGuid().ToString('N').Substring(0,8))
     New-Item -ItemType Directory -Path $run -Force | Out-Null
-    $files = @('build-record.json','launch-status.txt','launch-error.txt','selection.txt','selection-errors.txt','movie-windows.log','game\D04-P02B-presentation.log','game\player-displays.ini','game\ddraw.ini')
+    $files = @('build-record.json','launch-status.txt','launch-error.txt','selection.txt','selection-errors.txt','movie-windows.log','game\D04-P02B-presentation.log','game\player-displays.ini','game\session-display.ini','game\ddraw.ini')
     $records = @('Missing logs are not successful results. Each run is retained separately.')
     foreach ($name in @('v_on.exe','ddraw.dll','vontanita.dll','von.avi')) {
         try { $records += "$name SHA256: $((Get-FileHash -LiteralPath (Join-Path $root "game\$name") -Algorithm SHA256).Hash)" }
@@ -25,7 +25,7 @@ try {
         } else { $records += "Not present: $file" }
     }
     $records | Set-Content -LiteralPath (Join-Path $run 'collection-status.txt') -Encoding UTF8
-    $temporary = Join-Path $root ('RETURN-THIS-D04-P05-F04-' + [Guid]::NewGuid().ToString('N') + '.new.zip')
+    $temporary = Join-Path $root ('RETURN-THIS-D04-P05-F04A-' + [Guid]::NewGuid().ToString('N') + '.new.zip')
     try {
         # ZipArchive/ZipArchiveMode live in Compression, not FileSystem.
         Add-Type -AssemblyName System.IO.Compression

@@ -21,5 +21,15 @@ int main(void){
  p.mode=99;p.aspect=99;assert(vo_select(m,2,&p,31,&s)&&s.mode==VO_SINGLE&&s.profile==VO_WIDE&&s.reasons);
  VoRect target;assert(vo_fit_source(m[0].desktop,320,240,&target));assert(target.x==320&&target.y==0&&target.w==1920&&target.h==1440);
  for(int w=640;w<=7680;w+=640)for(int h=480;h<=2160;h+=240){assert(vo_fit_source((VoRect){-w,-h,w,h},320,240,&target));assert(target.w*3==target.h*4);assert(target.x>=-w&&target.y>=-h&&target.x+target.w<=0&&target.y+target.h<=0);}
+ saved=p;
+ p.mode=VO_MIRROR;p.aspect=VO_WIDE;strcpy(p.primary,"A");strcpy(p.secondary,"B");saved=p;
+ for(int mode=0;mode<=2;mode++){
+  assert(vo_select_session(m,2,&p,mode,31,&s)&&s.mode==mode);assert(!memcmp(&p,&saved,sizeof p));
+ }
+ assert(!vo_select_session(m,1,&p,VO_VERSUS,31,&s));
+ assert(!vo_select_session(m,1,&p,VO_MIRROR,31,&s));
+ assert(!vo_select_session(m,2,&p,VO_MIRROR,15,&s));
+ assert(!vo_select_session(m,2,&p,99,31,&s));assert(!memcmp(&p,&saved,sizeof p));
+ puts("PASS explicit session overrides, no differently labeled fallback, immutable saved mode and monitor preferences");
  puts("PASS mode/profile defaults, explicit aspect, missing monitor recovery, preference immutability, versus/mirror, unavailable profile fallback, geometry and negative positions");
 }
