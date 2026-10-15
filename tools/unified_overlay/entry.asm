@@ -88,8 +88,11 @@ pump:
     pop ebp
     ret 20
 idle:
+    ; Keep the original paused idle path. Never force FRAME/Flip here.
+    pushfd
+    pushad
     cmp dword [function],0
-    je .pass
+    je .original
     push 0
     push 0
     push 0
@@ -97,13 +100,25 @@ idle:
     push context
     push dword [HWND]
     call [function]
-    test eax,eax
-    jz .pass
-    call FRAME
-    mov eax,1
+.original:
+    popad
+    popfd
+    call ORIGINAL_IDLE
+    pushfd
+    pushad
+    cmp dword [function],0
+    je .done
+    push 0
+    push 0
+    push 0
+    push 5
+    push context
+    push dword [HWND]
+    call [function]
+.done:
+    popad
+    popfd
     ret
-.pass:
-    jmp ORIGINAL_IDLE
 present:
 %if ORIGINAL_PRESENT
     call ORIGINAL_PRESENT
@@ -146,8 +161,9 @@ align 4
 function: dd 0
 attempted: dd 0
 context:
-    dd 76,PRIMARY,BACK,INACTIVE,GAMEMODE,MODE,SUBMODE,MOVIEFLAG
+    dd 84,PRIMARY,BACK,INACTIVE,GAMEMODE,MODE,SUBMODE,MOVIEFLAG
     dd GPAUSE,GRESUME,ALLOWED,FRAME,CUSTOM1,DZTHR1,DEVICES
     dd BINDS1,COND,TWINBINDS,HORIBINDS
+    dd MODE2,CDSTOP
 dllname: db 'vooverlay.dll',0
 exportname: db 'VonOverlayStep',0

@@ -57,3 +57,31 @@ def apply(out):
  text=replace_once(text,' if(phase==VO_POLICY_UNKNOWN){', ' if(diagnostic>=3 && phase==VO_POLICY_UNKNOWN){')
  text=replace_once(text,' if(observation.captures==1||prior_status!=observation.status||prior_phase!=(unsigned)phase){', ' if(diagnostic>=2 && (observation.captures==1||prior_status!=observation.status||prior_phase!=(unsigned)phase)){')
  p.write_text(text)
+
+ # A narrowly scoped primary-surface transaction for the paused overlay.
+ # Uses the same lock as the existing D3D9 upload, without message pumping.
+ p=out/'src/ddsurface.c'
+ p.write_text(p.read_text()+r'''
+BOOL WINAPI VonOverlaySurfaceBegin(IDirectDrawSurfaceImpl *surface)
+{
+    if (!surface || !g_config.lock_surfaces) return FALSE;
+    IDirectDrawSurface_AddRef(surface);
+    EnterCriticalSection(&surface->cs);
+    return TRUE;
+}
+void WINAPI VonOverlaySurfaceEnd(IDirectDrawSurfaceImpl *surface)
+{
+    GdiFlush();
+    /* ReleaseDC throttles primary updates shortly after a flip. The paused
+     * transaction is now complete, so publish it without a timeout delay. */
+    if (surface == g_ddraw.primary && g_ddraw.render.run)
+    {
+        InterlockedExchange(&g_ddraw.render.surface_updated, TRUE);
+        InterlockedExchange(&g_ddraw.render.screen_updated, TRUE);
+        ReleaseSemaphore(g_ddraw.render.sem, 1, NULL);
+    }
+    LeaveCriticalSection(&surface->cs);
+    IDirectDrawSurface_Release(surface);
+}
+''')
+ p=out/'exports.def';p.write_text(p.read_text()+'\n    VonOverlaySurfaceBegin\n    VonOverlaySurfaceEnd\n')

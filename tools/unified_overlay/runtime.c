@@ -6,10 +6,12 @@ static VoPaint paint;
 static const VoGame *game;
 static HWND owner;
 static unsigned controller_held;
-static int busy,redraw,escape_down;
+static int busy,escape_down;
 static DWORD last_sample;
 static LONG published_open;
 static int mouse_ready,cursor_increments;
+static LPDIRECTDRAWSURFACE paused_surface;
+static int reset_pending,reset_waiting,paused_transaction,confirmation_seen;
 static void cursor_release(void){while(cursor_increments>0){ShowCursor(0);--cursor_increments;}}
 static void cursor_acquire(void){
  CURSORINFO info={0};info.cbSize=sizeof info;
@@ -32,22 +34,43 @@ static int supported(void){
  return (*game->mode==1&&(*game->submode==6||*game->submode==23||*game->submode==17||*game->submode==7)) ||
   (*game->mode==4&&*game->submode>=8&&*game->submode<=12);
 }
+static int can_exit(void){return supported()&&*game->mode==4&&(*game->gamemode==0||*game->gamemode==1)&&game->mode2&&game->cdstop&&game->resume&&*game->primary&&*game->back;}
 static unsigned keyboard(void){
  unsigned held=0;const int keys[]={VK_UP,VK_DOWN,VK_LEFT,VK_RIGHT,VK_RETURN};
  for(unsigned i=0;i<5;i++)if(GetAsyncKeyState(keys[i])&0x8000)held|=1u<<i;
  return held;
 }
-static void clear(void){escape_down=0;cursor_release();vo_dispose(&paint);vo_overlay_focus_lost(&state);controller_held=0;redraw=1;InterlockedExchange(&published_open,0);}
+static void clear(void){reset_pending=0;confirmation_seen=0;vo_pause_restore_to(game?*game->primary:NULL);escape_down=0;cursor_release();vo_dispose(&paint);vo_overlay_focus_lost(&state);controller_held=0;InterlockedExchange(&published_open,0);}
+static void request_exit(void){
+ if(!can_exit()){lifecycle(9);return;}
+ /* Original inactive loop does not run the negative-mode state tick.
+  * Only an explicit confirmed reset may invoke original GRESUME. */
+ if(*game->inactive)game->resume();
+ if(*game->inactive||!can_exit()){lifecycle(9);return;}
+ *game->mode=-1;game->cdstop();
+ if(*game->gamemode==1)*game->mode2=-1;
+ reset_waiting=1;lifecycle(7);
+}
+static void confirmation(void){
+ state.exit_allowed=can_exit();
+ if(state.confirm&&!confirmation_seen){lifecycle(6);confirmation_seen=1;mouse_ready=0;}
+ if(!state.confirm)confirmation_seen=0;
+ if(state.exit_requested){
+  state.exit_requested=0;
+  if(can_exit()){reset_pending=1;vo_overlay_close(&state);}else{state.confirm=0;lifecycle(9);}
+ }
+}
 static void release_if_ready(void){
  if(GetTickCount()-last_sample>500)controller_held=0;
  if(state.state==VO_DRAINING&&!controller_held&&!keyboard()&&!escape_down&&!(GetAsyncKeyState(VK_LBUTTON)&0x8000)){
-  vo_overlay_init(&state);cursor_release();vo_dispose(&paint);redraw=1;InterlockedExchange(&published_open,0);lifecycle(2);
+  vo_pause_restore_to(*game->primary);vo_overlay_init(&state);cursor_release();vo_dispose(&paint);InterlockedExchange(&published_open,0);lifecycle(2);
+  if(reset_pending){reset_pending=0;request_exit();}
  }
 }
 static int open_menu(void){
  if(!supported()||!vo_attach(&paint,*game->back)){return 0;}
- vo_overlay_pause_result(&state,0,1);cursor_acquire();
- redraw=1;mouse_ready=!(GetAsyncKeyState(VK_LBUTTON)&0x8000);InterlockedExchange(&published_open,1);lifecycle(1);return 1;
+ vo_overlay_pause_result(&state,0,1);state.exit_allowed=can_exit();cursor_acquire();
+ mouse_ready=0;InterlockedExchange(&published_open,1);lifecycle(1);lifecycle(*game->inactive?5:11);return 1;
 }
 static unsigned semantic(DWORD kind,const void *raw){
  if(kind==7||kind==8){unsigned c=((const VonTwinState*)raw)->controls;
@@ -97,19 +120,18 @@ __declspec(dllexport) int WINAPI VonOverlayInput(DWORD player,DWORD kind,void *r
  /* Closed, ineligible and P2 inputs are byte-for-byte pass-through. */
  if(!game||busy||player!=0||state.state==VO_CLOSED)return 0;
  if(!supported()){clear();return 0;}
- if(!result&&(kind==1||kind==2||kind==4||kind==6)){
-  const XINPUT_GAMEPAD *p=&((XINPUT_STATE*)raw)->Gamepad;
-  if((p->wButtons&0x310)==0x310&&p->bLeftTrigger>=30&&p->bRightTrigger>=30){clear();return 0;}
- }
  unsigned held=result?0:semantic(kind,raw);controller_held=held;last_sample=GetTickCount();
- vo_overlay_controller(&state,0,held,!result,!(ready&1),0,1);
+ vo_overlay_controller(&state,0,held,!result,!(ready&1),0,1);confirmation();
  if(!result)isolate(kind,raw);
  return state.state!=VO_CLOSED;
 }
 /* ABI kinds: window message, idle render request, pump initialization, present. */
 __declspec(dllexport) int WINAPI VonOverlayStep(HWND hwnd,const VoGame *g,UINT kind,UINT msg,WPARAM wp,LPARAM lp){
- if(!g||g->size!=sizeof(*g)||kind>4||busy)return 0;
+ if(!g||g->size!=sizeof(*g)||kind>5||busy)return 0;
  busy=1;game=g;if(!owner)owner=hwnd;int consumed=0;
+ if(reset_waiting&&*g->mode==1&&(*g->submode==6||*g->submode==17||*g->submode==23)){reset_waiting=0;lifecycle(8);}
+ if(reset_waiting&&*g->gamemode==2){reset_waiting=0;lifecycle(9);}
+ state.exit_allowed=can_exit();
  if(state.state!=VO_CLOSED&&!supported()){
   clear();lifecycle(4);
  }
@@ -124,13 +146,22 @@ __declspec(dllexport) int WINAPI VonOverlayStep(HWND hwnd,const VoGame *g,UINT k
  }
  if(kind==2){if(state.state!=VO_CLOSED)vo_overlay_keyboard(&state,keyboard());release_if_ready();goto done;}
  if(kind==1){
-  if(state.state!=VO_CLOSED){vo_overlay_keyboard(&state,keyboard());release_if_ready();}
-  consumed=(state.state!=VO_CLOSED||redraw)&&supported()&&*g->inactive&&*g->back;redraw=0;goto done;
+  if(state.state!=VO_CLOSED){vo_overlay_keyboard(&state,keyboard());confirmation();release_if_ready();}
+  paused_surface=*g->primary;paused_transaction=state.state==VO_OPEN&&supported()&&*g->inactive;
+  if((*g->inactive||state.state!=VO_OPEN)&&!vo_pause_begin(*g->primary,paused_transaction)){paused_transaction=0;clear();lifecycle(10);}
+  goto done;
+ }
+ if(kind==5){
+  if(paused_transaction&&paused_surface!=*g->primary){clear();lifecycle(10);}
+  if(paused_transaction&&paused_surface==*g->primary&&state.state==VO_OPEN&&supported()&&*g->inactive){
+   if((paint.surface!=*g->primary&&!vo_attach(&paint,*g->primary))||!vo_paint(&paint,&state)){clear();lifecycle(10);}
+  }
+  vo_pause_end();paused_transaction=0;goto done;
  }
  if(kind==3){
-  if(state.state==VO_OPEN){
+  if(state.state==VO_OPEN&&!*g->inactive){
    if(paint.surface!=*g->back && !vo_attach(&paint,*g->back)){clear();lifecycle(3);goto done;}
-   if(!vo_paint(&paint,&state)){clear();lifecycle(3);}
+   if(!vo_pause_capture(*g->back)||!vo_paint(&paint,&state)){clear();lifecycle(3);}
   }goto done;
  }
  if(msg==WM_APP+0x351){
@@ -138,8 +169,8 @@ __declspec(dllexport) int WINAPI VonOverlayStep(HWND hwnd,const VoGame *g,UINT k
    unsigned mouse=(unsigned)wp&0xffff;int item=vo_hit_source(&paint,GET_X_LPARAM(lp),GET_Y_LPARAM(lp));
    if(mouse==WM_MOUSEMOVE)vo_overlay_hover(&state,item);
    if(mouse==WM_LBUTTONDOWN)mouse_ready=1;
-   if(mouse==WM_LBUTTONUP){if(mouse_ready)vo_overlay_click(&state,item);mouse_ready=1;}
-   if(mouse==WM_MOUSEWHEEL)vo_overlay_wheel(&state,(short)(wp>>16),paint.visible<6);
+   if(mouse==WM_LBUTTONUP){if(mouse_ready)vo_overlay_click(&state,item);mouse_ready=0;}
+   if(mouse==WM_MOUSEWHEEL)vo_overlay_wheel(&state,(short)(wp>>16),paint.visible<7);
   }consumed=1;goto done;
  }
  if(msg==VO_OPEN_MESSAGE){if(state.state==VO_OPEN)vo_overlay_close(&state);else if(state.state==VO_CLOSED)open_menu();consumed=1;goto done;}
@@ -169,9 +200,9 @@ __declspec(dllexport) int WINAPI VonOverlayStep(HWND hwnd,const VoGame *g,UINT k
    int item=vo_hit_source(&paint,GET_X_LPARAM(lp),GET_Y_LPARAM(lp));
    if(msg==WM_MOUSEMOVE)vo_overlay_hover(&state,item);
    if(msg==WM_LBUTTONDOWN)mouse_ready=1;
-   if(msg==WM_LBUTTONUP){if(mouse_ready)vo_overlay_click(&state,item);mouse_ready=1;}
-   if(msg==WM_MOUSEWHEEL)vo_overlay_wheel(&state,GET_WHEEL_DELTA_WPARAM(wp),paint.visible<6);
+   if(msg==WM_LBUTTONUP){if(mouse_ready)vo_overlay_click(&state,item);mouse_ready=0;}
+   if(msg==WM_MOUSEWHEEL)vo_overlay_wheel(&state,GET_WHEEL_DELTA_WPARAM(wp),paint.visible<7);
   }
  }
- done:busy=0;return consumed;
+ done:confirmation();busy=0;return consumed;
 }

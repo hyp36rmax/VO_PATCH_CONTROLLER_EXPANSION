@@ -29,10 +29,10 @@ int main(void){
  opened(&s);vo_overlay_keyboard(&s,VO_ACCEPT);assert(!s.unavailable);
  vo_overlay_keyboard(&s,0);vo_overlay_keyboard(&s,VO_DOWN);assert(s.selected==1);
  vo_overlay_keyboard(&s,0);vo_overlay_keyboard(&s,VO_ACCEPT);assert(s.unavailable);
- vo_overlay_click(&s,6);assert(!s.unavailable);
+ vo_overlay_click(&s,7);assert(!s.unavailable);
  vo_overlay_hover(&s,4);assert(s.selected==4);vo_overlay_click(&s,4);assert(s.unavailable);
- vo_overlay_click(&s,6);vo_overlay_wheel(&s,1,0);assert(s.selected==0);
- vo_overlay_wheel(&s,1,1);assert(s.selected==5);
+ vo_overlay_click(&s,7);vo_overlay_wheel(&s,1,0);assert(s.selected==0);
+ vo_overlay_wheel(&s,1,1);assert(s.selected==6);
  vo_overlay_click(&s,5);assert(s.state==VO_DRAINING);
  opened(&s);vo_overlay_controller(&s,0,0,0,0,0,1);
  vo_overlay_keyboard(&s,0);vo_overlay_keyboard(&s,VO_BACK);assert(s.state==VO_DRAINING);

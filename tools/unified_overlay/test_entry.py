@@ -39,8 +39,8 @@ def verify(path):
     elif address==get:cpu.reg_write(r.UC_X86_REG_EAX,0 if scenario=='missing-export' else step);calls.append('get')
     elif address==step:
      args=struct.unpack('<6I',cpu.mem_read(sp+4,24));assert args[0]==0x1234
-     values=struct.unpack('<19I',cpu.mem_read(args[1],76))
-     assert values==(76,*(s[k] for k in ('PRIMARY','BACK','INACTIVE','GAMEMODE','MODE','SUBMODE','MOVIEFLAG','GPAUSE','GRESUME','ALLOWED','FRAME','CUSTOM1','DZTHR1','DEVICES','BINDS1','COND','TWINBINDS','HORIBINDS')))
+     values=struct.unpack('<21I',cpu.mem_read(args[1],84))
+     assert values==(84,*(s[k] for k in ('PRIMARY','BACK','INACTIVE','GAMEMODE','MODE','SUBMODE','MOVIEFLAG','GPAUSE','GRESUME','ALLOWED','FRAME','CUSTOM1','DZTHR1','DEVICES','BINDS1','COND','TWINBINDS','HORIBINDS','MODE2','CDSTOP')))
      calls.append(('step',args[2]));cpu.reg_write(r.UC_X86_REG_EAX,int(scenario in ('open','mouse')))
     elif address==peek or (s['ORIGINAL_PUMP'] and address==s['ORIGINAL_PUMP']):
      assert struct.unpack('<5I',cpu.mem_read(sp+4,20))==(msg,0,0,0,1)
@@ -63,7 +63,8 @@ def verify(path):
    assert calls.count('original-poll')==1
    assert struct.unpack('<I',u.mem_read(msg+4,4))[0]==(0 if scenario=='open' else 0x200 if scenario=='mouse' else 0x100)
    calls.clear();execute('pump',(msg,0,0,0,1));assert 'load' not in calls and 'get' not in calls
-   calls.clear();execute('idle',());assert ('frame' in calls)==(scenario in ('open','mouse'))
+   calls.clear();assert execute('idle',())==77;assert 'frame' not in calls;assert calls.count('original-idle')==1
+   if scenario not in ('missing-dll','missing-export'):assert calls==[('step',1),'original-idle',('step',5)]
    calls.clear();u.reg_write(r.UC_X86_REG_EFLAGS,0x246);assert execute('present',())==0x4567
    assert u.reg_read(r.UC_X86_REG_EFLAGS)==0x246
    assert ('original-present' in calls)==bool(s['ORIGINAL_PRESENT'])

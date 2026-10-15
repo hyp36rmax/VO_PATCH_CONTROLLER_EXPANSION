@@ -52,12 +52,13 @@ int main(void){
  for(unsigned i=0;i<5;i++)for(mode=0;mode<3;mode++){
   if(mode==1&&i!=4)continue;
   width=sizes[i][0];height=sizes[i][1];VoPaint paint={0};assert(vo_attach(&paint,(void*)1));
-  assert(paint.area_width==(mode==1?1920:width));assert(paint.visible>=1&&paint.visible<=6);assert(paint.w<=560*max(1,height/720));
+  assert(paint.area_width==(mode==1?1920:width));assert(paint.visible>=1&&paint.visible<=7);assert(paint.w<=560*max(1,height/720));
   VoOverlay s;vo_overlay_init(&s);assert(vo_overlay_pause_result(&s,1,1));
-  for(unsigned row=0;row<6;row++){s.selected=row;assert(vo_paint(&paint,&s));assert(vo_hit_source(&paint,paint.x+20,paint.y+53+(row-paint.first)*paint.row)==(int)row);}
-  assert(vo_hit_source(&paint,paint.x+20,paint.y+paint.h-25)==6);
+  for(unsigned row=0;row<7;row++){s.selected=row;assert(vo_paint(&paint,&s));assert(vo_hit_source(&paint,paint.x+20,paint.y+53+(row-paint.first)*paint.row)==(int)row);}
+  assert(vo_hit_source(&paint,paint.x+20,paint.y+paint.h-25)==7);
   assert(vo_hit_source(&paint,paint.x+paint.w-20,paint.y+paint.h-25)==5);
   assert(vo_hit_source(&paint,0,0)==-1);s.unavailable=1;assert(vo_paint(&paint,&s));
+  s.unavailable=0;s.confirm=1;assert(vo_paint(&paint,&s));assert(vo_hit_source(&paint,paint.x+20,paint.y+paint.h-25)==8);assert(vo_hit_source(&paint,paint.x+paint.w-20,paint.y+paint.h-25)==9);
   vo_dispose(&paint);assert(!refs);
  }
  assert(fonts&&labels);puts("PASS production layout/render calls: 320/640 4:3, 16:9, 21:9, 32:9, Versus P1 bounds, bounded width, scroll visibility, Back/Resume hit tests, surface release");

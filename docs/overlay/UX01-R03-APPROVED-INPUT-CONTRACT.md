@@ -1,4 +1,4 @@
-# Unified Overlay input contract — F02 revision
+# Unified Overlay input contract — F03 revision
 
 The UX01-P01-F02 acceptance brief supersedes P01's Start activation and native
 Raphnet Pause-toggle exception. Configuration pages remain outside this milestone.
@@ -23,6 +23,9 @@ Overlay availability is limited to verified non-video title, attract-demo and
 offline match states. Movie ESC, confirmation and skip remain original. No
 activation is queued across video playback. Opening and closing never call
 GPAUSE or GRESUME; existing pause state remains under game authority.
+Only a fresh confirmed EXIT TO TITLE may call original GRESUME, allowing the
+original negative-mode reset tick to run. CANCEL returns to the overlay. The
+five-button soft-reset shortcut is disabled; individual buttons are preserved.
 
 Assignment and capture stay in the unchanged Controller Expansion helper.
 Raphnet DC B3 and Saturn B8 remain Start. No new mappings, device discovery,

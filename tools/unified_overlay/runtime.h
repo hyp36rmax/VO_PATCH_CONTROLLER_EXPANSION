@@ -24,14 +24,21 @@ typedef struct {
  volatile LONG *threshold;
  volatile LONG *devices;
  const unsigned char *padbinds,*conditions,*twinbinds,*horibinds;
+ volatile LONG *mode2;
+ void (__cdecl *cdstop)(void);
 } VoGame;
 #ifndef VO_OVERLAY_TEST
-_Static_assert(sizeof(VoGame)==76,"Overlay bridge requires the verified 32-bit ABI");
+_Static_assert(sizeof(VoGame)==84,"Overlay bridge requires the verified 32-bit ABI");
 #endif
 typedef struct {
  LPDIRECTDRAWSURFACE surface;HFONT title,body;
  int width,height,area_width,x,y,w,h,row,first,visible,page;
 } VoPaint;
+int vo_pause_begin(LPDIRECTDRAWSURFACE,int);
+int vo_pause_capture(LPDIRECTDRAWSURFACE);
+void vo_pause_end(void);
+void vo_pause_clear(void);
+void vo_pause_restore_to(LPDIRECTDRAWSURFACE);
 int vo_attach(VoPaint*,LPDIRECTDRAWSURFACE);
 int vo_paint(VoPaint*,const VoOverlay*);
 void vo_dispose(VoPaint*);

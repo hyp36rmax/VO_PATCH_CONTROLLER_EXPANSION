@@ -7,7 +7,7 @@ HERE=Path(__file__).resolve().parent
 
 def install(data,edition,v):
  data=bytearray(data);pe=v._PE(data)
- symbols={n:v.symbol_va(n,edition) for n in ('LOADLIB','GETPROC','GPAUSE','GRESUME','PRIMARY','BACK','INACTIVE','GAMEMODE','MODE','SUBMODE','HWND','CUSTOM1','DZTHR1','DEVICES','PEEKMSG','BINDS1','COND')}
+ symbols={n:v.symbol_va(n,edition) for n in ('LOADLIB','GETPROC','GPAUSE','GRESUME','PRIMARY','BACK','INACTIVE','GAMEMODE','MODE','SUBMODE','HWND','CUSTOM1','DZTHR1','DEVICES','PEEKMSG','BINDS1','COND','MODE2','CDSTOP')}
  symbols.update(TWINBINDS=v.symbol_va(('TWIN','binds'),edition),HORIBINDS=v.symbol_va(('TWIN','horibinds'),edition),SECTION_VA=pe.base+pe.next_rva(),
   ORIGINAL_WNDPROC=v.symbol_va(('DEBUGBOX','hook'),edition),
   ORIGINAL_PUMP=v.symbol_va(('PADX','pump'),edition),
@@ -43,6 +43,19 @@ def install(data,edition,v):
  for key,off in sites.items():
   new=struct.pack('<I',entries[key]) if key=='wndproc' else b'\xe8'+struct.pack('<i',entries[key]-v._va_at(pe,off)-5)+(b'\x90' if key=='pump' else b'\x90\x90' if key=='keyboard' else b'')
   data[off:off+len(new)]=new;patches.append(dict(name=key,offset=off,before=expected[key].hex(),after=new.hex()))
+ # Bypass only the original PADX chord detector, retaining the .keys path.
+ # The first conditional branch already targets .keys; derive and guard it.
+ if symbols['ORIGINAL_PUMP']:
+  signature=bytes.fromhex('89d825100300003d10030000')
+  matches=[i for i in range(len(data)) if data.startswith(signature,i)]
+  if len(matches)!=1:raise ValueError('Soft reset detector identity mismatch')
+  at=matches[0];branch=at+len(signature)
+  if data[branch]==0x75:target=branch+2+struct.unpack_from('<b',data,branch+1)[0]
+  elif data[branch:branch+2]==b'\x0f\x85':target=branch+6+struct.unpack_from('<i',data,branch+2)[0]
+  else:raise ValueError('Soft reset .keys branch mismatch')
+  if data[target:target+2]!=b'\x31\xff':raise ValueError('Soft reset key dispatcher mismatch')
+  before=bytes(data[at:at+5]);new=b'\xe9'+struct.pack('<i',target-at-5)
+  data[at:at+5]=new;patches.append(dict(name='disable-reset-chord',offset=at,before=before.hex(),after=new.hex()))
  # Only the already linked helper-name literals change. The original helper
  # remains installed; the private shim forwards its API without reassignment.
  old=b'vontanita.dll\0';new=b'voinputux.dll\0';assert len(old)==len(new)

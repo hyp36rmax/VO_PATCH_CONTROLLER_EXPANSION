@@ -36,13 +36,13 @@ def main():
  shutil.copy2(HERE/'EXPORT-DIAGNOSTICS.cmd',payload/'EXPORT-DIAGNOSTICS.cmd')
  # Package the notices for the exact dependencies selected by the build.
  assert '__version__ = "2026.07.22"' in (internal/'Lib/site-packages/certifi/__init__.py').read_text()
- version={'revision':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'wrapper_sha256':sha(payload/'ddraw.dll'),'helper_sha256':sha(payload/'vodisplay.dll'),'experience':'Unified-Overlay-Menu-Expansion-private','display':'F01-P04','overlay':'UX01-P01-F02'}
+ version={'revision':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'wrapper_sha256':sha(payload/'ddraw.dll'),'helper_sha256':sha(payload/'vodisplay.dll'),'experience':'Unified-Overlay-Menu-Expansion-private','display':'F01-P04','overlay':'UX01-P01-F03'}
  manifest={'version':version,'files':{f.relative_to(payload).as_posix().replace('\\','/'):sha(f) for f in sorted(payload.rglob('*')) if f.is_file()}}
  (experience/'payload-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
  notices=out/'Licenses';notices.mkdir();shutil.copy2(ROOT/'LICENSE',notices/'Pairomaniac-MIT.txt');shutil.copy2(a.wrapper/'LICENSE',notices/'cnc-ddraw-MIT.txt');shutil.copy2(internal/'LICENSE.txt',notices/'Python.txt')
  shutil.copy2(HERE/'ci/licenses/certifi-LICENSE.txt',notices/'certifi-LICENSE.txt')
  shutil.copy2(a.wrapper/'MinGW-runtime.txt',notices/'MinGW-runtime.txt')
- (out/'READ-ME.txt').write_text('''VO PATCH EX — UX01-P01-F02 PRIVATE WINDOWS UAT
+ (out/'READ-ME.txt').write_text('''VO PATCH EX — UX01-P01-F03 PRIVATE WINDOWS UAT
 
 ESC opens Unified Overlay at title, attract-demo and offline gameplay.
 ESC returns Back or closes; controller Start retains its original behavior.
@@ -51,6 +51,11 @@ Back and Resume are selectable. Movies retain original controls. The overlay
 does not pause the game. F11 Extras retains fallback access. F10 is not enabled. All existing
 F-key menus remain available. Configuration pages are not implemented yet;
 they show an unavailable notice. Use the existing F-key menus for settings.
+EXIT TO TITLE uses the original reset after confirmation; CANCEL is selected
+initially. It is disabled at title/attract and unavailable in internet matches.
+The former LB+RB+LT+RT+Start reset shortcut is disabled; individual controls
+retain their behavior. A confirmed paused exit uses original Resume so the
+original reset tick can run. Closing the overlay alone never resumes the game.
 
 Use your original Virtual-On disc image/files with the supplied v-on-patcher.exe.
 If the game is already patched, use Restore Original before Apply.

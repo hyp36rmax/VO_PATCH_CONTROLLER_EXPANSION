@@ -19,7 +19,7 @@ with tempfile.TemporaryDirectory() as td:
  archive=d.export(root)
  with zipfile.ZipFile(archive) as z:assert json.loads(z.read('events.json'))==rows
 native=(here.parent/'dual_display/f5_dialog.c').read_text()
-assert 'if(vo_diagnostic_level()<1||code<1||code>4)return;' in native
+assert 'if(vo_diagnostic_level()<1||code<1||code>11)return;' in native
 assert 'size.QuadPart+n<=256*1024' in native
 runtime=(here/'runtime.c').read_text()
 assert 'fopen(' not in runtime and 'WriteFile(' not in runtime and 'Upload' not in runtime

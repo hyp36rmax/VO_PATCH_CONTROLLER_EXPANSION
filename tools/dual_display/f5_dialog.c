@@ -34,7 +34,7 @@ static void event(unsigned code,int result){
 /* Overlay lifecycle uses the existing bounded event sink and consent. No raw
  * device samples or automatic uploads are recorded. */
 __declspec(dllexport) void WINAPI VonOverlayLifecycle(unsigned code){
- if(vo_diagnostic_level()<1||code<1||code>4)return;
+ if(vo_diagnostic_level()<1||code<1||code>11)return;
  event(20+code,0);
 }
 static int path_config(void){
