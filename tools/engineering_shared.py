@@ -9,8 +9,8 @@ import engineering_vs
 import engineering3840
 
 
-def build(original):
-    data, meta = engineering_vs.build(original)
+def build(original, wanted=None):
+    data, meta = engineering_vs.build(original, wanted)
     v = engineering3840.load_private()
     port = None if meta['edition'] == 'retail' else v.PORT['%08x' % v._pe_stamp(original)]
     pe = v._PE(data)

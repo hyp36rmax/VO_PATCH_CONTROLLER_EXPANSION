@@ -14,12 +14,12 @@ import engineering3840
 from capstone import Cs, CS_ARCH_X86, CS_MODE_32
 
 
-def build(original):
+def build(original, wanted=None):
     vp = engineering3840.load_private()
     edition = vp.BUILDS[hashlib.md5(original).hexdigest()]
     if edition.short not in ('retail', 'jpre'):
         raise ValueError('private VS supports verified Retail/JPRE only')
-    wanted = dict.fromkeys(vp.by_key(edition), True)
+    wanted = dict.fromkeys(vp.by_key(edition), True) if wanted is None else dict(wanted)
     wanted['hires'] = (3840, 1080)
     data, _, skipped = vp.apply_selected(bytearray(original), wanted, edition)
     if skipped:
@@ -30,7 +30,28 @@ def build(original):
     pe = vp._PE(data)
     ui = next(s for s in pe.sections if s['name'] == b'.vohr')
     ui_va = pe.base + ui['vaddr']
-    # Only the dedicated VS image changes this factor; F4's alternate table is intact.
+    # The dedicated primary image and its F4 restore record must agree.
+    # Keep the low-resolution alternate unchanged; its presentation contract is
+    # validated separately before any integrated package is permitted.
+    factor_va = ui_va + vp.UI_KSBS
+    cursor = ui['raddr'] + vp.UI_F4TAB_OFF
+    limit = cursor + vp.UI_F4TAB_SIZE
+    matches = 0
+    while cursor + 8 <= limit:
+        target, size = struct.unpack_from('<II', data, cursor)
+        if not target:
+            break
+        if not size or cursor + 8 + 2 * size > limit:
+            raise ValueError('invalid dedicated VS F4 table')
+        if target <= factor_va and factor_va + 4 <= target + size:
+            value_offset = cursor + 8 + factor_va - target
+            if data[value_offset:value_offset + 4] != data[ui['raddr'] + vp.UI_KSBS:ui['raddr'] + vp.UI_KSBS + 4]:
+                raise ValueError('unexpected dedicated VS primary factor')
+            struct.pack_into('<f', data, value_offset, 1.0)
+            matches += 1
+        cursor += 8 + 2 * size
+    if matches != 1:
+        raise ValueError('dedicated VS factor must have one F4 restore record')
     struct.pack_into('<f', data, ui['raddr'] + vp.UI_KSBS, 1.0)
     geometry = vp.resolution_geometry(3840, 1080)
     vw = geometry['viewport_width'] // 2

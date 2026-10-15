@@ -23,14 +23,21 @@ def movie_blob(v):
     assert len(blob[0])==len(old[0]) and tuple(blob[1])==tuple(old[1]) and blob[2]==old[2], 'movie layout changed'
     return blob
 
-def build(raw,profile):
+def build(raw,profile,wanted=None):
     v=engineering3840.load_private();edition=v.BUILDS[hashlib.md5(raw).hexdigest()]
-    if profile=='dual':data,_=engineering_shared.build(raw)
+    options=dict.fromkeys(v.by_key(edition),True) if wanted is None else dict(wanted)
+    if profile=='dual':
+        data,_=engineering_shared.build(raw,options)
+        from split_preference import install
+        data,_=install(data,edition)
+        data=bytearray(data)
     else:
-        wanted=dict.fromkeys(v.by_key(edition),True);wanted['hires']=PROFILES[profile] or False
+        wanted=dict(options);wanted['hires']=PROFILES[profile] or False
         data,_,skipped=v.apply_selected(bytearray(raw),wanted,edition)
         assert not skipped,skipped
-    v.stamp_version(data,edition)
+    if options.get('credits'):v.stamp_version(data,edition)
+    if not options.get('movie'):
+        return bytes(data),{'edition':edition.short,'profile':profile,'internal':PROFILES[profile] or (640,480),'movie_bytes_changed':0,'sha256':hashlib.sha256(data).hexdigest()}
     original=bytes(data);old=v.link('MOVIE',edition);new=v.link('MOVIE',edition,blobs={**v.BLOBS,'MOVIE':movie_blob(v)})
     assert len(old)==len(new) and original.count(old)==1
     offset=original.index(old);data[offset:offset+len(old)]=new

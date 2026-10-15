@@ -7,7 +7,7 @@ with tempfile.TemporaryDirectory() as td:
  for name in ('presentation.h','movie_window.h','policy.h','layout.h'):shutil.copy2(wrapper/'inc'/name,t/name)
  api='#include <assert.h>\n'+(here/'presentation_test_api.h').read_text().replace('#define GetPrivateProfileIntW(...) 0', 'static int selected_mode=1, session_config_test=0;\nstatic int mode_read(const WCHAR *section,const WCHAR *key,int fallback,const WCHAR *path){(void)section;(void)fallback;if(session_config_test)assert(!wcscmp(path,L"session.ini"));assert(!wcscmp(key,L"Mode"));return selected_mode;}\n#define GetPrivateProfileIntW mode_read')
  api=api.replace('static DWORD GetEnvironmentVariableA(', 'static DWORD base_environment(')
- api+='\nstatic int strict_test=0, complete_test=0;\nstatic DWORD GetEnvironmentVariableA(const char *key,char *out,DWORD size){if(!strcmp(key,"VO_COMPLETE_MIRROR")){out[0]=complete_test?49:48;return 1;}if(!strcmp(key,"VO_SOURCE_SIZE")){return snprintf(out,size,"%d,%d",g_ddraw.width,g_ddraw.height);}if(!strcmp(key,"VO_STRICT_MODE")){out[0]=strict_test?49:48;return 1;}return base_environment(key,out,size); }\nstatic DWORD GetEnvironmentVariableW(const WCHAR *key,WCHAR *out,DWORD size){(void)size;assert(!wcscmp(key,L"VO_SESSION_CONFIG"));if(!session_config_test)return 0;wcscpy(out,L"session.ini");return 11;}\n'
+ api+='\nstatic int strict_test=0, complete_test=0, normal_mode=0;\nstatic DWORD GetEnvironmentVariableA(const char *key,char *out,DWORD size){if(!strncmp(key,"VO_EX_",6)){if(!normal_mode)return 0;if(!strcmp(key,"VO_EX_EFFECTIVE_MODE")){out[0]=(char)(48+normal_mode);out[1]=0;return 1;}if(!strcmp(key,"VO_EX_PRIMARY_ID")){strcpy(out,"a");return 1;}if(!strcmp(key,"VO_EX_SECONDARY_ID")){strcpy(out,"b");return 1;}return 0;}if(!strcmp(key,"VO_COMPLETE_MIRROR")){out[0]=complete_test?49:48;return 1;}if(!strcmp(key,"VO_SOURCE_SIZE")){return snprintf(out,size,"%d,%d",g_ddraw.width,g_ddraw.height);}if(!strcmp(key,"VO_STRICT_MODE")){out[0]=strict_test?49:48;return 1;}return base_environment(key,out,size); }\nstatic DWORD GetEnvironmentVariableW(const WCHAR *key,WCHAR *out,DWORD size){(void)size;assert(!wcscmp(key,L"VO_SESSION_CONFIG"));if(!session_config_test)return 0;wcscpy(out,L"session.ini");return 11;}\n'
  (t/'presentation_test_api.h').write_text(api)
  for test in ('movie','presentation','phases'):
   source=(here/f'test_{test}.c').read_text()
@@ -41,5 +41,13 @@ for(int mode=1;mode<=2;mode++){
 }
 complete_test=0;selected_mode=1;
 puts("PASS complete-frame coverage (all P1/P2/HUD pixels), four profiles, all phases, identical texture/UV endpoints, mixed outputs and movie hide/restore");puts("PASS saved Versus/Mirror Mode and strict session failure closure in emitted wrapper");return 0;}\n'''
+  if test=='phases' and 'VO_EX_EFFECTIVE_MODE' in (t/'presentation.h').read_text():
+   source=source.replace('complete_test=0;selected_mode=1;\nputs(','''for(int mode=1;mode<=2;mode++){
+ setup();normal_mode=mode;selected_mode=3-mode;complete_test=mode==2;test_policy=2;
+ vo_dual_uploaded(0);vo_dual_present(0);assert(!vo_dual.disabled&&vo_dual.mirror==(mode==2));
+ vo_dual_end();assert(!fake.live);
+}
+normal_mode=0;complete_test=0;selected_mode=1;
+puts(''')
   p=t/f'{test}.c';p.write_text(source)
   subprocess.run(['clang','-std=c11','-fsanitize=address,undefined',str(p),'-o',str(t/test)],check=True);subprocess.run([str(t/test)],check=True)

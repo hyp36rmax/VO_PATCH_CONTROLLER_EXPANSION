@@ -21,9 +21,9 @@ FIELDS = set('code count mode profile fallback player device type vid pid width 
              'strict_test_stopped classified transitions recorded capture elapsed_ms '
              'exit_known exit_code samples truncated io_error ok targets visible '
              'movie_p1_present_suppressed primary_only local_vs_shared local_vs_gameplay '
-             'unknown connected xinput_slot stage level module hr movie_events event reason result tick restore_pending previous_p1_visible'.split())
+             'unknown connected xinput_slot stage level module hr movie_events event reason result tick restore_pending previous_p1_visible selected_mode effective_mode secondary f4_state split_preference restart_required'.split())
 CONFIG_KEYS = {'mode', 'gameaspect', 'mirrorplayer1', '1p device no.', '2p device no.',
-               '1p deadzone', '2p deadzone', '1p padtype', '2p padtype'}
+               '1p deadzone', '2p deadzone', '1p padtype', '2p padtype', 'scrsize', 'sshoriz'}
 LOGS = {'selection': 'selection.txt', 'presentation': 'game/D04-P02B-presentation.log',
         'movie': 'movie-windows.log'}
 
@@ -87,10 +87,10 @@ def project(text, limit=256):
     return result
 
 
-def configurations(root):
+def configurations(root, game_directory=None):
     result = {}
     for name in ('v_on.ini', 'player-displays.ini', 'session-display.ini'):
-        path = Path(root) / 'game' / name
+        path = (Path(game_directory) if game_directory is not None else Path(root) / 'game') / name
         if not path.is_file():
             continue
         # Original game INI may have no sections. Never export arbitrary strings.
@@ -116,27 +116,31 @@ def safe_events(path):
     return result
 
 
-def export(root):
+def export(root, *, game_directory=None, return_name="RETURN-THIS-VO-PATCH-EX-G03.zip"):
     """Return verified archive path; failure never removes raw logs or old ZIP."""
     root = Path(root)
+    if return_name not in ('RETURN-THIS-VO-PATCH-EX-G03.zip', 'RETURN-THIS-VO-PATCH-EX-F01-P02.zip', 'RETURN-THIS-VO-PATCH-EX-F01-P03.zip', 'RETURN-THIS-VO-PATCH-EX-F01-P04.zip'):
+        raise ValueError('Unsupported diagnostic return name')
     now = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
     destination = root / f'VO-PATCH-EX-Diagnostics-{now}.zip'
     temp = root / 'diagnostics-export.new'
     reports = {}
     for kind, name in LOGS.items():
-        path = root / name
+        path = (Path(game_directory) / name.removeprefix('game/')) if game_directory is not None and name.startswith('game/') else root / name
         reports[kind] = project(read_bounded(path)) if path.is_file() else []
     events = []
     for suffix in ('.3', '.2', '.1', ''):
         path = root / ('diagnostics/events.jsonl' + suffix)
         if path.is_file():
             events.extend(safe_events(path))
-    meta = json.loads((root / 'experience-version.json').read_text())
+    meta_path = root / 'experience-version.json'
+    meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}
     # Strict metadata allowlist and formats; no arbitrary user-edited data.
     versions = {k: v for k, v in meta.items() if k in ('revision', 'wrapper_sha256', 'helper_sha256')
                 and isinstance(v, str) and re.fullmatch('[0-9a-f]{40}|[0-9a-f]{64}', v)}
-    versions['experience'] = '0.1-dev'; versions['diagnostics_schema'] = 1
-    versions['controller'] = 'Controller-Expansion'; versions['display'] = 'F04B'
+    versions['experience'] = meta.get('experience') if meta.get('experience') in ('F01-P04-private',) else '0.1-dev'; versions['diagnostics_schema'] = 1
+    versions['controller'] = 'Controller-Expansion'; versions['display'] = 'F01-P04' if meta.get('display')=='F01-P04' else 'F04B'
+    if meta.get('game') in ('retail','jpre'):versions['game']=meta['game']
     prepared = root / 'prepared.json'
     if prepared.is_file():
         edition = json.loads(prepared.read_text()).get('edition')
@@ -147,7 +151,7 @@ def export(root):
                                'warnings': [e for e in events if e['event'] in ('error', 'recovery', 'previous_session_incomplete')],
                                'assignment_evidence': 'saved configuration only; runtime ownership not inferred'},
                'events.json': events, 'module-logs.json': reports,
-               'configuration.json': configurations(root)}
+               'configuration.json': configurations(root, game_directory)}
     try:
         with zipfile.ZipFile(temp, 'w', zipfile.ZIP_DEFLATED) as archive:
             for name, data in payload.items():
@@ -158,7 +162,7 @@ def export(root):
         os.replace(temp, destination)
         # Keep a bounded history plus an obvious stable return filename.
         import shutil
-        stable = root / 'RETURN-THIS-VO-PATCH-EX-G03.zip'
+        stable = root / return_name
         shutil.copyfile(destination, root / 'return.new')
         os.replace(root / 'return.new', stable)
         for old in sorted(root.glob('VO-PATCH-EX-Diagnostics-*.zip'))[:-4]:
