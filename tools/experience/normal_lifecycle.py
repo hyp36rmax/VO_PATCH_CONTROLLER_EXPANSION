@@ -2,6 +2,7 @@
 import argparse
 import ctypes
 import os
+import time
 from pathlib import Path
 import diagnostics as d
 import discovery
@@ -15,6 +16,7 @@ STATE={'VO_EX_REQUESTED_MODE':'selected_mode','VO_EX_EFFECTIVE_MODE':'effective_
 
 def run(root, wait, ready, *, environ=None, snapshot=discovery.snapshot):
     root=Path(root);environ=os.environ if environ is None else environ
+    started=time.monotonic()
     selected=d.level(root)
     if not selected:
         ready()
@@ -42,6 +44,7 @@ def run(root, wait, ready, *, environ=None, snapshot=discovery.snapshot):
         for row in info['displays']:d.event(root,'display_discovery',row)
         for row in info['controllers']:d.event(root,'controller_discovery',row)
     except OSError:d.event(root,'error',{'module':5,'code':3})
+    if selected>=3:d.event(root,'module_init',{'module':5,'elapsed_ms':min(60000,max(0,int((time.monotonic()-started)*1000)))})
     # Parent waits only before renderer entry; no I/O runs on game frame/input paths.
     ready()
     try:code=wait()

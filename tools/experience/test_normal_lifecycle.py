@@ -30,7 +30,9 @@ with tempfile.TemporaryDirectory(prefix='VO privacy ') as td:
   assert rows[-1]['fields']['exit_code']==7
   if level=='NORMAL':assert {r['event'] for r in rows}<={'startup','shutdown','recovery'}
   if level=='DETAILED':assert any(r['event']=='controller_discovery' for r in rows)
-  if level=='DEVELOPMENT':assert any(r['event']=='movie' for r in rows)
+  if level=='DEVELOPMENT':
+   assert any(r['event']=='movie' for r in rows)
+   assert any(0<=r['fields'].get('elapsed_ms',-1)<=60000 for r in rows)
   assert d.level(root)==d.LEVELS.index(level)
  choose('OFF');before=(root/'diagnostics/events.jsonl').read_bytes()
  for name in d.EVENTS:d.event(root,name,{'code':3})
