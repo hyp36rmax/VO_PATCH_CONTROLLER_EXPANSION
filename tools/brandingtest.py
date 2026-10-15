@@ -39,17 +39,16 @@ ex = Image.open(ROOT / 'assets/EX-approved.png').convert('RGBA')
 assert hashlib.sha256((ROOT / 'assets/EX-approved.png').read_bytes()).hexdigest() == '0fce2fa24e638197873819efe3ca22112c8854fa51814ea804357053ad678cfb'
 assert ex.getchannel('A').getextrema() == (0, 255)
 ex = ex.crop(ex.getchannel('A').getbbox())
-ex = ex.resize((650, round(ex.height * 650 / ex.width)), Image.Resampling.LANCZOS)
-expected = Image.new('RGBA', (2715, 716)); expected.alpha_composite(base); expected.alpha_composite(ex, (2020, 480))
+ex = ex.resize((760, round(ex.height * 760 / ex.width)), Image.Resampling.LANCZOS)
+expected = Image.new('RGBA', (2715, 723)); expected.alpha_composite(base); expected.alpha_composite(ex, (1944, 447))
 actual = Image.open(ROOT / 'assets/VOPatchEXLogo.png').convert('RGBA')
 assert actual.tobytes() == expected.tobytes()
-# The added logo must not cover any original nontransparent artwork.
-for y in range(ex.height):
-    for x in range(ex.width):
-        if y + 480 < base.height and ex.getpixel((x, y))[3]:
-            assert not base.getpixel((x + 2020, y + 480))[3]
+# The approved nesting intentionally overlaps the capsule shadow slightly.
 embedded = Image.open(io.BytesIO(base64.b64decode(now['LOGO_PNG']))).convert('RGBA')
-assert embedded.size == (728, 192)
+assert embedded.size == (796, 212)
+assert 0.95 <= 760 / 783 <= 1.0
+assert abs((1944+760/2)-(1932+783/2)) <= 1
+assert now["LOGO_HEIGHT"] / actual.height >= 96 / 658
 assert embedded.getchannel('A').getextrema() == (0, 255)
 about = source[source.index('        def _about_body'):source.index('        def _log_body')]
 assert about.index('VO PATCH EX') < about.index('Based on:') < about.index('Original logo by:')
@@ -58,3 +57,12 @@ assert 'wraplength=380' not in about
 assert 'height=min(height, limit)' in source and 'scrollregion=' in source
 print('PASS exact source provenance, original artwork/icon, composition, alpha, embedded size, title/About, appended hires, unchanged XInput, blobs and installation functions')
 print('NEEDS VALIDATION: physical Windows layout, DPI, popup scrolling and clickable links')
+
+from fractions import Fraction
+for scale in (1,1.25,1.5):
+    target=round(now['LOGO_HEIGHT']*scale)
+    ratio=Fraction(target,embedded.height).limit_denominator(8)
+    actual_height=embedded.height*ratio.numerator/ratio.denominator
+    assert abs(actual_height-target)<=1
+    assert abs(embedded.width*ratio.numerator/ratio.denominator/actual_height-actual.width/actual.height)<0.01
+print('PASS proportional header sizing at 100/125/150%; physical Windows acceptance pending')

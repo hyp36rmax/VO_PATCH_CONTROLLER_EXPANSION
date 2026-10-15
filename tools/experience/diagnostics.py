@@ -3,6 +3,7 @@
 Future callers use event(root, name, numeric_fields) and export(root). Free-form
 module text is never copied: adapters project only named numeric fields.
 """
+import configparser
 import datetime
 import json
 import os
@@ -12,10 +13,10 @@ import zipfile
 
 LIMIT = 256 * 1024
 ROTATIONS = 3
-LEVELS = ('NORMAL', 'DETAILED', 'DEVELOPMENT')
+LEVELS = ('OFF', 'NORMAL', 'DETAILED', 'DEVELOPMENT')
 EVENTS = {'startup', 'shutdown', 'module_init', 'controller_discovery',
           'display_discovery', 'configuration', 'selection', 'presentation',
-          'movie', 'error', 'recovery', 'previous_session_incomplete'}
+          'movie', 'warning', 'error', 'recovery', 'previous_session_incomplete'}
 FIELDS = set('code count mode profile fallback player device type vid pid width height '
              'primary uploads draw_frames presented_pairs complete_mirror mirror_p1 '
              'strict_test_stopped classified transitions recorded capture elapsed_ms '
@@ -26,6 +27,27 @@ CONFIG_KEYS = {'mode', 'gameaspect', 'mirrorplayer1', '1p device no.', '2p devic
                '1p deadzone', '2p deadzone', '1p padtype', '2p padtype', 'scrsize', 'sshoriz'}
 LOGS = {'selection': 'selection.txt', 'presentation': 'game/D04-P02B-presentation.log',
         'movie': 'movie-windows.log'}
+
+
+def level(root):
+    """One existing authority; malformed/missing preferences fail closed."""
+    ini = configparser.ConfigParser(interpolation=None)
+    try:
+        data=(Path(root) / 'player-displays.ini').read_bytes()
+        if len(data)>LIMIT:return 0
+        ini.read_string(data.decode('utf-16' if data.startswith((b'\xff\xfe',b'\xfe\xff')) else 'utf-8-sig'))
+        section=next((s for s in ini.sections() if s.lower()=='diagnostics'), 'Diagnostics')
+        value = ini.get(section, 'Level', fallback='OFF').strip()
+        return LEVELS.index(value) if value in LEVELS else 0
+    except (OSError, UnicodeError, configparser.Error):
+        return 0
+
+
+def permitted(root, name):
+    required = (1 if name in {'startup', 'shutdown', 'warning', 'error', 'recovery',
+                             'previous_session_incomplete'} else
+                3 if name == 'movie' else 2)
+    return level(root) >= required
 
 
 def numbers(fields):
@@ -48,13 +70,15 @@ def rotate(path):
 def event(root, name, fields=None):
     if name not in EVENTS:
         raise ValueError('Unknown event')
+    if not permitted(root, name):
+        return
     record = {'event': name, 'utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
               'fields': numbers(fields or {})}
     data = (json.dumps(record, sort_keys=True) + '\n').encode()
     path = Path(root) / 'diagnostics/events.jsonl'
     path.parent.mkdir(exist_ok=True)
     if path.exists() and path.stat().st_size + len(data) > LIMIT:
-        rotate(path)
+        return  # bounded collection; retain existing player logs
     with path.open('ab') as stream:
         stream.write(data)
         stream.flush()  # each event survives an unclean process exit
@@ -121,7 +145,11 @@ def export(root, *, game_directory=None, return_name="RETURN-THIS-VO-PATCH-EX-G0
     root = Path(root)
     if return_name not in ('RETURN-THIS-VO-PATCH-EX-G03.zip', 'RETURN-THIS-VO-PATCH-EX-F01-P02.zip', 'RETURN-THIS-VO-PATCH-EX-F01-P03.zip', 'RETURN-THIS-VO-PATCH-EX-F01-P04.zip', 'RETURN-THIS-VO-PATCH-EX-F01-P04-F02.zip'):
         raise ValueError('Unsupported diagnostic return name')
-    now = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
+    if not any((root / ('diagnostics/events.jsonl' + suffix)).is_file()
+               for suffix in ('', '.1', '.2', '.3')) and not any(
+                   (root / name).is_file() for name in LOGS.values()):
+        raise ValueError('No diagnostic records are available. Logging remains disabled unless you enable it in F11.')
+    now = datetime.datetime.now().strftime('%Y%m%d-%H%M%S-%f')
     destination = root / f'VO-PATCH-EX-Diagnostics-{now}.zip'
     temp = root / 'diagnostics-export.new'
     reports = {}
@@ -138,7 +166,7 @@ def export(root, *, game_directory=None, return_name="RETURN-THIS-VO-PATCH-EX-G0
     # Strict metadata allowlist and formats; no arbitrary user-edited data.
     versions = {k: v for k, v in meta.items() if k in ('revision', 'wrapper_sha256', 'helper_sha256')
                 and isinstance(v, str) and re.fullmatch('[0-9a-f]{40}|[0-9a-f]{64}', v)}
-    versions['experience'] = meta.get('experience') if meta.get('experience') in ('F01-P04-private', 'F01-P04-F01-private', 'F01-P04-F02-private') else '0.1-dev'; versions['diagnostics_schema'] = 1
+    versions['experience'] = meta.get('experience') if meta.get('experience') in ('F01-P04-private', 'F01-P04-F01-private', 'F01-P04-F02-private', 'B01-F02-private') else '0.1-dev'; versions['diagnostics_schema'] = 1
     versions['controller'] = 'Controller-Expansion'; versions['display'] = 'F01-P04' if meta.get('display')=='F01-P04' else 'F04B'
     if meta.get('game') in ('retail','jpre'):versions['game']=meta['game']
     prepared = root / 'prepared.json'
@@ -148,7 +176,7 @@ def export(root, *, game_directory=None, return_name="RETURN-THIS-VO-PATCH-EX-G0
             versions['game'] = edition
     payload = {'summary.json': {'versions': versions, 'physical_acceptance': 'PENDING',
                                'missing_module_logs': [k for k, v in reports.items() if not v],
-                               'warnings': [e for e in events if e['event'] in ('error', 'recovery', 'previous_session_incomplete')],
+                               'warnings': [e for e in events if e['event'] in ('warning', 'error', 'recovery', 'previous_session_incomplete')],
                                'assignment_evidence': 'saved configuration only; runtime ownership not inferred'},
                'events.json': events, 'module-logs.json': reports,
                'configuration.json': configurations(root, game_directory)}
@@ -165,8 +193,7 @@ def export(root, *, game_directory=None, return_name="RETURN-THIS-VO-PATCH-EX-G0
         stable = root / return_name
         shutil.copyfile(destination, root / 'return.new')
         os.replace(root / 'return.new', stable)
-        for old in sorted(root.glob('VO-PATCH-EX-Diagnostics-*.zip'))[:-4]:
-            old.unlink()
+        # Player-owned evidence is retained until explicitly deleted.
         return stable
     finally:
         if temp.exists():

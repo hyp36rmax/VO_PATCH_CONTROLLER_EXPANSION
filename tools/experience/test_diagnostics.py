@@ -15,15 +15,19 @@ class Diagnostics(unittest.TestCase):
         self.root = Path(self.temp.name)
         (self.root/'experience-version.json').write_text(json.dumps({'revision': 'a'*40, 'username': 'Alice', 'wrapper_sha256': 'b'*64}))
         (self.root/'game').mkdir()
+        (self.root/'player-displays.ini').write_text('[Diagnostics]\nLevel=DEVELOPMENT\n')
 
     def test_rotation_crash_and_bounds(self):
         with mock.patch.object(d, 'LIMIT', 512):
             for i in range(200):
                 d.event(self.root, 'startup', {'code': i, 'path': 'C:\\Users\\Alice'})
             logs = list((self.root/'diagnostics').glob('events.jsonl*'))
-            self.assertEqual(len(logs), 4)
+            self.assertEqual(len(logs), 1)
             self.assertTrue(all(p.stat().st_size <= 512 for p in logs))
-            self.assertEqual(d.safe_events(self.root/'diagnostics/events.jsonl')[-1]['fields']['code'], 199)
+            self.assertLess(d.safe_events(self.root/'diagnostics/events.jsonl')[-1]['fields']['code'], 199)
+            retained=logs[0].read_bytes()
+            d.event(self.root,'startup',{'code':999})
+            self.assertEqual(logs[0].read_bytes(),retained)
             self.assertNotIn(b'Alice', b''.join(p.read_bytes() for p in logs))
         with (self.root/'diagnostics/events.jsonl').open('ab') as stream:
             stream.write(b'{incomplete crash row')

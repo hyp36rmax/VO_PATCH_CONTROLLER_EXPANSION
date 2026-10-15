@@ -26,6 +26,7 @@ __declspec(dllexport) int WINAPI VonDisplayStartup(unsigned char *base,const uns
  if(base!=(unsigned char*)GetModuleHandleW(NULL)||!path_config()||!discover())goto fail;
  if(bytes<20||vo_word(table+16)>1)goto fail;
  if(!SetEnvironmentVariableA("VO_EX_DEFAULT_ASPECT",vo_word(table+16)?"1":"0"))goto fail;
+ InterlockedExchange(&diagnostic_level,(LONG)vo_diagnostic_level());
  read_saved();VoSelection selection;
  if(!vo_select(monitors,count,&saved,31,&selection))goto fail;
  const unsigned char *plan=NULL;unsigned n=0;

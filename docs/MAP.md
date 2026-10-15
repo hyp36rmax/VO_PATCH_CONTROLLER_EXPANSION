@@ -42,8 +42,8 @@ is stale, so the line numbers are current.
 | 7347–8250 | ripping (`RAW = 2352`) and installing (`LOGICAL = 2048`) | `# --- ripping --------------` |
 | 8251–9077 | netplay setup, `SYNC_SITES`, cnc-ddraw, CD audio | `# --- netplay --------------` |
 | 9078–9565 | `Patcher`: reading a file, applying, restoring | `class Patcher:` |
-| 9566–10162 | the logo and icon (`tools/assets.py`), then the window strings | `# ASSETS BLOB BEGIN - tools/` |
-| 10163–12192 | the window (`run_tk`), the CLI, `main` | `def run_tk():` |
+| 9566–10203 | the logo and icon (`tools/assets.py`), then the window strings | `# ASSETS BLOB BEGIN - tools/` |
+| 10204–12235 | the window (`run_tk`), the CLI, `main` | `def run_tk():` |
 <!-- REGIONS END -->
 
 ## 3. `v_on.exe`

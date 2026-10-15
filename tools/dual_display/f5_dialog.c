@@ -1,6 +1,9 @@
 /* Private F5 child dialog. No game input polling or live renderer changes. */
 #include "inventory.h"
 #include "f5_settings.h"
+#include "diagnostics_privacy.h"
+static volatile LONG diagnostic_level;
+__declspec(dllexport) unsigned WINAPI VonDiagnosticsLevel(void){return (unsigned)InterlockedCompareExchange(&diagnostic_level,0,0);}
 #define DISPLAY_BUTTON 0x5e00
 #define MODE 100
 #define PRIMARY 101
@@ -13,6 +16,7 @@ static HFONT font;
 static HWND secondary_label;
 static unsigned save_stage;static DWORD save_error;
 static void event(unsigned code,int result){
+ if(vo_diagnostic_level()<(code==3?1u:2u))return;
  WCHAR path[MAX_PATH];SYSTEMTIME t;GetSystemTime(&t);
  DWORD length=GetModuleFileNameW(NULL,path,MAX_PATH);if(!length||length>=MAX_PATH)return;
  WCHAR *slash=wcsrchr(path,L'\\');if(!slash)return;slash[1]=0;
@@ -21,9 +25,9 @@ static void event(unsigned code,int result){
  HANDLE h=CreateFileW(path,FILE_APPEND_DATA|GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
  if(h==INVALID_HANDLE_VALUE)return;
  LARGE_INTEGER size;if(GetFileSizeEx(h,&size)&&size.QuadPart<256*1024){
-  char line[512];int n=snprintf(line,sizeof line,"{\"event\":\"configuration\",\"utc\":\"%04u-%02u-%02uT%02u:%02u:%02uZ\",\"fields\":{\"code\":%u,\"mode\":%d,\"profile\":%d,\"primary\":%d,\"secondary\":%d,\"result\":%d,\"restart_required\":%d,\"save_stage\":%u,\"winerror\":%lu}}\n",t.wYear,t.wMonth,t.wDay,t.wHour,t.wMinute,t.wSecond,code,pending.mode,pending.aspect,vo_find(monitors,count,pending.primary),vo_find(monitors,count,pending.secondary),result,code==4,save_stage,(unsigned long)save_error);
+  char line[512];int n=snprintf(line,sizeof line,"{\"event\":\"%s\",\"utc\":\"%04u-%02u-%02uT%02u:%02u:%02uZ\",\"fields\":{\"code\":%u,\"mode\":%d,\"profile\":%d,\"primary\":%d,\"secondary\":%d,\"result\":%d,\"restart_required\":%d,\"save_stage\":%u,\"winerror\":%lu}}\n",code==3?"error":"configuration",t.wYear,t.wMonth,t.wDay,t.wHour,t.wMinute,t.wSecond,code,pending.mode,pending.aspect,vo_find(monitors,count,pending.primary),vo_find(monitors,count,pending.secondary),result,code==4,save_stage,(unsigned long)save_error);
   if(code==6)n=snprintf(line,sizeof line,"{\"event\":\"configuration\",\"fields\":{\"code\":6,\"result\":0}}\n");
-  DWORD written;if(n>0&&n<(int)sizeof line){WriteFile(h,line,(DWORD)n,&written,NULL);FlushFileBuffers(h);}
+  DWORD written;if(n>0&&n<(int)sizeof line&&size.QuadPart+n<=256*1024){WriteFile(h,line,(DWORD)n,&written,NULL);FlushFileBuffers(h);}
  }CloseHandle(h);
 }
 static int path_config(void){
@@ -44,6 +48,7 @@ static void read_saved(void){
 /* Local path-bearing evidence is deliberately excluded from diagnostic exports. */
 static void save_trace(unsigned stage,int result,DWORD error){
  save_stage=stage;save_error=error;
+ if(vo_diagnostic_level()<3){SetLastError(error);return;}
  WCHAR path[MAX_PATH],dir[MAX_PATH];char location[MAX_PATH*4];
  DWORD length=GetModuleFileNameW(NULL,path,MAX_PATH);if(!length||length>=MAX_PATH)goto done;
  WCHAR *slash=wcsrchr(path,L'\\');if(!slash)goto done;slash[1]=0;
@@ -56,7 +61,7 @@ static void save_trace(unsigned stage,int result,DWORD error){
  if(h==INVALID_HANDLE_VALUE)goto done;
  LARGE_INTEGER size;if(GetFileSizeEx(h,&size)&&size.QuadPart<256*1024){
   char line[2048];int n=snprintf(line,sizeof line,"mode=%d validation=%d stage=%u result=%d winerror=%lu file_attributes=%lu directory_attributes=%lu config=%s\n",pending.mode,vo_settings_validate(monitors,count,&pending,dirty),stage,result,(unsigned long)error,(unsigned long)file_attrs,(unsigned long)dir_attrs,location);
-  DWORD written;if(n>0&&n<(int)sizeof line)WriteFile(h,line,(DWORD)n,&written,NULL);
+  DWORD written;if(n>0&&n<(int)sizeof line&&size.QuadPart+n<=256*1024)WriteFile(h,line,(DWORD)n,&written,NULL);
  }CloseHandle(h);
  done:SetLastError(error);
 }
@@ -148,7 +153,7 @@ static INT_PTR CALLBACK procedure(HWND h,UINT msg,WPARAM wp,LPARAM lp){
    const WCHAR *messages[]={L"",L"Choose a supported display mode.",L"Choose a supported game aspect ratio.",L"Choose an available primary display.",L"Choose an available secondary display for dual mode.",L"Choose different, independently arranged displays for dual mode."};
    event(3,error);MessageBoxW(h,messages[error],L"Display Settings — not saved",MB_OK|MB_ICONWARNING);return TRUE;
   }
-  if(!save_pending()){event(3,3);WCHAR message[256];swprintf(message,256,L"Display settings could not be saved (step %u, Windows error %lu). Your previous settings are unchanged. Details: diagnostics/display-save.log",save_stage,(unsigned long)save_error);MessageBoxW(h,message,L"Display Settings",MB_OK|MB_ICONERROR);return TRUE;}
+  if(!save_pending()){event(3,3);WCHAR message[256];swprintf(message,256,L"Display settings could not be saved (step %u, Windows error %lu). Your previous settings are unchanged. Enable diagnostics in F11 for additional details.",save_stage,(unsigned long)save_error);MessageBoxW(h,message,L"Display Settings",MB_OK|MB_ICONERROR);return TRUE;}
   event(4,1);MessageBoxW(h,L"Display settings saved. Restart required for display changes.",L"Display Settings",MB_OK|MB_ICONINFORMATION);EndDialog(h,1);return TRUE;
  }
  return FALSE;
@@ -181,3 +186,5 @@ __declspec(dllexport) int WINAPI VonDisplayCanResize(HWND owner){
 }
 
 #include "startup_runtime.h"
+
+#include "f11_diagnostics.h"

@@ -28,7 +28,7 @@ ICON_SRC = 'VONPatcherIcon.png'
 
 # Twice the height the window shows at 100% (LOGO_HEIGHT in the patcher),
 # so it holds up at 200% scaling and is subsampled below that.
-LOGO_HEIGHT = 192
+LOGO_HEIGHT = 212
 ICON_SIZE = 256
 ICO_SIZES = [16, 24, 32, 48, 64, 128, 256]
 

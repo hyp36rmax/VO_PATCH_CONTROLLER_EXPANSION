@@ -15,10 +15,13 @@ STATE={'VO_EX_REQUESTED_MODE':'selected_mode','VO_EX_EFFECTIVE_MODE':'effective_
 
 def run(root, wait, ready, *, environ=None, snapshot=discovery.snapshot):
     root=Path(root);environ=os.environ if environ is None else environ
+    selected=d.level(root)
+    if not selected:
+        ready()
+        return None
     marker=root/'diagnostics/session-active'
     if marker.exists():d.event(root,'previous_session_incomplete')
-    level=environ.get('VO_EX_DIAGNOSTICS','NORMAL')
-    if level not in d.LEVELS:level='NORMAL'
+    level=d.LEVELS[selected]
     d.event(root,'startup',{'level':d.LEVELS.index(level)})
     marker.write_text('active\n')
     state={}
@@ -27,13 +30,13 @@ def run(root, wait, ready, *, environ=None, snapshot=discovery.snapshot):
         except (KeyError,ValueError):continue
         if -1<=value<=65535:state[field]=value
     d.event(root,'selection',state)
-    d.event(root,'movie',movie_geometry.evidence(root,environ))
+    if selected>=3:d.event(root,'movie',movie_geometry.evidence(root,environ))
     if state.get('fallback'):d.event(root,'recovery',{'fallback':state['fallback']})
     for cfg in d.configurations(root,root).values():
         if 'scrsize' in cfg:
             d.event(root,'configuration',{'f4_state':cfg['scrsize']&1,'split_preference':cfg['scrsize']&2})
     try:
-        info=snapshot()
+        info=snapshot() if selected>=2 else {'displays':[], 'controllers':[], 'available':False}
         d.event(root,'display_discovery',{'count':len(info['displays']),'ok':bool(info['available'])})
         d.event(root,'controller_discovery',{'count':len(info['controllers']),'ok':bool(info['available'])})
         for row in info['displays']:d.event(root,'display_discovery',row)
@@ -47,14 +50,24 @@ def run(root, wait, ready, *, environ=None, snapshot=discovery.snapshot):
         raise
     d.event(root,'shutdown',{'exit_known':True,'exit_code':code})
     marker.unlink(missing_ok=True)
-    try:return d.export(root,game_directory=root,return_name=RETURN)
-    except Exception:
-        d.event(root,'error',{'module':5,'code':2,'io_error':True})
-        # Existing diagnostics folder is the obvious raw return folder. Never
-        # copy arbitrary game files or free-form module logs into a new export.
-        (root/'RETURN-THIS-VO-PATCH-EX-F01-P04-F02.txt').write_text(
-            'Diagnostic compression failed. Local logs remain in the diagnostics folder.\n')
-        raise
+    return None  # exports are exclusively player initiated
+
+
+def sample(root, prior=None, *, snapshot=discovery.snapshot):
+    """Bounded numeric changes, only after the current consent check."""
+    if d.level(root)<2:return prior
+    current=(d.configurations(root,root),snapshot())
+    if current!=prior:
+        for cfg in current[0].values():
+            for player in (1,2):
+                key=f'{player}p device no.'
+                if key in cfg:d.event(root,'configuration',{'player':player,'device':cfg[key]})
+        hardware=current[1]
+        d.event(root,'display_discovery',{'count':len(hardware['displays'])})
+        d.event(root,'controller_discovery',{'count':len(hardware['controllers'])})
+        for row in hardware['displays']:d.event(root,'display_discovery',row)
+        for row in hardware['controllers']:d.event(root,'controller_discovery',row)
+    return current
 
 
 def movie_state(pid):
@@ -113,12 +126,20 @@ def attach(root,pid,event_name):
         def ready():
             if not k.SetEvent(event):raise ctypes.WinError(ctypes.get_last_error())
         def wait():
-            previous=None;probe_failed=False
-            geometry=movie_geometry.evidence(root,os.environ)
+            previous=None;probe_failed=False;prior=None;ticks=0
+            geometry=None
             while True:
                 result=k.WaitForSingleObject(process,500)
                 if result==0:break
                 if result!=258:raise ctypes.WinError(ctypes.get_last_error())
+                selected=d.level(root)
+                if not selected:return 0
+                ticks+=1
+                if selected>=2 and ticks%4==0:
+                    try:prior=sample(root,prior)
+                    except OSError:d.event(root,'error',{'module':5,'code':3})
+                if selected<3:continue
+                if geometry is None:geometry=movie_geometry.evidence(root,os.environ)
                 try:
                     current=movie_state(pid)
                     if current!=previous:
@@ -146,9 +167,17 @@ if __name__=='__main__':
     p.add_argument('--pid',type=int);p.add_argument('--ready');p.add_argument('--export',action='store_true')
     a=p.parse_args()
     if a.export:
-        try:d.export(a.game,game_directory=a.game,return_name=RETURN)
-        except Exception:
-            (a.game/'RETURN-THIS-VO-PATCH-EX-F01-P04-F02.txt').write_text('Export failed. Existing diagnostic logs are preserved in the diagnostics folder.\n')
-            raise
+        try:
+            result=d.export(a.game,game_directory=a.game,return_name=RETURN)
+            if os.name=='nt':
+                import subprocess
+                subprocess.Popen(['explorer.exe','/select,',str(result.resolve())])
+        except Exception as error:
+            if os.name=='nt':
+                ctypes.windll.user32.MessageBoxW(None,
+                    'No diagnostic records are available.' if isinstance(error,ValueError)
+                    else 'Export failed. Existing diagnostic records have been preserved.',
+                    'VO PATCH EX Diagnostics',0x40)
+            else:raise
     elif a.pid and a.ready:attach(a.game,a.pid,a.ready)
     else:p.error('normal lifecycle attachment or export required')

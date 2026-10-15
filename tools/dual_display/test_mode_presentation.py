@@ -8,6 +8,17 @@ with tempfile.TemporaryDirectory() as td:
  api='#include <assert.h>\n'+(here/'presentation_test_api.h').read_text().replace('#define GetPrivateProfileIntW(...) 0', 'static int selected_mode=1, session_config_test=0;\nstatic int mode_read(const WCHAR *section,const WCHAR *key,int fallback,const WCHAR *path){(void)section;(void)fallback;if(session_config_test)assert(!wcscmp(path,L"session.ini"));assert(!wcscmp(key,L"Mode"));return selected_mode;}\n#define GetPrivateProfileIntW mode_read')
  api=api.replace('static DWORD GetEnvironmentVariableA(', 'static DWORD base_environment(')
  api+='\nstatic int strict_test=0, complete_test=0, normal_mode=0;\nstatic DWORD GetEnvironmentVariableA(const char *key,char *out,DWORD size){if(!strncmp(key,"VO_EX_",6)){if(!normal_mode)return 0;if(!strcmp(key,"VO_EX_EFFECTIVE_MODE")){out[0]=(char)(48+normal_mode);out[1]=0;return 1;}if(!strcmp(key,"VO_EX_PRIMARY_ID")){strcpy(out,"a");return 1;}if(!strcmp(key,"VO_EX_SECONDARY_ID")){strcpy(out,"b");return 1;}return 0;}if(!strcmp(key,"VO_COMPLETE_MIRROR")){out[0]=complete_test?49:48;return 1;}if(!strcmp(key,"VO_SOURCE_SIZE")){return snprintf(out,size,"%d,%d",g_ddraw.width,g_ddraw.height);}if(!strcmp(key,"VO_STRICT_MODE")){out[0]=strict_test?49:48;return 1;}return base_environment(key,out,size); }\nstatic DWORD GetEnvironmentVariableW(const WCHAR *key,WCHAR *out,DWORD size){(void)size;assert(!wcscmp(key,L"VO_SESSION_CONFIG"));if(!session_config_test)return 0;wcscpy(out,L"session.ini");return 11;}\n'
+ if (wrapper/'inc/diagnostics_privacy.h').exists():
+  shutil.copy2(wrapper/'inc/diagnostics_privacy.h',t/'diagnostics_privacy.h')
+  shutil.copy2(wrapper/'inc/diagnostics_runtime.h',t/'diagnostics_runtime.h')
+  api='static unsigned diagnostic_level=3, log_attempts=0, log_full=0;\n'+api
+  api=api.replace('(void)path;(void)mode;return NULL;', '(void)path;(void)mode;log_attempts++;return NULL;')
+  api+=r'''
+static DWORD GetPrivateProfileStringW(const WCHAR *s,const WCHAR *k,const WCHAR *d,WCHAR *o,DWORD n,const WCHAR *p){(void)d;(void)n;(void)p;assert(!wcscmp(s,L"Diagnostics")&&!wcscmp(k,L"Level"));wcscpy(o,(const WCHAR*[]){L"OFF",L"NORMAL",L"DETAILED",L"DEVELOPMENT"}[diagnostic_level]);return wcslen(o);}
+typedef struct {DWORD nFileSizeHigh,nFileSizeLow;} WIN32_FILE_ATTRIBUTE_DATA;
+#define GetFileExInfoStandard 0
+static int GetFileAttributesExW(const WCHAR *p,int unused,WIN32_FILE_ATTRIBUTE_DATA *i){(void)p;(void)unused;i->nFileSizeHigh=0;i->nFileSizeLow=256*1024;return log_full;}
+'''
  (t/'presentation_test_api.h').write_text(api)
  for test in ('movie','presentation','phases'):
   source=(here/f'test_{test}.c').read_text()
@@ -49,5 +60,16 @@ puts("PASS complete-frame coverage (all P1/P2/HUD pixels), four profiles, all ph
 }
 normal_mode=0;complete_test=0;selected_mode=1;
 puts(''')
+  if test=='phases' and (t/'diagnostics_privacy.h').exists():
+   checks=r'''for(unsigned level=0;level<4;level++)for(unsigned full=0;full<2;full++){
+ setup();normal_mode=1;selected_mode=1;complete_test=0;test_policy=2;
+ diagnostic_level=level;log_full=full;log_attempts=0;
+ vo_dual_uploaded(0);vo_dual_present(0);vo_dual_end();
+ assert(log_attempts==((level>=2&&!full)?1u:0u));assert(!fake.live);
+}
+puts("PASS emitted wrapper default-Off/Normal no log creation; Detailed/Development gated bounded writes");
+'''
+   point=source.rfind('return 0;}')
+   source=source[:point]+checks+source[point:]
   p=t/f'{test}.c';p.write_text(source)
   subprocess.run(['clang','-std=c11','-fsanitize=address,undefined',str(p),'-o',str(t/test)],check=True);subprocess.run([str(t/test)],check=True)

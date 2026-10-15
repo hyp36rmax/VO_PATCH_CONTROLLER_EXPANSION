@@ -18,7 +18,7 @@ the unchanged upstream artwork with the approved red EX lettering.
 
 See [installation](docs/project/INSTALLATION-WORKFLOW.md),
 [attribution and lineage](docs/project/ATTRIBUTION-AND-LINEAGE.md), and
-[branding assets](assets/BRANDING.md). Unified Overlay is not included.
+[branding assets](assets/BRANDING.md).
 
 ## Overview
 
@@ -37,6 +37,42 @@ The upstream patcher remains the foundation. Its [game fixes](docs/PATCHER.md#wh
 [music from files](docs/PATCHER.md#music) and
 [windowing/scaling add-on](docs/PATCHER.md#windowing-and-scaling-cnc-ddraw)
 remain available alongside the original controller profiles.
+
+
+## Display Expansion
+
+Configure **F5 → Graphic Settings → Display...** after installing with the original
+patcher. Fresh installations default to 16:9 Single Display; saved display changes
+apply on next launch.
+
+| Setting | Behavior |
+|---|---|
+| Single Display | One selected display; 4:3, 16:9, 21:9 or 32:9 game aspect ratio |
+| Dual Display — Versus | Independent P1/P2 gameplay views on separate displays |
+| Dual Display — Mirror | Complete primary presentation duplicated, including both Local VS views |
+
+Monitor assignments and saved preferences are retained during temporary hardware
+fallback. Existing F4, F5 graphics controls, movies and Local VS settings remain
+available. Dual-mode F4 transitions retain the current supported presentation.
+See [display requirements](docs/display/DUX-V1.0.md) and
+[installation](docs/project/INSTALLATION-WORKFLOW.md). Windows acceptance for the
+current integrated package remains pending.
+
+## Diagnostics and Privacy
+
+**Diagnostics are disabled by default.** In **F11 Extras**, select Off, Normal,
+Detailed or Development. Enabling a session requires restarting the game; selecting
+Off stops new collection and retains existing logs. The preference persists without
+repatching. Keep the existing F11 Extras patch option enabled to access its controls.
+
+Normal records startup/shutdown and errors/recovery; Detailed adds hardware,
+assignment and display information; Development adds bounded technical observations.
+Logs stay in the game folder. **Export Diagnostics...** creates a sanitized local
+ZIP only when requested. There are no automatic uploads, screenshots, audio or raw
+controller input recording. No export occurs automatically when the game closes.
+
+See [Diagnostics and privacy](docs/project/EXPERIENCE-DIAGNOSTICS.md) for exact
+locations, retention limits, disabling collection, export and deleting old logs.
 
 ## Getting Started
 

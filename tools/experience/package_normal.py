@@ -32,11 +32,11 @@ def main():
  (runtime/'python312._pth').write_text('python312.zip\n.\nDLLs\n')
  for name in ('normal_lifecycle.py','diagnostics.py','discovery.py','movie_geometry.py'):shutil.copy2(HERE/name,runtime/name)
  shutil.copy2(HERE/'EXPORT-DIAGNOSTICS.cmd',payload/'EXPORT-DIAGNOSTICS.cmd')
- version={'revision':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'wrapper_sha256':sha(payload/'ddraw.dll'),'helper_sha256':sha(payload/'vodisplay.dll'),'experience':'F01-P04-F02-private','display':'F01-P04'}
+ version={'revision':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'wrapper_sha256':sha(payload/'ddraw.dll'),'helper_sha256':sha(payload/'vodisplay.dll'),'experience':'B01-F02-private','display':'F01-P04'}
  manifest={'version':version,'files':{str(f.relative_to(payload)).replace('\\','/'):sha(f) for f in sorted(payload.rglob('*')) if f.is_file()}}
  (experience/'payload-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
  notices=out/'Licenses';notices.mkdir();shutil.copy2(ROOT/'LICENSE',notices/'Pairomaniac-MIT.txt');shutil.copy2(a.wrapper/'LICENSE',notices/'cnc-ddraw-MIT.txt');shutil.copy2(internal/'LICENSE.txt',notices/'Python.txt')
- (out/'READ-ME.txt').write_text('''VO PATCH EX F01-P04-F02 — PRIVATE WINDOWS UAT
+ (out/'READ-ME.txt').write_text('''VO PATCH EX B01-F02 — PRIVATE WINDOWS UAT
 
 Use your original Virtual-On disc image/files with the supplied v-on-patcher.exe.
 If the game is already patched, use Restore Original before Apply.
@@ -50,9 +50,11 @@ high resolution starts from Original 4:3 until a saved Display choice overrides 
 Dual mode retains high resolution when F4 requests an unsupported transition.
 Mirror includes both Local VS views; Versus separates the player views.
 
-Exit the game, then return RETURN-THIS-VO-PATCH-EX-F01-P04-F02.zip from its folder.
-EXPORT-DIAGNOSTICS.cmd in that folder exports on demand. If compression fails,
-the return note identifies the retained diagnostics folder. No uploads occur.
+Diagnostics are Off by default. F11 Extras selects Off/Normal/Detailed/Development.
+Restart after enabling. Off stops new collection; existing logs are retained.
+F11 Export Diagnostics... or EXPORT-DIAGNOSTICS.cmd exports only on request.
+The local return ZIP is RETURN-THIS-VO-PATCH-EX-F01-P04-F02.zip. No uploads occur.
+If no logs exist, enable a level, restart and reproduce before exporting.
 Restore Original restores upstream files and owned runtime files. Display choices,
 diagnostic logs and unrelated files are retained. Modified runtime files are
 preserved and reported instead of deleted.
