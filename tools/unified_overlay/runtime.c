@@ -72,6 +72,14 @@ __declspec(dllexport) int WINAPI VonOverlayInput(DWORD player,DWORD kind,const v
  if(!game||busy)return 0;
  if(player==0){
   unsigned held=result?0:semantic(kind,raw);controller_held=held;last_sample=GetTickCount();
+  /* The stock pump owns the existing LB+RB+Start+LT+RT reset chord.
+   * Preserve its exact >=30 trigger boundary before considering Start. */
+  if(state.state==VO_CLOSED&&!queued&&!result&&(kind==1||kind==2||kind==4||kind==6)){
+   const XINPUT_GAMEPAD *p=&((const XINPUT_STATE*)raw)->Gamepad;
+   if((p->wButtons&0x310)==0x310&&p->bLeftTrigger>=30&&p->bRightTrigger>=30){
+    vo_overlay_controller(&state,0,held,1,0,1,0);return 0;
+   }
+  }
   unsigned needed=1;
   if(*game->gamemode==1 && game->devices[1]!=0 && game->devices[1]!=3)needed|=2;
   unsigned action=vo_overlay_controller(&state,0,held,!result,(ready&needed)!=needed,!supported()||(state.state==VO_CLOSED&&*game->inactive),supported());

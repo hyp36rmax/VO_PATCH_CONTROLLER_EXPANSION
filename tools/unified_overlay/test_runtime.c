@@ -25,6 +25,10 @@ static void reset(void){clear();inactive=0;mode=4;submode=9;gamemode=0;movie=0;p
 static void sample(unsigned player,unsigned buttons,unsigned ready){XINPUT_STATE s={0};s.Gamepad.wButtons=buttons;VonOverlayInput(player,4,&s,0,ready);}
 static void open_start(void){sample(0,0,3);sample(0,0x10,3);assert(posted==1);step(0,VO_OPEN_MESSAGE,0,0);}
 int main(void){
+ reset();sample(0,0,3);
+ XINPUT_STATE reset_chord={0};reset_chord.Gamepad.wButtons=0x310;
+ reset_chord.Gamepad.bLeftTrigger=reset_chord.Gamepad.bRightTrigger=30;
+ assert(!VonOverlayInput(0,4,&reset_chord,0,3)&&!posted&&state.state==VO_CLOSED);
  reset();sample(0,0,3);sample(1,0x10,3);assert(!posted);
  mode=1;sample(0,0,3);sample(0,0x10,3);assert(!posted);mode=4;
  gamemode=1;sample(0,0,1);sample(0,0x10,1);assert(!posted);gamemode=0;

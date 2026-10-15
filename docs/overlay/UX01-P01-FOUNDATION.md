@@ -18,6 +18,7 @@ Physical Windows acceptance is pending.
 | F10 | Not enabled; Windows menu conflict validation remains pending |
 | Existing F-keys | Original functions retained |
 
+The existing shoulder/trigger soft-reset chord passes through unchanged.
 Assignment takes priority over activation. Pending assignment presses are consumed
 by the original helper; the overlay waits for assigned participants and a fresh
 press. P2 cannot navigate the overlay. Keyboard and mouse remain available if P1
