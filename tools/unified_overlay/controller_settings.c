@@ -98,15 +98,38 @@ int vo_controller_save(VoControllerSettings *s){
  if(s->kind!=4)memcpy((void*)(a->blocks+s->player*112+offset(s->kind)),s->pending,24);
  return 1;
 }
-int vo_controller_profile(const VoGame *g,unsigned p,unsigned kind){
- int j=edition(g);if(j<0||!vo_controller_available(g)||p>1||kind>8)return 0;
+/* Read the installed F7 display list and its position-to-device mapping.
+ * These linked addresses are pinned against both patcher editions by tests. */
+int vo_controller_profile_count(const VoGame *g){
+ int j=edition(g);if(j<0||!vo_controller_available(g))return 0;
+ const char *const *names=(void*)(uintptr_t)(j?0x36b14e0:0x36b74e0);
+ unsigned n=0;while(n<16&&names[n])n++;return n<16?(int)n:0;
+}
+int vo_controller_profile_choice(const VoGame *g,unsigned index,char *text,unsigned size){
+ int n=vo_controller_profile_count(g);if(index>=(unsigned)n)return -1;
+ int j=edition(g);const char *const *names=(void*)(uintptr_t)(j?0x36b14e0:0x36b74e0);
+ const unsigned char *ids=(void*)(uintptr_t)(j?0x36aff59:0x36b5f59);
+ if(text&&size)snprintf(text,size,"%s",names[index]);return ids[index];
+}
+int vo_controller_profiles_save(const VoGame *g,const unsigned *kinds){
+ int j=edition(g),n=vo_controller_profile_count(g);if(j<0||!kinds||!n)return 0;
+ for(unsigned p=0;p<2;p++){int valid=0;for(int i=0;i<n;i++)if(vo_controller_profile_choice(g,i,NULL,0)==(int)kinds[p])valid=1;if(!valid)return 0;}
  const Addresses *a=&addresses[j];VoIniTransaction t;if(!vo_ini_begin(&t,j,"Device Settings"))return 0;
- char key[32],value[32];snprintf(key,sizeof key,"%uP Device No.",p+1);
- unsigned existing=*(unsigned*)(a->device_config+p*4);snprintf(value,sizeof value,"0x%08x",(kind<<16)|(existing&65535));
- int ok=line(a,key,value);if(!vo_ini_end(&t,ok))return 0;
- *(unsigned*)(a->blocks+p*112)=kind;g->devices[p]=kind;*(unsigned short*)a->padidx=0;
- if(kind==1||kind==3)memcpy((void*)(g->padbinds+p*24),(void*)(a->blocks+p*112+offset(kind)),24);
- return 1;
+ int ok=1;for(unsigned p=0;p<2;p++){
+  char key[32],value[32];snprintf(key,sizeof key,"%uP Device No.",p+1);
+  unsigned existing=*(unsigned*)(a->device_config+p*4);snprintf(value,sizeof value,"0x%08x",(kinds[p]<<16)|(existing&65535));
+  if(!line(a,key,value))ok=0;
+ }
+ if(!vo_ini_end(&t,ok))return 0;
+ for(unsigned p=0;p<2;p++){
+  unsigned kind=kinds[p];*(unsigned*)(a->blocks+p*112)=kind;g->devices[p]=kind;
+  if(kind==1||kind==3)memcpy((void*)(g->padbinds+p*24),(void*)(a->blocks+p*112+offset(kind)),24);
+ }
+ *(unsigned short*)a->padidx=0;return 1;
+}
+int vo_controller_profile(const VoGame *g,unsigned p,unsigned kind){
+ if(p>1)return 0;unsigned kinds[2]={g->devices[0],g->devices[1]};kinds[p]=kind;
+ return vo_controller_profiles_save(g,kinds);
 }
 int vo_controller_deadzone(const VoGame *g,unsigned p,int value){
  int j=edition(g);if(j<0||!vo_controller_available(g)||p>1)return -1;
@@ -126,7 +149,8 @@ int vo_controller_has_axes(const VoGame *g,unsigned p,unsigned kind){
  if(!g||p>1||(kind!=1&&kind!=2&&kind!=4&&kind!=6))return 0;
  const unsigned char *binds=kind==1?g->padbinds:kind==4?g->custom:kind==2?g->twinbinds:g->horibinds;
  if(!binds)return 0;
- if(kind==1||kind==4)binds+=p*24;
+ if(kind==1&&(unsigned)g->devices[p]!=kind){int j=edition(g);if(j<0)return 0;binds=(void*)(addresses[j].blocks+p*112+offset(kind));}
+ else if(kind==1||kind==4)binds+=p*24;
  for(unsigned i=0;i<12;i++)if(binds[i*2]>=0xe8&&binds[i*2]<=0xef)return 1;
  return 0;
 }

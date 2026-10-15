@@ -11,6 +11,7 @@ static int busy,escape_down;
 static DWORD last_sample;
 static LONG published_open;
 static int mouse_ready,cursor_increments;
+static unsigned message_keys;
 static LPDIRECTDRAWSURFACE paused_surface;
 static int reset_pending,reset_waiting,paused_transaction,confirmation_seen;
 static void cursor_release(void){while(cursor_increments>0){ShowCursor(0);--cursor_increments;}}
@@ -41,7 +42,8 @@ static unsigned keyboard(void){
  for(unsigned i=0;i<5;i++)if(GetAsyncKeyState(keys[i])&0x8000)held|=1u<<i;
  return held;
 }
-static void clear(void){vo_pages_end();(void)vo_pages_command();reset_pending=0;confirmation_seen=0;vo_pause_restore_to(game?*game->primary:NULL);escape_down=0;cursor_release();vo_dispose(&paint);vo_overlay_focus_lost(&state);controller_held=0;InterlockedExchange(&published_open,0);}
+static void keyboard_release(void){if(!keyboard()&&!message_keys)vo_overlay_keyboard(&state,0);}
+static void clear(void){vo_pages_end();(void)vo_pages_command();reset_pending=0;confirmation_seen=0;vo_pause_restore_to(game?*game->primary:NULL);escape_down=0;cursor_release();vo_dispose(&paint);vo_overlay_focus_lost(&state);controller_held=0;message_keys=0;InterlockedExchange(&published_open,0);}
 static void request_exit(void){
  if(!can_exit()){lifecycle(9);return;}
  /* Original inactive loop does not run the negative-mode state tick.
@@ -73,7 +75,7 @@ static void release_if_ready(void){
 }
 static int open_menu(void){
  if(!supported()||!vo_attach(&paint,*game->back)){return 0;}
- vo_overlay_pause_result(&state,0,1);state.exit_allowed=can_exit();vo_pages_begin(&state,game,owner);cursor_acquire();
+ message_keys=0;vo_overlay_pause_result(&state,0,1);state.exit_allowed=can_exit();vo_pages_begin(&state,game,owner);cursor_acquire();
  mouse_ready=0;InterlockedExchange(&published_open,1);lifecycle(1);lifecycle(*game->inactive?5:11);return 1;
 }
 static unsigned semantic(DWORD kind,const void *raw){
@@ -149,9 +151,10 @@ __declspec(dllexport) int WINAPI VonOverlayStep(HWND hwnd,const VoGame *g,UINT k
   }
   goto done;
  }
- if(kind==2){if(state.state==VO_OPEN)vo_pages_refresh(&state);if(state.state!=VO_CLOSED)vo_overlay_keyboard(&state,keyboard());release_if_ready();goto done;}
+ if(kind==2){if(state.state==VO_OPEN)vo_pages_refresh(&state);if(state.state!=VO_CLOSED)keyboard_release();release_if_ready();goto done;}
  if(kind==1){
-  if(state.state!=VO_CLOSED){vo_overlay_keyboard(&state,keyboard());confirmation();release_if_ready();}
+  if(state.state==VO_OPEN)vo_pages_refresh(&state);
+  if(state.state!=VO_CLOSED){keyboard_release();confirmation();release_if_ready();}
   paused_surface=*g->primary;paused_transaction=state.state==VO_OPEN&&supported()&&*g->inactive;
   if((*g->inactive||state.state!=VO_OPEN)&&!vo_pause_begin(*g->primary,paused_transaction)){paused_transaction=0;clear();lifecycle(10);}
   goto done;
@@ -197,7 +200,14 @@ __declspec(dllexport) int WINAPI VonOverlayStep(HWND hwnd,const VoGame *g,UINT k
   /* Original F-key handler alone owns pause and configuration. */
   clear();lifecycle(2);goto done;
  }
- if((msg==WM_KEYDOWN||msg==WM_KEYUP)&&(wp==VK_UP||wp==VK_DOWN||wp==VK_LEFT||wp==VK_RIGHT||wp==VK_RETURN)){consumed=1;goto done;}
+ if((msg==WM_KEYDOWN||msg==WM_KEYUP)&&(wp==VK_UP||wp==VK_DOWN||wp==VK_LEFT||wp==VK_RIGHT||wp==VK_RETURN)){
+  unsigned bit=wp==VK_UP?VO_UP:wp==VK_DOWN?VO_DOWN:wp==VK_LEFT?VO_LEFT:wp==VK_RIGHT?VO_RIGHT:VO_ACCEPT;
+  /* Preserve queued taps even when down/up both arrive between async polls.
+   * Async state only arms neutral/release; queued edges alone invoke actions. */
+  if(msg==WM_KEYUP)message_keys&=~bit;else message_keys|=bit;
+  if(msg==WM_KEYUP||!(lp&((LPARAM)1<<30)))vo_overlay_keyboard(&state,message_keys);
+  consumed=1;goto done;
+ }
  if(msg==WM_CHAR&&(wp==VK_RETURN||wp==VK_ESCAPE)){consumed=1;goto done;}
  if(msg>=WM_MOUSEFIRST&&msg<=WM_MOUSELAST){
   consumed=1;

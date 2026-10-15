@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-enum { ROOT,CONTROLLERS,DISPLAY,DISPLAY_ADV,GRAPHICS,GRAPHICS_ADV,GAME,SOLO,VS,GENERAL,APPENDIX,EXTRAS,DEBUG,DIAGNOSTICS,CONFIRM,EDITOR,ASSIGN,CAPTURE,SCORE_PAGE };
+enum { ROOT,CONTROLLERS,DISPLAY,DISPLAY_ADV,GRAPHICS,GRAPHICS_ADV,GAME,SOLO,VS,GENERAL,APPENDIX,EXTRAS,DEBUG,DIAGNOSTICS,CONFIRM,EDITOR,ASSIGN,CAPTURE,SCORE_PAGE,PROFILE_LIST };
 enum { BACK=100,SAVE,CANCEL,DEFAULTS,ADVANCED,RESUME,EXIT_TITLE,QUIT,DISCARD,CONFIRM_YES,
  DISPLAY_MODE=200,DISPLAY_PRIMARY,DISPLAY_SECONDARY,DISPLAY_ASPECT,
  GRAPH_RES=300,GRAPH_SKY,GRAPH_FIELD,GRAPH_MOTION,GRAPH_TEX1,GRAPH_TEX2,GRAPH_TEX3,SPLIT,
@@ -18,7 +18,9 @@ static const VoGame *game;
 static HWND owner;
 static unsigned page,parent,dirty,confirm_action,command;
 static int display_open;
-static unsigned capture_player,capture_slot;
+static unsigned capture_player,capture_slot,profile_player;
+static unsigned pending_profiles[2];
+static int profiles_dirty(void){return game&&(pending_profiles[0]!=(unsigned)game->devices[0]||pending_profiles[1]!=(unsigned)game->devices[1]);}
 static char capture_action[96],capture_current[192];
 static int (WINAPI *input_begin)(DWORD,DWORD,int,int);
 static int (WINAPI *input_poll)(void);
@@ -54,10 +56,11 @@ static void show(VoOverlay *s,unsigned destination){page=destination;s->selected
 static void confirm(VoOverlay *s,unsigned action){parent=page;confirm_action=action;page=CONFIRM;s->selected=0;s->controller_ready=s->keyboard_ready=0;s->confirm=1;refresh(s);}
 static void leave(VoOverlay *s){
  if(page==ASSIGN||page==CAPTURE){if(input_cancel)input_cancel();show(s,page==ASSIGN?CONTROLLERS:EDITOR);s->controller_ready=s->keyboard_ready=0;return;}
+ if(page==PROFILE_LIST){show(s,CONTROLLERS);return;}
  if(page==DISPLAY_ADV){show(s,DISPLAY);return;}
  if(page==GRAPHICS_ADV){show(s,GRAPHICS);return;}
  if(page==CONFIRM){s->confirm=0;show(s,parent);return;}
- if(dirty){confirm(s,DISCARD);return;}
+ if(dirty||(page==CONTROLLERS&&profiles_dirty())){confirm(s,DISCARD);return;}
  if(page==EDITOR){close_transaction();show(s,CONTROLLERS);return;}
  close_transaction();show(s,page>=SOLO&&page<=APPENDIX?GAME:page==DEBUG||page==DIAGNOSTICS||page==SCORE_PAGE?EXTRAS:ROOT);
 }
@@ -101,7 +104,7 @@ static unsigned navigate(VoOverlay *s,unsigned edge){
   unsigned action=confirm_action;s->confirm=0;
   if(id!=CONFIRM_YES){show(s,parent);return VO_NO_ACTION;}
   if(action==CLEAR_SCORES){if(vo_native_defaults(&native))dirty=1;show(s,SCORE_PAGE);return VO_NO_ACTION;}
-  if(action==DISCARD){close_transaction();show(s,parent==EDITOR?CONTROLLERS:parent==SCORE_PAGE?EXTRAS:parent>=SOLO&&parent<=APPENDIX?GAME:ROOT);return VO_NO_ACTION;}
+  if(action==DISCARD){if(parent==CONTROLLERS){pending_profiles[0]=game->devices[0];pending_profiles[1]=game->devices[1];}close_transaction();show(s,parent==EDITOR?CONTROLLERS:parent==SCORE_PAGE?EXTRAS:parent>=SOLO&&parent<=APPENDIX?GAME:ROOT);return VO_NO_ACTION;}
   if(action==EXIT_TITLE){if(s->exit_allowed)s->exit_requested=1;else show(s,ROOT);return VO_NO_ACTION;}
   command=action==QUIT?0x9c41:action==CREDITS?0x51:action==KILL1?0x9c61:0x9c62;
   vo_overlay_close(s);return VO_NO_ACTION;
@@ -111,9 +114,13 @@ static unsigned navigate(VoOverlay *s,unsigned edge){
  if(id==RESUME){vo_overlay_close(s);return VO_NO_ACTION;}
  if(id==EXIT_TITLE||id==QUIT||id==KILL1||id==KILL2||id==CREDITS){confirm(s,id);return VO_NO_ACTION;}
  if(id==CANCEL&&(page==ASSIGN||page==CAPTURE)){leave(s);return VO_NO_ACTION;}
- if(id==CANCEL){close_transaction();show(s,page==EDITOR?CONTROLLERS:page==SCORE_PAGE?EXTRAS:page>=SOLO&&page<=APPENDIX?GAME:ROOT);return VO_NO_ACTION;}
+ if(id==CANCEL&&page==PROFILE_LIST){show(s,CONTROLLERS);return VO_NO_ACTION;}
+ if(id==CANCEL){if(page==CONTROLLERS){pending_profiles[0]=game->devices[0];pending_profiles[1]=game->devices[1];}close_transaction();show(s,page==EDITOR?CONTROLLERS:page==SCORE_PAGE?EXTRAS:page>=SOLO&&page<=APPENDIX?GAME:ROOT);return VO_NO_ACTION;}
  if(id==SAVE){
-  if(page==EDITOR){
+  if(page==CONTROLLERS){
+   if(!vo_controller_profiles_save(game,pending_profiles)){error("Profiles not saved. Check configuration file access.");refresh(s);return VO_NO_ACTION;}
+   error("Controller profiles saved.");
+  }else if(page==EDITOR){
    if(!vo_controller_save(&controller)){error("Bindings not saved. Check assignments and file access.");refresh(s);return VO_NO_ACTION;}
    error("Bindings saved.");
   }else if(page==DISPLAY){
@@ -127,6 +134,9 @@ static unsigned navigate(VoOverlay *s,unsigned edge){
  }
  if(id==DEFAULTS){if(page==EDITOR?vo_controller_defaults(&controller):vo_native_defaults(&native))dirty=1;refresh(s);return VO_NO_ACTION;}
  if(id==ADVANCED){show(s,page==DISPLAY?DISPLAY_ADV:GRAPHICS_ADV);return VO_NO_ACTION;}
+ if(page==PROFILE_LIST&&id>=9000&&id<9016){
+  int k=vo_controller_profile_choice(game,id-9000,NULL,0);if(k>=0)pending_profiles[profile_player]=(unsigned)k;show(s,CONTROLLERS);return VO_NO_ACTION;
+ }
  if(id>=7000&&id<7012){
   unsigned slot=id-7000;int changed=0;
   if((edge&VO_ACCEPT)&&(controller.kind==1||controller.kind==4)){
@@ -137,8 +147,13 @@ static unsigned navigate(VoOverlay *s,unsigned edge){
   if(changed)dirty=1;
   s->keyboard_ready=s->controller_ready=0;
  }else if(id>=6000&&id<6100){
-  unsigned player=(id-6000)/10,action=(id-6000)%10;unsigned kind=(unsigned)game->devices[player];
-  if(action==0){static const unsigned order[]={1,2,4,5,6,7,8,3,0};unsigned i=0;while(i<9&&order[i]!=kind)i++;unsigned next=order[(i+9+delta)%9];if(!vo_controller_profile(game,player,next))error("Profile could not be saved. Previous settings retained.");}
+  unsigned player=(id-6000)/10,action=(id-6000)%10;unsigned kind=pending_profiles[player];
+  if(action==0){
+   profile_player=player;
+   if(edge&VO_ACCEPT){show(s,PROFILE_LIST);return VO_NO_ACTION;}
+   int n=vo_controller_profile_count(game),i=0;while(i<n&&vo_controller_profile_choice(game,i,NULL,0)!=(int)kind)i++;
+   if(n){int next=vo_controller_profile_choice(game,(i+n+delta)%n,NULL,0);if(next>=0)pending_profiles[player]=next;}
+  }
   else if(action==1){
    if(input_begin&&input_begin(player,kind,0,0)){capture_player=player;error("");show(s,ASSIGN);s->controller_ready=s->keyboard_ready=0;return VO_NO_ACTION;}
    error("Controller assignment could not start. Previous assignment retained.");
@@ -181,6 +196,7 @@ static unsigned navigate(VoOverlay *s,unsigned edge){
  }else if(id==EXPORT){diagnostic_api(owner,2,0);}
  else if(id>=10&&id<10+CONFIRM){
   unsigned destination=id-10;
+  if(destination==CONTROLLERS){pending_profiles[0]=game->devices[0];pending_profiles[1]=game->devices[1];}
   if(destination==DISPLAY){
    display=(VoDisplaySnapshot){0};display.size=sizeof display;
    if(!display_api||!display_api(VO_DISPLAY_BEGIN,0,&display)){error("Display settings unavailable. No changes saved.");refresh(s);return VO_NO_ACTION;}
@@ -202,9 +218,10 @@ static void refresh(VoOverlay *s){
   title("CONTROLLERS");
   if(!vo_controller_available(game)){row("Controller Expansion is not enabled.",NULL,0,0);row("Original controls remain available in F7.",NULL,0,0);row("BACK",NULL,BACK,1);break;}
   for(unsigned p=0;p<2;p++){
-   static const char *profiles[]={"Keyboard (Real)","Gamepad (XInput)","Twin-Stick (XInput)","Keyboard (Simple)","Twin-Stick (Custom)","Twin-Stick (Tanita)","Twin-Stick (HORI EX)","Twin-Stick (Raphnet DC)","Twin-Stick (Raphnet Saturn)"};
-   unsigned kind=(unsigned)game->devices[p],base=6000+p*10;int keyboard=kind==0||kind==3;
-   row(p?"PLAYER 2":"PLAYER 1",NULL,0,0);row("Profile",kind<9?profiles[kind]:"Unknown",base,1);
+   unsigned kind=pending_profiles[p],base=6000+p*10;int keyboard=kind==0||kind==3;
+   char profile[192]="Unknown";
+   for(int i=0;i<vo_controller_profile_count(game);i++)if(vo_controller_profile_choice(game,i,NULL,0)==(int)kind){vo_controller_profile_choice(game,i,profile,sizeof profile);break;}
+   row(p?"PLAYER 2":"PLAYER 1",NULL,0,0);row("Profile",profile,base,1);
    char identity[96]="Select physical controller >";int source=input_identity?input_identity(p,kind):-1;
    if(source>=0)snprintf(identity,sizeof identity,"%s %u >",source<4?"XInput slot":source<6?"Tanita unit":source<8?"Raphnet DC unit":"Raphnet Saturn unit",source<4?(unsigned)source+1:1+(unsigned)(source-4)%2);
    row("Controller",keyboard?"Keyboard":identity,base+1,!keyboard);
@@ -212,7 +229,11 @@ static void refresh(VoOverlay *s){
    if(kind==0||kind==1||kind==3||kind==4)row(keyboard?"Configure Keys":"Configure Buttons",">",base+2,1);
    if(vo_controller_has_axes(game,p,kind)){char value[24];snprintf(value,sizeof value,"%d%%",vo_controller_deadzone(game,p,-1));row("Stick Deadzone",value,base+3,1);}
   }
-  row("BACK",NULL,BACK,1);break;
+  actions(0);break;
+ case PROFILE_LIST:
+  title("SELECT CONTROLLER PROFILE");
+  for(int i=0;i<vo_controller_profile_count(game);i++){char name[192];if(vo_controller_profile_choice(game,i,name,sizeof name)>=0)row(name,NULL,9000+i,1);}
+  row("CANCEL",NULL,CANCEL,1);break;
  case ASSIGN:{
   char heading[64];snprintf(heading,sizeof heading,"ASSIGN PLAYER %u",capture_player+1);title(heading);
   row("Release Start, then press START",NULL,0,0);row("on the controller you want to assign.",NULL,0,0);row("Tanita: use Options.",NULL,0,0);row("CANCEL",NULL,CANCEL,1);break;

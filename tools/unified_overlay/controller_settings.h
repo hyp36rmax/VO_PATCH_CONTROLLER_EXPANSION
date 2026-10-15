@@ -18,4 +18,7 @@ int vo_controller_profile(const VoGame*,unsigned,unsigned);
 int vo_controller_status(unsigned,unsigned);
 int vo_controller_deadzone(const VoGame*,unsigned,int);
 int vo_controller_has_axes(const VoGame*,unsigned,unsigned);
+int vo_controller_profile_count(const VoGame*);
+int vo_controller_profile_choice(const VoGame*,unsigned,char*,unsigned);
+int vo_controller_profiles_save(const VoGame*,const unsigned*);
 #endif

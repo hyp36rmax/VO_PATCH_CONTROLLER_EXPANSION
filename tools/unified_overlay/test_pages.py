@@ -29,6 +29,11 @@ static int vo_controller_select(VoControllerSettings*c,unsigned i,unsigned v){c-
 static int vo_controller_defaults(VoControllerSettings*c){memset(c->values,0,sizeof c->values);return 1;}
 static int vo_controller_save(VoControllerSettings*c){(void)c;return 1;}
 static int vo_controller_profile(const VoGame*g,unsigned p,unsigned k){g->devices[p]=k;return 1;}
+static int vo_controller_profile_count(const VoGame*g){(void)g;return 9;}
+static int vo_controller_profile_choice(const VoGame*g,unsigned i,char*t,unsigned n){(void)g;static const int ids[]={1,2,4,5,6,7,8,3,0};static const char*names[]={"Gamepad (XInput)","Twin-Stick (XInput)","Twin-Stick (Custom)","Twin-Stick (Tanita)","Twin-Stick (HORI EX)","Twin-Stick (Raphnet DC)","Twin-Stick (Raphnet Saturn)","Keyboard (Simple)","Keyboard (Real)"};if(i>=9)return -1;if(t&&n)snprintf(t,n,"%s",names[i]);return ids[i];}
+static int profile_save_fail;
+static int vo_controller_profiles_save(const VoGame*g,const unsigned*k){if(profile_save_fail)return 0;for(unsigned p=0;p<2;p++)vo_controller_profile(g,p,k[p]);return 1;}
+
 static int vo_controller_status(unsigned p,unsigned k){(void)p;(void)k;return 1;}
 static int vo_controller_deadzone(const VoGame*g,unsigned p,int v){(void)g;(void)p;return v<0?40:v;}
 static int begins,commits,ends,clicks,radios,selections,apply_fail,applies,cancels;
@@ -77,6 +82,15 @@ int main(void){
  LONG devices[2]={4,5};VoGame g={0};g.devices=devices;g.inactive=&inactive;g.mode=&mode;g.gamemode=&gamemode;g.submode=&submode;LONG threshold[2]={13080,13080};g.threshold=threshold;g.pause=pause_game;g.resume=resume_game;
  VoOverlay s;begin(&s,&g);
  activate(&s,10+CONTROLLERS);assert(menu.count>10);
+ /* All profiles, P1/P2 staging, list Cancel and unsaved Back. */
+ for(unsigned p=0;p<2;p++){
+  unsigned before=devices[p];activate(&s,6000+p*10);assert(page==PROFILE_LIST&&menu.count==10);
+  activate(&s,CANCEL);assert(page==CONTROLLERS&&pending_profiles[p]==before);
+  activate(&s,6000+p*10);activate(&s,9000);assert(pending_profiles[p]==1&&(unsigned)devices[p]==before);
+  profile_save_fail=1;activate(&s,SAVE);assert(page==CONTROLLERS&&pending_profiles[p]==1&&(unsigned)devices[p]==before);profile_save_fail=0;
+  activate(&s,BACK);assert(page==CONFIRM);activate(&s,CANCEL);assert(page==CONTROLLERS);
+  activate(&s,CANCEL);assert(page==ROOT&&(unsigned)devices[p]==before);activate(&s,10+CONTROLLERS);
+ }
  activate(&s,6001);assert(page==ASSIGN&&capturing);activate(&s,CANCEL);assert(page==CONTROLLERS&&!capturing);
  activate(&s,6011);assert(page==ASSIGN);vo_pages_refresh(&s);assert(page==CONTROLLERS&&!capturing);
  activate(&s,6002);assert(page==EDITOR&&controller.player==0&&controller.kind==4);

@@ -36,13 +36,13 @@ def main():
  shutil.copy2(HERE/'EXPORT-DIAGNOSTICS.cmd',payload/'EXPORT-DIAGNOSTICS.cmd')
  # Package the notices for the exact dependencies selected by the build.
  assert '__version__ = "2026.07.22"' in (internal/'Lib/site-packages/certifi/__init__.py').read_text()
- version={'revision':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'wrapper_sha256':sha(payload/'ddraw.dll'),'helper_sha256':sha(payload/'vodisplay.dll'),'experience':'Unified-Overlay-Menu-Expansion-private','display':'F01-P04','overlay':'UX01-P02-F03'}
+ version={'revision':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'wrapper_sha256':sha(payload/'ddraw.dll'),'helper_sha256':sha(payload/'vodisplay.dll'),'experience':'Unified-Overlay-Menu-Expansion-private','display':'F01-P04','overlay':'UX01-P02-F04'}
  manifest={'version':version,'files':{f.relative_to(payload).as_posix().replace('\\','/'):sha(f) for f in sorted(payload.rglob('*')) if f.is_file()}}
  (experience/'payload-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
  notices=out/'Licenses';notices.mkdir();shutil.copy2(ROOT/'LICENSE',notices/'Pairomaniac-MIT.txt');shutil.copy2(a.wrapper/'LICENSE',notices/'cnc-ddraw-MIT.txt');shutil.copy2(internal/'LICENSE.txt',notices/'Python.txt')
  shutil.copy2(HERE/'ci/licenses/certifi-LICENSE.txt',notices/'certifi-LICENSE.txt')
  shutil.copy2(a.wrapper/'MinGW-runtime.txt',notices/'MinGW-runtime.txt')
- (out/'READ-ME.txt').write_text('''Virtual On EX — UX01-P02-F03 PRIVATE WINDOWS UAT
+ (out/'READ-ME.txt').write_text('''Virtual On EX — UX01-P02-F04 PRIVATE WINDOWS UAT
 
 ESC opens Unified Overlay at title, attract-demo and offline gameplay.
 ESC returns Back or closes; controller Start retains its original behavior.

@@ -12,3 +12,9 @@ for j,name in enumerate(('retail','jpre')):
  for index,key in keys.items():assert rows[j][index]==v.symbol_va(key,b),(name,key,hex(rows[j][index]),hex(v.symbol_va(key,b)))
  assert len(rows[j])==21
  print(name,'PASS controller adapter linked-symbol identities')
+
+ # The overlay reads the existing F7 enumeration, not a parallel ID table.
+ order=0x36aff59 if j else 0x36b5f59
+ labels=0x36b14e0 if j else 0x36b74e0
+ assert v.symbol_va('DEV_NUM',b)==order and hex(order) in source
+ assert v.symbol_va(('RAPH','profiles'),b)==labels and hex(labels) in source

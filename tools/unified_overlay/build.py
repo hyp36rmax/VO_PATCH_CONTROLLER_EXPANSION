@@ -7,5 +7,5 @@ for name,sources in (('vooverlay',('runtime.c','render.c','paused.c','pages.c','
  subprocess.run([a.cc,'-shared','-O2','-Wall','-Wextra','-Werror','-Wl,--kill-at','-Wl,--no-insert-timestamp','-s',*[str(here/s) for s in sources],'-o',str(a.output/(name+'.dll')),'-lgdi32','-luser32','-lhid','-lsetupapi'],check=True)
 import hashlib,json
 source_names=('runtime.c','runtime.h','render.c','paused.c','model.h','input_bridge.c','build.py','pages.c','pages.h','native_settings.c','native_settings.h','controller_settings.c','controller_settings.h','ini_transaction.h','direct_input.h','../../input/controller.c','../../input/controller_logic.h','../../input/tanita.c','../../input/tanita_map.h','../../input/raphnet_map.h','../../input/twinstick_state.h')
-manifest={'milestone':'UX01-P02-F03','sources':{n:hashlib.sha256((here/n).read_bytes()).hexdigest() for n in source_names},'files':{n:hashlib.sha256((a.output/n).read_bytes()).hexdigest() for n in ('vooverlay.dll','voinputux.dll')}}
+manifest={'milestone':'UX01-P02-F04','sources':{n:hashlib.sha256((here/n).read_bytes()).hexdigest() for n in source_names},'files':{n:hashlib.sha256((a.output/n).read_bytes()).hexdigest() for n in ('vooverlay.dll','voinputux.dll')}}
 (a.output/'overlay-build.json').write_text(json.dumps(manifest,indent=2)+'\n')

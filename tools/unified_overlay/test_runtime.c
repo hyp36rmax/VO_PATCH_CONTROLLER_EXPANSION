@@ -73,9 +73,9 @@ int main(void){
  reset();movie=1;assert(!VonOverlayStep((void*)1,&context,0,WM_KEYDOWN,VK_ESCAPE,0));
  movie=0;step(2,0,0,0);assert(state.state==VO_CLOSED); // no deferred activation
  step(0,WM_KEYUP,VK_ESCAPE,0);open_start();movie=1;step(3,0,0,0);assert(state.state==VO_CLOSED&&!draws);
- reset();open_start();sample(0,0,3);step(2,0,0,0);keys[VK_DOWN]=1;step(2,0,0,0);assert(state.selected==1);
- keys[VK_DOWN]=0;step(2,0,0,0);keys[VK_RETURN]=1;step(2,0,0,0);assert(state.unavailable);
- keys[VK_RETURN]=0;step(2,0,0,0);esc();assert(!state.unavailable&&state.state==VO_OPEN);
+ reset();open_start();sample(0,0,3);step(2,0,0,0);keys[VK_DOWN]=1;step(2,0,0,0);step(0,WM_KEYDOWN,VK_DOWN,0);assert(state.selected==1);
+ keys[VK_DOWN]=0;step(0,WM_KEYUP,VK_DOWN,0);step(2,0,0,0);keys[VK_RETURN]=1;step(2,0,0,0);step(0,WM_KEYDOWN,VK_RETURN,0);assert(state.unavailable);
+ keys[VK_RETURN]=0;step(0,WM_KEYUP,VK_RETURN,0);step(2,0,0,0);esc();assert(!state.unavailable&&state.state==VO_OPEN);
  step(0,WM_MOUSEMOVE,0,3);assert(state.selected==3);step(0,WM_LBUTTONDOWN,0,3);step(0,WM_LBUTTONUP,0,3);assert(state.unavailable);
  step(0,WM_MOUSEMOVE,0,7);assert(state.selected==7);step(0,WM_LBUTTONDOWN,0,7);step(0,WM_LBUTTONUP,0,7);assert(!state.unavailable);
  for(unsigned kind=7;kind<=8;kind++){
