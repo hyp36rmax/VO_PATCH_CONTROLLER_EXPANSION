@@ -32,11 +32,11 @@ def main():
  (runtime/'python312._pth').write_text('python312.zip\n.\nDLLs\n')
  for name in ('normal_lifecycle.py','diagnostics.py','discovery.py'):shutil.copy2(HERE/name,runtime/name)
  shutil.copy2(HERE/'EXPORT-DIAGNOSTICS.cmd',payload/'EXPORT-DIAGNOSTICS.cmd')
- version={'revision':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'wrapper_sha256':sha(payload/'ddraw.dll'),'helper_sha256':sha(payload/'vodisplay.dll'),'experience':'F01-P04-private','display':'F01-P04'}
+ version={'revision':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'wrapper_sha256':sha(payload/'ddraw.dll'),'helper_sha256':sha(payload/'vodisplay.dll'),'experience':'F01-P04-F01-private','display':'F01-P04'}
  manifest={'version':version,'files':{str(f.relative_to(payload)).replace('\\','/'):sha(f) for f in sorted(payload.rglob('*')) if f.is_file()}}
  (experience/'payload-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
  notices=out/'Licenses';notices.mkdir();shutil.copy2(ROOT/'LICENSE',notices/'Pairomaniac-MIT.txt');shutil.copy2(a.wrapper/'LICENSE',notices/'cnc-ddraw-MIT.txt');shutil.copy2(internal/'LICENSE.txt',notices/'Python.txt')
- (out/'READ-ME.txt').write_text('''VO PATCH EX F01-P04 — PRIVATE WINDOWS UAT
+ (out/'READ-ME.txt').write_text('''VO PATCH EX F01-P04-F01 — PRIVATE WINDOWS UAT
 
 Use your original Virtual-On disc image/files with the supplied v-on-patcher.exe.
 If the game is already patched, use Restore Original before Apply.

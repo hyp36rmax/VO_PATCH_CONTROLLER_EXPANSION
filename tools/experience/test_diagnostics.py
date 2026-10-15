@@ -96,6 +96,21 @@ class Diagnostics(unittest.TestCase):
         self.assertTrue(any(e['event']=='previous_session_incomplete' for e in d.safe_events(self.root/'diagnostics/events.jsonl')))
         self.assertTrue((self.root/'movie-windows.log.1').exists())
 
+    def test_display_save_failure_projection(self):
+        # Local resolved paths stay local; operation/error evidence is exportable.
+        (self.root/'experience-version.json').write_text(json.dumps({'experience':'F01-P04-F01-private','display':'F01-P04'}))
+        (self.root/'diagnostics').mkdir(exist_ok=True)
+        (self.root/'diagnostics/display-save.log').write_text('config=C:\\Users\\Private Name\\Game\\player-displays.ini')
+        d.event(self.root,'configuration',{'save_stage':10,'winerror':5,'mode':2,'result':0})
+        archive=d.export(self.root,game_directory=self.root,return_name='RETURN-THIS-VO-PATCH-EX-F01-P04.zip')
+        with zipfile.ZipFile(archive) as z:
+            text=''.join(z.read(name).decode() for name in z.namelist())
+            self.assertNotIn('Private Name',text)
+            self.assertIn('F01-P04-F01-private',text)
+            events=json.loads(z.read('events.json'))
+            self.assertEqual(events[-1]['fields']['save_stage'],10)
+            self.assertEqual(events[-1]['fields']['winerror'],5)
+
     def test_tail_and_schema(self):
         path = self.root/'large.log'; path.write_bytes(b'x'*(d.LIMIT*3)+b'\nPROCESS_END exit_code=99\n')
         text = d.read_bounded(path)

@@ -11,6 +11,7 @@ static unsigned dirty;
 static int busy;
 static HFONT font;
 static HWND secondary_label;
+static unsigned save_stage;static DWORD save_error;
 static void event(unsigned code,int result){
  WCHAR path[MAX_PATH];SYSTEMTIME t;GetSystemTime(&t);
  DWORD length=GetModuleFileNameW(NULL,path,MAX_PATH);if(!length||length>=MAX_PATH)return;
@@ -20,7 +21,7 @@ static void event(unsigned code,int result){
  HANDLE h=CreateFileW(path,FILE_APPEND_DATA|GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
  if(h==INVALID_HANDLE_VALUE)return;
  LARGE_INTEGER size;if(GetFileSizeEx(h,&size)&&size.QuadPart<256*1024){
-  char line[384];int n=snprintf(line,sizeof line,"{\"event\":\"configuration\",\"utc\":\"%04u-%02u-%02uT%02u:%02u:%02uZ\",\"fields\":{\"code\":%u,\"mode\":%d,\"profile\":%d,\"primary\":%d,\"secondary\":%d,\"result\":%d,\"restart_required\":%d}}\n",t.wYear,t.wMonth,t.wDay,t.wHour,t.wMinute,t.wSecond,code,pending.mode,pending.aspect,vo_find(monitors,count,pending.primary),vo_find(monitors,count,pending.secondary),result,code==4);
+  char line[512];int n=snprintf(line,sizeof line,"{\"event\":\"configuration\",\"utc\":\"%04u-%02u-%02uT%02u:%02u:%02uZ\",\"fields\":{\"code\":%u,\"mode\":%d,\"profile\":%d,\"primary\":%d,\"secondary\":%d,\"result\":%d,\"restart_required\":%d,\"save_stage\":%u,\"winerror\":%lu}}\n",t.wYear,t.wMonth,t.wDay,t.wHour,t.wMinute,t.wSecond,code,pending.mode,pending.aspect,vo_find(monitors,count,pending.primary),vo_find(monitors,count,pending.secondary),result,code==4,save_stage,(unsigned long)save_error);
   if(code==6)n=snprintf(line,sizeof line,"{\"event\":\"configuration\",\"fields\":{\"code\":6,\"result\":0}}\n");
   DWORD written;if(n>0&&n<(int)sizeof line){WriteFile(h,line,(DWORD)n,&written,NULL);FlushFileBuffers(h);}
  }CloseHandle(h);
@@ -40,21 +41,49 @@ static void read_saved(void){
  saved.aspect=GetPrivateProfileIntW(L"Presentation",L"GameAspect",default_aspect,config);
  pending=saved;
 }
+/* Local path-bearing evidence is deliberately excluded from diagnostic exports. */
+static void save_trace(unsigned stage,int result,DWORD error){
+ save_stage=stage;save_error=error;
+ WCHAR path[MAX_PATH],dir[MAX_PATH];char location[MAX_PATH*4];
+ DWORD length=GetModuleFileNameW(NULL,path,MAX_PATH);if(!length||length>=MAX_PATH)goto done;
+ WCHAR *slash=wcsrchr(path,L'\\');if(!slash)goto done;slash[1]=0;
+ if(wcslen(path)+40>=MAX_PATH)goto done;
+ wcscat(path,L"diagnostics");CreateDirectoryW(path,NULL);wcscat(path,L"\\display-save.log");
+ wcscpy(dir,config);slash=wcsrchr(dir,L'\\');if(slash)*slash=0;
+ DWORD file_attrs=GetFileAttributesW(config),dir_attrs=GetFileAttributesW(dir);
+ if(!WideCharToMultiByte(CP_UTF8,0,config,-1,location,sizeof location,NULL,NULL))goto done;
+ HANDLE h=CreateFileW(path,FILE_APPEND_DATA|GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
+ if(h==INVALID_HANDLE_VALUE)goto done;
+ LARGE_INTEGER size;if(GetFileSizeEx(h,&size)&&size.QuadPart<256*1024){
+  char line[2048];int n=snprintf(line,sizeof line,"mode=%d validation=%d stage=%u result=%d winerror=%lu file_attributes=%lu directory_attributes=%lu config=%s\n",pending.mode,vo_settings_validate(monitors,count,&pending,dirty),stage,result,(unsigned long)error,(unsigned long)file_attrs,(unsigned long)dir_attrs,location);
+  DWORD written;if(n>0&&n<(int)sizeof line)WriteFile(h,line,(DWORD)n,&written,NULL);
+ }CloseHandle(h);
+ done:SetLastError(error);
+}
+static int save_step(unsigned stage,int ok){DWORD error=ok?ERROR_SUCCESS:GetLastError();save_trace(stage,ok,error);return ok;}
 /* Replace a same-directory copy only after every write succeeds. Unknown keys
  * and the prior file survive failure. No second configuration authority. */
 static int save_pending(void){
  WCHAR dir[MAX_PATH],temp[MAX_PATH],number[24],id[VO_ID_CHARS];
- wcscpy(dir,config);WCHAR *slash=wcsrchr(dir,L'\\');if(!slash)return 0;slash[1]=0;
- if(!GetTempFileNameW(dir,L"vds",0,temp))return 0;
+ save_trace(0,1,ERROR_SUCCESS);
+ wcscpy(dir,config);WCHAR *slash=wcsrchr(dir,L'\\');if(!slash){SetLastError(ERROR_PATH_NOT_FOUND);return save_step(1,0);}slash[1]=0;
+ if(!save_step(2,GetTempFileNameW(dir,L"vds",0,temp)!=0))return 0;
  DWORD attrs=GetFileAttributesW(config);int ok=1;
- if(attrs!=INVALID_FILE_ATTRIBUTES)ok=CopyFileW(config,temp,FALSE)!=0;
- else if(GetLastError()!=ERROR_FILE_NOT_FOUND)ok=0;
- if(ok){swprintf(number,24,L"%d",pending.mode);ok=WritePrivateProfileStringW(L"Presentation",L"Mode",number,temp)!=0;}
- if(ok){swprintf(number,24,L"%d",pending.aspect);ok=WritePrivateProfileStringW(L"Presentation",L"GameAspect",number,temp)!=0;}
- if(ok){ok=MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,pending.primary,-1,id,VO_ID_CHARS)>0;if(ok)ok=WritePrivateProfileStringW(L"Players",L"Player1",id,temp)!=0;}
- if(ok){ok=MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,pending.secondary,-1,id,VO_ID_CHARS)>0;if(ok)ok=WritePrivateProfileStringW(L"Players",L"Player2",id,temp)!=0;}
- if(ok)ok=WritePrivateProfileStringW(NULL,NULL,NULL,temp)!=0;
- if(ok)ok=MoveFileExW(temp,config,MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH)!=0;
+ if(attrs!=INVALID_FILE_ATTRIBUTES)ok=save_step(3,CopyFileW(config,temp,FALSE)!=0);
+ else if(GetLastError()!=ERROR_FILE_NOT_FOUND)ok=save_step(3,0);
+ if(ok){swprintf(number,24,L"%d",pending.mode);ok=save_step(4,WritePrivateProfileStringW(L"Presentation",L"Mode",number,temp)!=0);}
+ if(ok){swprintf(number,24,L"%d",pending.aspect);ok=save_step(5,WritePrivateProfileStringW(L"Presentation",L"GameAspect",number,temp)!=0);}
+ if(ok){ok=save_step(6,MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,pending.primary,-1,id,VO_ID_CHARS)>0);if(ok)ok=save_step(6,WritePrivateProfileStringW(L"Players",L"Player1",id,temp)!=0);}
+ if(ok){ok=save_step(7,MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,pending.secondary,-1,id,VO_ID_CHARS)>0);if(ok)ok=save_step(7,WritePrivateProfileStringW(L"Players",L"Player2",id,temp)!=0);}
+ if(ok){
+  /* Cache invalidation can return zero on success; it is NOT a write BOOL.
+   * Check an actual file handle/FlushFileBuffers before the atomic commit. */
+  int raw=WritePrivateProfileStringW(NULL,NULL,NULL,temp);save_trace(8,raw,ERROR_SUCCESS);
+  HANDLE file=CreateFileW(temp,GENERIC_READ|GENERIC_WRITE,FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
+  ok=save_step(9,file!=INVALID_HANDLE_VALUE);
+  if(ok){ok=save_step(10,FlushFileBuffers(file)!=0);int closed=CloseHandle(file)!=0;if(ok)ok=save_step(11,closed);}
+ }
+ if(ok)ok=save_step(12,MoveFileExW(temp,config,MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH)!=0);
  if(!ok){SetFileAttributesW(temp,FILE_ATTRIBUTE_NORMAL);DeleteFileW(temp);}
  WritePrivateProfileStringW(NULL,NULL,NULL,config);
  return ok;
@@ -114,11 +143,12 @@ static INT_PTR CALLBACK procedure(HWND h,UINT msg,WPARAM wp,LPARAM lp){
   if(!discover()){event(3,2);MessageBoxW(h,L"Displays could not be checked. No changes were saved.",L"Display Settings",MB_OK|MB_ICONERROR);return TRUE;}
   if(!pending.primary[0])for(unsigned i=0;i<count;i++)if(monitors[i].primary){strcpy(pending.primary,monitors[i].id);break;}
   int error=vo_settings_validate(monitors,count,&pending,dirty);
+  save_trace(0,error==VO_SETTINGS_OK,ERROR_SUCCESS);
   if(error){
    const WCHAR *messages[]={L"",L"Choose a supported display mode.",L"Choose a supported game aspect ratio.",L"Choose an available primary display.",L"Choose an available secondary display for dual mode.",L"Choose different, independently arranged displays for dual mode."};
    event(3,error);MessageBoxW(h,messages[error],L"Display Settings — not saved",MB_OK|MB_ICONWARNING);return TRUE;
   }
-  if(!save_pending()){event(3,3);MessageBoxW(h,L"Display settings could not be saved. Your previous settings are unchanged.",L"Display Settings",MB_OK|MB_ICONERROR);return TRUE;}
+  if(!save_pending()){event(3,3);WCHAR message[256];swprintf(message,256,L"Display settings could not be saved (step %u, Windows error %lu). Your previous settings are unchanged. Details: diagnostics/display-save.log",save_stage,(unsigned long)save_error);MessageBoxW(h,message,L"Display Settings",MB_OK|MB_ICONERROR);return TRUE;}
   event(4,1);MessageBoxW(h,L"Display settings saved. Restart required for display changes.",L"Display Settings",MB_OK|MB_ICONINFORMATION);EndDialog(h,1);return TRUE;
  }
  return FALSE;
