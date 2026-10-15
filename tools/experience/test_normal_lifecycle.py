@@ -4,6 +4,7 @@ import tempfile,json,zipfile
 from unittest.mock import patch
 import normal_lifecycle as n
 import diagnostics as d
+assert n.RETURN=="RETURN-THIS-VO-PATCH-EX-F01-P04-F02.zip"
 with tempfile.TemporaryDirectory() as td:
  root=Path(td);steps=[]
  (root/'v_on.ini').write_text('ScrSize=3\nPassword=do-not-export\n')
@@ -30,7 +31,7 @@ with tempfile.TemporaryDirectory() as td:
   except OSError:pass
   else:raise AssertionError('export failure hidden')
  assert result.read_bytes()==old
- assert (root/'RETURN-THIS-VO-PATCH-EX-F01-P04.txt').is_file()
+ assert (root/'RETURN-THIS-VO-PATCH-EX-F01-P04-F02.txt').is_file()
  assert (root/'diagnostics/events.jsonl').is_file()
  (root/'diagnostics/session-active').write_text('interrupted')
  n.run(root,lambda:0,lambda:None,environ={},snapshot=hardware)

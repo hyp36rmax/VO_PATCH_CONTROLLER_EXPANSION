@@ -1,5 +1,5 @@
 """Exercise packaged upstream UI backend plus transactional Experience ownership."""
-import importlib.util,sys,tempfile,shutil,hashlib
+import importlib.util,sys,tempfile,shutil,hashlib,json
 from pathlib import Path
 from unittest.mock import patch
 sys.dont_write_bytecode=True
@@ -20,6 +20,7 @@ for source in map(Path,sys.argv[2:]):
   original=snapshot(root);v=module();p=v.Patcher();assert p.load(str(root/'v_on.exe'))[1]
   for wanted in (v.default_state(),dict(v.default_state(),hires=False,nodisc=False,debugbox=False,movie=False,credits=False)):
    ok,log=p.apply(wanted);assert ok,log
+   assert json.loads((root/'experience-version.json').read_text())['movie_framing']==bool(wanted.get('movie'))
    assert (root/'vodisplay.dll').is_file() and (root/'EXPORT-DIAGNOSTICS.cmd').is_file()
    assert (root/adapter.JOURNAL/'ownership.json').is_file()
    assert not p.apply(wanted)[0]

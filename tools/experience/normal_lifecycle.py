@@ -5,8 +5,9 @@ import os
 from pathlib import Path
 import diagnostics as d
 import discovery
+import movie_geometry
 
-RETURN='RETURN-THIS-VO-PATCH-EX-F01-P04.zip'
+RETURN='RETURN-THIS-VO-PATCH-EX-F01-P04-F02.zip'
 STATE={'VO_EX_REQUESTED_MODE':'selected_mode','VO_EX_EFFECTIVE_MODE':'effective_mode',
        'VO_EX_PROFILE':'profile','VO_EX_PRIMARY':'primary','VO_EX_SECONDARY':'secondary',
        'VO_EX_FALLBACK':'fallback'}
@@ -26,6 +27,7 @@ def run(root, wait, ready, *, environ=None, snapshot=discovery.snapshot):
         except (KeyError,ValueError):continue
         if -1<=value<=65535:state[field]=value
     d.event(root,'selection',state)
+    d.event(root,'movie',movie_geometry.evidence(root,environ))
     if state.get('fallback'):d.event(root,'recovery',{'fallback':state['fallback']})
     for cfg in d.configurations(root,root).values():
         if 'scrsize' in cfg:
@@ -50,7 +52,7 @@ def run(root, wait, ready, *, environ=None, snapshot=discovery.snapshot):
         d.event(root,'error',{'module':5,'code':2,'io_error':True})
         # Existing diagnostics folder is the obvious raw return folder. Never
         # copy arbitrary game files or free-form module logs into a new export.
-        (root/'RETURN-THIS-VO-PATCH-EX-F01-P04.txt').write_text(
+        (root/'RETURN-THIS-VO-PATCH-EX-F01-P04-F02.txt').write_text(
             'Diagnostic compression failed. Local logs remain in the diagnostics folder.\n')
         raise
 
@@ -65,16 +67,22 @@ def movie_state(pid):
     user.IsWindowVisible.argtypes=[w.HWND];user.IsWindowVisible.restype=w.BOOL
     user.EnumWindows.argtypes=[callback,w.LPARAM]
     user.EnumChildWindows.argtypes=[w.HWND,callback,w.LPARAM]
-    found=set();visible=set();seen=set()
+    user.GetWindowRect.argtypes=[w.HWND,ctypes.POINTER(w.RECT)];user.GetWindowRect.restype=w.BOOL
+    found=set();visible=set();seen=set();bounds=[]
     def visit(hwnd,unused):
         if hwnd in seen:return True
+        if len(seen)>=256:return False
         seen.add(hwnd)
         owner=w.DWORD();user.GetWindowThreadProcessId(hwnd,ctypes.byref(owner))
         if owner.value!=pid:return True
         name=ctypes.create_unicode_buffer(128)
         if user.GetClassNameW(hwnd,name,128) and name.value in ('AVIWnd32','MCIAVI','AVI Window','MCIWndClass','VideoRenderer'):
             found.add(hwnd)
-            if user.IsWindowVisible(hwnd):visible.add(hwnd)
+            if user.IsWindowVisible(hwnd):
+                visible.add(hwnd)
+                rect=w.RECT()
+                if user.GetWindowRect(hwnd,ctypes.byref(rect)) and len(bounds)<4:
+                    bounds.append((rect.left,rect.top,rect.right-rect.left,rect.bottom-rect.top))
         return True
     child=callback(visit)
     def top(hwnd,unused):
@@ -83,7 +91,7 @@ def movie_state(pid):
         if owner.value==pid:user.EnumChildWindows(hwnd,child,0)
         return True
     if not user.EnumWindows(callback(top),0):raise ctypes.WinError(ctypes.get_last_error())
-    return len(found),len(visible)
+    return len(found),len(visible),tuple(sorted(bounds))
 
 
 def attach(root,pid,event_name):
@@ -106,6 +114,7 @@ def attach(root,pid,event_name):
             if not k.SetEvent(event):raise ctypes.WinError(ctypes.get_last_error())
         def wait():
             previous=None;probe_failed=False
+            geometry=movie_geometry.evidence(root,os.environ)
             while True:
                 result=k.WaitForSingleObject(process,500)
                 if result==0:break
@@ -113,7 +122,11 @@ def attach(root,pid,event_name):
                 try:
                     current=movie_state(pid)
                     if current!=previous:
-                        d.event(root,'movie',{'count':current[0],'visible':current[1]})
+                        d.event(root,'movie',{'count':current[0],'visible':current[1],
+                                             'event':1 if current[1] and (not previous or not previous[1]) else 3 if previous and previous[1] and not current[1] else 2})
+                        for i,(x,y,w,h) in enumerate(current[2]):
+                            d.event(root,'movie',{'window_index':i,'window_x':x,'window_y':y,'window_width':w,'window_height':h,
+                                                 'geometry_match':not geometry['geometry_fallback'] and (x,y,w,h)==tuple(geometry[k] for k in ('expected_x','expected_y','expected_width','expected_height'))})
                         previous=current
                 except OSError:
                     if not probe_failed:d.event(root,'error',{'module':4,'code':1})
@@ -135,7 +148,7 @@ if __name__=='__main__':
     if a.export:
         try:d.export(a.game,game_directory=a.game,return_name=RETURN)
         except Exception:
-            (a.game/'RETURN-THIS-VO-PATCH-EX-F01-P04.txt').write_text('Export failed. Existing diagnostic logs are preserved in the diagnostics folder.\n')
+            (a.game/'RETURN-THIS-VO-PATCH-EX-F01-P04-F02.txt').write_text('Export failed. Existing diagnostic logs are preserved in the diagnostics folder.\n')
             raise
     elif a.pid and a.ready:attach(a.game,a.pid,a.ready)
     else:p.error('normal lifecycle attachment or export required')

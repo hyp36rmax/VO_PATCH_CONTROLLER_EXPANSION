@@ -21,7 +21,7 @@ FIELDS = set('code count mode profile fallback player device type vid pid width 
              'strict_test_stopped classified transitions recorded capture elapsed_ms '
              'exit_known exit_code samples truncated io_error ok targets visible '
              'movie_p1_present_suppressed primary_only local_vs_shared local_vs_gameplay '
-             'unknown connected xinput_slot stage level module hr movie_events event reason result tick restore_pending previous_p1_visible selected_mode effective_mode secondary f4_state split_preference restart_required save_stage winerror'.split())
+             'unknown connected xinput_slot stage level module hr movie_events event reason result tick restore_pending previous_p1_visible selected_mode effective_mode secondary f4_state split_preference restart_required save_stage winerror source_width source_height picture_verified picture_x picture_y picture_width picture_height geometry_fallback framing_enabled display_x display_y display_width display_height expected_x expected_y expected_width expected_height window_index window_x window_y window_width window_height geometry_match'.split())
 CONFIG_KEYS = {'mode', 'gameaspect', 'mirrorplayer1', '1p device no.', '2p device no.',
                '1p deadzone', '2p deadzone', '1p padtype', '2p padtype', 'scrsize', 'sshoriz'}
 LOGS = {'selection': 'selection.txt', 'presentation': 'game/D04-P02B-presentation.log',
@@ -119,7 +119,7 @@ def safe_events(path):
 def export(root, *, game_directory=None, return_name="RETURN-THIS-VO-PATCH-EX-G03.zip"):
     """Return verified archive path; failure never removes raw logs or old ZIP."""
     root = Path(root)
-    if return_name not in ('RETURN-THIS-VO-PATCH-EX-G03.zip', 'RETURN-THIS-VO-PATCH-EX-F01-P02.zip', 'RETURN-THIS-VO-PATCH-EX-F01-P03.zip', 'RETURN-THIS-VO-PATCH-EX-F01-P04.zip'):
+    if return_name not in ('RETURN-THIS-VO-PATCH-EX-G03.zip', 'RETURN-THIS-VO-PATCH-EX-F01-P02.zip', 'RETURN-THIS-VO-PATCH-EX-F01-P03.zip', 'RETURN-THIS-VO-PATCH-EX-F01-P04.zip', 'RETURN-THIS-VO-PATCH-EX-F01-P04-F02.zip'):
         raise ValueError('Unsupported diagnostic return name')
     now = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
     destination = root / f'VO-PATCH-EX-Diagnostics-{now}.zip'
@@ -138,7 +138,7 @@ def export(root, *, game_directory=None, return_name="RETURN-THIS-VO-PATCH-EX-G0
     # Strict metadata allowlist and formats; no arbitrary user-edited data.
     versions = {k: v for k, v in meta.items() if k in ('revision', 'wrapper_sha256', 'helper_sha256')
                 and isinstance(v, str) and re.fullmatch('[0-9a-f]{40}|[0-9a-f]{64}', v)}
-    versions['experience'] = meta.get('experience') if meta.get('experience') in ('F01-P04-private', 'F01-P04-F01-private') else '0.1-dev'; versions['diagnostics_schema'] = 1
+    versions['experience'] = meta.get('experience') if meta.get('experience') in ('F01-P04-private', 'F01-P04-F01-private', 'F01-P04-F02-private') else '0.1-dev'; versions['diagnostics_schema'] = 1
     versions['controller'] = 'Controller-Expansion'; versions['display'] = 'F01-P04' if meta.get('display')=='F01-P04' else 'F04B'
     if meta.get('game') in ('retail','jpre'):versions['game']=meta['game']
     prepared = root / 'prepared.json'

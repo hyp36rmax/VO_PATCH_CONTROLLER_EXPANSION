@@ -30,13 +30,13 @@ def main():
   shutil.copy2(internal/name,runtime/name)
  shutil.copytree(internal/'DLLs',runtime/'DLLs')
  (runtime/'python312._pth').write_text('python312.zip\n.\nDLLs\n')
- for name in ('normal_lifecycle.py','diagnostics.py','discovery.py'):shutil.copy2(HERE/name,runtime/name)
+ for name in ('normal_lifecycle.py','diagnostics.py','discovery.py','movie_geometry.py'):shutil.copy2(HERE/name,runtime/name)
  shutil.copy2(HERE/'EXPORT-DIAGNOSTICS.cmd',payload/'EXPORT-DIAGNOSTICS.cmd')
- version={'revision':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'wrapper_sha256':sha(payload/'ddraw.dll'),'helper_sha256':sha(payload/'vodisplay.dll'),'experience':'F01-P04-F01-private','display':'F01-P04'}
+ version={'revision':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'wrapper_sha256':sha(payload/'ddraw.dll'),'helper_sha256':sha(payload/'vodisplay.dll'),'experience':'F01-P04-F02-private','display':'F01-P04'}
  manifest={'version':version,'files':{str(f.relative_to(payload)).replace('\\','/'):sha(f) for f in sorted(payload.rglob('*')) if f.is_file()}}
  (experience/'payload-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
  notices=out/'Licenses';notices.mkdir();shutil.copy2(ROOT/'LICENSE',notices/'Pairomaniac-MIT.txt');shutil.copy2(a.wrapper/'LICENSE',notices/'cnc-ddraw-MIT.txt');shutil.copy2(internal/'LICENSE.txt',notices/'Python.txt')
- (out/'READ-ME.txt').write_text('''VO PATCH EX F01-P04-F01 — PRIVATE WINDOWS UAT
+ (out/'READ-ME.txt').write_text('''VO PATCH EX F01-P04-F02 — PRIVATE WINDOWS UAT
 
 Use your original Virtual-On disc image/files with the supplied v-on-patcher.exe.
 If the game is already patched, use Restore Original before Apply.
@@ -50,12 +50,17 @@ high resolution starts from Original 4:3 until a saved Display choice overrides 
 Dual mode retains high resolution when F4 requests an unsupported transition.
 Mirror includes both Local VS views; Versus separates the player views.
 
-Exit the game, then return RETURN-THIS-VO-PATCH-EX-F01-P04.zip from its folder.
+Exit the game, then return RETURN-THIS-VO-PATCH-EX-F01-P04-F02.zip from its folder.
 EXPORT-DIAGNOSTICS.cmd in that folder exports on demand. If compression fails,
 the return note identifies the retained diagnostics folder. No uploads occur.
 Restore Original restores upstream files and owned runtime files. Display choices,
 diagnostic logs and unrelated files are retained. Modified runtime files are
 preserved and reported instead of deleted.
+
+Movie check: use the default enabled movie patch. In Single, confirm a centered
+16:9 visible picture without distortion. In Dual Versus and Dual Mirror, confirm
+Display 1 shows the movie and Display 2 stays black. Let it finish once and skip
+it once; confirm normal presentation returns. Include different monitor sizes.
 
 Physical UAT is pending. Check normal launch, F5 OK/Cancel, restart activation,
 missing-monitor fallback, F4, F7/controllers, saved split, all three display modes,
