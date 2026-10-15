@@ -83,3 +83,15 @@ applying the legacy workflow's per-build source substitution: attribution stampi
 participates in recipe base hashes. Package provenance records the exact Git SHA
 in payload-manifest.json. Windows checkout disables automatic CRLF conversion and
 uses UTF-8 so source locks and embedded artwork remain byte-exact across hosts.
+
+## Dependency notices
+
+Certifi is pinned to 2026.07.22. Its unmodified license notice in
+`ci/licenses/certifi-LICENSE.txt` was verified against that upstream tag's LICENSE.
+The assembler rejects a baseline carrying a different certifi version. A future
+upgrade must review the upstream notice and update the pin together.
+
+Provide `MinGW-runtime.txt` beside the wrapper DLL and LICENSE: use the compiler
+installation's MinGW-w64 runtime notice for local LLVM-MinGW builds. The Ubuntu CI
+build copies mingw-w64-common's copyright file for its GCC runtime. The assembler
+requires and distributes this build-specific notice; no runtime code changes.

@@ -31,7 +31,7 @@ for name in ['normal_lifecycle.py','diagnostics.py','discovery.py','movie_geomet
  assert (ex/'payload/experience-runtime'/name).is_file()
 print('PASS manifest hashes, 512 sparse option recipes, upstream Windows launcher, runtime completeness, game-asset exclusion')
 
-for name in ['Pairomaniac-MIT.txt','cnc-ddraw-MIT.txt','Python.txt']:
+for name in ['Pairomaniac-MIT.txt','cnc-ddraw-MIT.txt','Python.txt','certifi-LICENSE.txt','MinGW-runtime.txt']:
  assert (root/'Licenses'/name).is_file(), name
 assert (internal/'input/vontanita.dll').is_file()
 assert '_experience_bind(Patcher' in (internal/'v-on-patcher.py').read_text()

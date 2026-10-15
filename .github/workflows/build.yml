@@ -166,6 +166,7 @@ jobs:
           git -C build/cnc-ddraw checkout --detach 279a057ee7e1e4d584b56141c014ab01f3c6ee6d
           python tools/dual_display/build_wrapper.py build/cnc-ddraw build/wrapper --mode-aware --profiles build/catalog/game_profiles.h --cc /usr/bin/i686-w64-mingw32-gcc --windres /usr/bin/i686-w64-mingw32-windres
           i686-w64-mingw32-gcc -shared -O2 -Wl,--kill-at -Wl,--no-insert-timestamp tools/dual_display/f5_dialog.c -o build/wrapper/vodisplay.dll -luser32 -lgdi32
+          cp /usr/share/doc/mingw-w64-common/copyright build/wrapper/MinGW-runtime.txt
           for sym in VonDisplayStartup VonDisplayF5 VonDisplaySettings VonDisplayCanResize VonDiagnosticsF11 VonDiagnosticsLevel; do
             i686-w64-mingw32-objdump -p build/wrapper/vodisplay.dll | grep -q "$sym"
           done
@@ -176,6 +177,7 @@ jobs:
             build/wrapper/ddraw.dll
             build/wrapper/vodisplay.dll
             build/wrapper/LICENSE
+            build/wrapper/MinGW-runtime.txt
             build/wrapper/private-build.json
           retention-days: 7
 
@@ -240,7 +242,7 @@ jobs:
       - name: Bundle
         shell: bash
         run: |
-          pip install -q certifi
+          pip install -q certifi==2026.07.22
           python tools/bundle.py dist/v-on-patcher
           for f in pythonw.exe python312._pth python312.zip DLLs/_tkinter.pyd \
                    Lib/site-packages/certifi/cacert.pem v-on-patcher.py net/dpctrl.dll input/vontanita.dll; do
