@@ -123,6 +123,7 @@ static void isolate(DWORD kind,void *raw){
 __declspec(dllexport) int WINAPI VonOverlayInput(DWORD player,DWORD kind,void *raw,DWORD result,DWORD ready){
  /* Closed, ineligible and P2 inputs are byte-for-byte pass-through. */
  if(!game||busy||player!=0||state.state==VO_CLOSED)return 0;
+ if(vo_pages_capture_active()){if(!result)isolate(kind,raw);controller_held=0;return 1;}
  if(!supported()){clear();return 0;}
  unsigned held=result?0:semantic(kind,raw);controller_held=held;last_sample=GetTickCount();
  busy=1;vo_overlay_controller(&state,0,held,!result,!(ready&1),0,1);confirmation();busy=0;

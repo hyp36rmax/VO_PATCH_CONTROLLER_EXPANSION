@@ -39,7 +39,7 @@ class AdapterMachine(ControllerMachine):
    else:u.mem_write(args[0],self.string(args[1]).encode()+b'\0');result=args[0]
   elif name=='__stdio_common_vsprintf':
    dest,capacity,fmt,va=args[2],args[3],self.string(args[4]),args[6];values=[]
-   for i,match in enumerate(re.finditer(r'%[0-9]*[sudx]',fmt)):
+   for i,match in enumerate(re.finditer(r'%[0-9]*[sudxc]',fmt)):
     value=struct.unpack('<I',u.mem_read(va+4*i,4))[0];values.append(self.string(value) if match.group().endswith('s') else value)
    text=fmt%tuple(values);u.mem_write(dest,text[:max(0,capacity-1)].encode()+b'\0');result=len(text)
   elif name=='VirtualQuery':

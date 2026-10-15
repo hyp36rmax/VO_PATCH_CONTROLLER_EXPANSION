@@ -57,7 +57,8 @@ def install(data,edition,v):
   before=bytes(data[at:at+5]);new=b'\xe9'+struct.pack('<i',target-at-5)
   data[at:at+5]=new;patches.append(dict(name='disable-reset-chord',offset=at,before=before.hex(),after=new.hex()))
  # Only the already linked helper-name literals change. The original helper
- # remains installed; the private shim forwards its API without reassignment.
+ # remains installed for recovery; the private module compiles the same reader
+ # and ownership source and adds direct overlay transactions.
  old=b'vontanita.dll\0';new=b'voinputux.dll\0';assert len(old)==len(new)
  pos=0
  while True:

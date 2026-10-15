@@ -39,7 +39,14 @@ int main(void){
  context=(VoGame){0};context.size=sizeof context;context.primary=&primary;context.back=&back;context.inactive=&inactive;context.mode=&mode;context.submode=&submode;context.gamemode=&gamemode;context.movie=&movie;context.pause=pause_game;context.resume=resume_game;context.devices=devices;context.custom=bindings;context.padbinds=bindings;context.twinbinds=bindings;context.horibinds=bindings;context.threshold=&threshold;context.mode2=&mode2;context.cdstop=cdstop;
  for(int paused=0;paused<2;paused++){
   inactive=paused;esc();assert(observed->state==VO_OPEN&&observed->selected==6&&!strcmp(menu.title,"Virtual On EX"));
-  click(10+CONTROLLERS);assert(page==CONTROLLERS);click(6002);click(7000);assert(page==EDITOR&&dirty);esc();assert(page==CONFIRM);click(CANCEL);assert(page==EDITOR&&dirty);click(SAVE);assert(page==CONTROLLERS);esc();assert(page==ROOT);
+  click(10+CONTROLLERS);assert(page==CONTROLLERS);
+  capture_pending=1;click(6001);assert(page==ASSIGN&&vo_pages_capture_active());
+  XINPUT_STATE held={0};held.Gamepad.wButtons=0x1011;unsigned selected=observed->selected;
+  assert(VonOverlayInput(0,4,&held,0,3)==1);assert(page==ASSIGN&&observed->selected==selected);
+  assert(VonOverlayInput(1,4,&held,0,3)==0);assert(page==ASSIGN);
+  esc();assert(page==CONTROLLERS&&!capturing&&!vo_pages_capture_active());capture_pending=0;
+  click(6011);assert(page==CONTROLLERS&&!capturing);
+  click(6002);click(7000);assert(page==EDITOR&&dirty);esc();assert(page==CONFIRM);click(CANCEL);assert(page==EDITOR&&dirty);click(SAVE);assert(page==CONTROLLERS);esc();assert(page==ROOT);
   click(10+GAME);click(10+SOLO);click(2000);click(DEFAULTS);click(CANCEL);assert(page==GAME);esc();
   click(10+DISPLAY);click(DISPLAY_MODE);apply_fail=1;click(SAVE);assert(page==DISPLAY&&dirty);apply_fail=0;click(SAVE);assert(page==ROOT&&inactive==paused);
   click(10+GRAPHICS);click(GRAPH_RES);click(CANCEL);assert(page==ROOT&&inactive==paused);

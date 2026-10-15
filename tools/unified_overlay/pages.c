@@ -5,11 +5,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-enum { ROOT,CONTROLLERS,DISPLAY,DISPLAY_ADV,GRAPHICS,GRAPHICS_ADV,GAME,SOLO,VS,GENERAL,APPENDIX,EXTRAS,DEBUG,DIAGNOSTICS,CONFIRM,EDITOR };
+enum { ROOT,CONTROLLERS,DISPLAY,DISPLAY_ADV,GRAPHICS,GRAPHICS_ADV,GAME,SOLO,VS,GENERAL,APPENDIX,EXTRAS,DEBUG,DIAGNOSTICS,CONFIRM,EDITOR,ASSIGN,CAPTURE,SCORE_PAGE };
 enum { BACK=100,SAVE,CANCEL,DEFAULTS,ADVANCED,RESUME,EXIT_TITLE,QUIT,DISCARD,CONFIRM_YES,
  DISPLAY_MODE=200,DISPLAY_PRIMARY,DISPLAY_SECONDARY,DISPLAY_ASPECT,
  GRAPH_RES=300,GRAPH_SKY,GRAPH_FIELD,GRAPH_MOTION,GRAPH_TEX1,GRAPH_TEX2,GRAPH_TEX3,SPLIT,
- CREDITS=400,SCORES,NO_SHOT,SE,CD,KILL1,KILL2,LOG_LEVEL,EXPORT };
+ CREDITS=400,SCORES,NO_SHOT,SE,CD,KILL1,KILL2,LOG_LEVEL,EXPORT,CLEAR_SCORES };
 static VoMenu menu;
 static VoNativeSettings native;
 static VoControllerSettings controller;
@@ -18,6 +18,13 @@ static const VoGame *game;
 static HWND owner;
 static unsigned page,parent,dirty,confirm_action,command;
 static int display_open;
+static unsigned capture_player,capture_slot;
+static char capture_action[96],capture_current[192];
+static int (WINAPI *input_begin)(DWORD,DWORD,int,int);
+static int (WINAPI *input_poll)(void);
+static void (WINAPI *input_cancel)(void);
+static int (WINAPI *input_identity)(DWORD,DWORD);
+int vo_pages_capture_active(void){return game&&(page==ASSIGN||page==CAPTURE);}
 static char notice[256];
 static int (WINAPI *display_api)(unsigned,int,VoDisplaySnapshot*);
 static int (WINAPI *diagnostic_api)(HWND,unsigned,int);
@@ -37,6 +44,7 @@ static void native_combo(const char *label,unsigned id){
 static void toggle(const char *label,unsigned id,unsigned control){row(label,vo_native_check(&native,control)?"On":"Off",id,1);}
 static void actions(int defaults){if(defaults)row("RESTORE DEFAULTS",NULL,DEFAULTS,1);row("SAVE",NULL,SAVE,1);row("CANCEL",NULL,CANCEL,1);row("BACK",NULL,BACK,1);}
 static void close_transaction(void){
+ if(input_cancel)input_cancel();
  if(display_open&&display_api){display_api(VO_DISPLAY_CANCEL,0,&display);display_open=0;}
  vo_native_end(&native);vo_controller_end(&controller);dirty=0;
 }
@@ -45,12 +53,13 @@ unsigned vo_pages_command(void){unsigned result=command;command=0;return result;
 static void show(VoOverlay *s,unsigned destination){page=destination;s->selected=0;refresh(s);}
 static void confirm(VoOverlay *s,unsigned action){parent=page;confirm_action=action;page=CONFIRM;s->selected=0;s->controller_ready=s->keyboard_ready=0;s->confirm=1;refresh(s);}
 static void leave(VoOverlay *s){
+ if(page==ASSIGN||page==CAPTURE){if(input_cancel)input_cancel();show(s,page==ASSIGN?CONTROLLERS:EDITOR);s->controller_ready=s->keyboard_ready=0;return;}
  if(page==DISPLAY_ADV){show(s,DISPLAY);return;}
  if(page==GRAPHICS_ADV){show(s,GRAPHICS);return;}
  if(page==CONFIRM){s->confirm=0;show(s,parent);return;}
  if(dirty){confirm(s,DISCARD);return;}
  if(page==EDITOR){close_transaction();show(s,CONTROLLERS);return;}
- close_transaction();show(s,page>=SOLO&&page<=APPENDIX?GAME:page==DEBUG||page==DIAGNOSTICS?EXTRAS:ROOT);
+ close_transaction();show(s,page>=SOLO&&page<=APPENDIX?GAME:page==DEBUG||page==DIAGNOSTICS||page==SCORE_PAGE?EXTRAS:ROOT);
 }
 static int open_native(unsigned category){
  if(vo_native_begin(&native,owner,game->mode,category))return 1;
@@ -91,14 +100,18 @@ static unsigned navigate(VoOverlay *s,unsigned edge){
  if(page==CONFIRM){
   unsigned action=confirm_action;s->confirm=0;
   if(id!=CONFIRM_YES){show(s,parent);return VO_NO_ACTION;}
-  if(action==DISCARD){close_transaction();show(s,parent==EDITOR?CONTROLLERS:parent>=SOLO&&parent<=APPENDIX?GAME:ROOT);return VO_NO_ACTION;}
+  if(action==CLEAR_SCORES){if(vo_native_defaults(&native))dirty=1;show(s,SCORE_PAGE);return VO_NO_ACTION;}
+  if(action==DISCARD){close_transaction();show(s,parent==EDITOR?CONTROLLERS:parent==SCORE_PAGE?EXTRAS:parent>=SOLO&&parent<=APPENDIX?GAME:ROOT);return VO_NO_ACTION;}
   if(action==EXIT_TITLE){if(s->exit_allowed)s->exit_requested=1;else show(s,ROOT);return VO_NO_ACTION;}
   command=action==QUIT?0x9c41:action==CREDITS?0x51:action==KILL1?0x9c61:0x9c62;
   vo_overlay_close(s);return VO_NO_ACTION;
  }
+ if(id==CLEAR_SCORES){confirm(s,CLEAR_SCORES);return VO_NO_ACTION;}
+ if(id==SCORES){if(open_native(VO_NATIVE_SCORES))show(s,SCORE_PAGE);return VO_NO_ACTION;}
  if(id==RESUME){vo_overlay_close(s);return VO_NO_ACTION;}
  if(id==EXIT_TITLE||id==QUIT||id==KILL1||id==KILL2||id==CREDITS){confirm(s,id);return VO_NO_ACTION;}
- if(id==CANCEL){close_transaction();show(s,page==EDITOR?CONTROLLERS:page>=SOLO&&page<=APPENDIX?GAME:ROOT);return VO_NO_ACTION;}
+ if(id==CANCEL&&(page==ASSIGN||page==CAPTURE)){leave(s);return VO_NO_ACTION;}
+ if(id==CANCEL){close_transaction();show(s,page==EDITOR?CONTROLLERS:page==SCORE_PAGE?EXTRAS:page>=SOLO&&page<=APPENDIX?GAME:ROOT);return VO_NO_ACTION;}
  if(id==SAVE){
   if(page==EDITOR){
    if(!vo_controller_save(&controller)){error("Bindings not saved. Check assignments and file access.");refresh(s);return VO_NO_ACTION;}
@@ -109,24 +122,27 @@ static unsigned navigate(VoOverlay *s,unsigned edge){
    error("Display settings saved. Restart Virtual-On to apply.");
   }else if(!save_native()){error("Settings could not be applied. Draft retained.");refresh(s);return VO_NO_ACTION;}
   else error("Settings saved.");
-  unsigned next=page==EDITOR?CONTROLLERS:page>=SOLO&&page<=APPENDIX?GAME:ROOT;
+  unsigned next=page==EDITOR?CONTROLLERS:page==SCORE_PAGE?EXTRAS:page>=SOLO&&page<=APPENDIX?GAME:ROOT;
   close_transaction();show(s,next);return VO_NO_ACTION;
  }
  if(id==DEFAULTS){if(page==EDITOR?vo_controller_defaults(&controller):vo_native_defaults(&native))dirty=1;refresh(s);return VO_NO_ACTION;}
  if(id==ADVANCED){show(s,page==DISPLAY?DISPLAY_ADV:GRAPHICS_ADV);return VO_NO_ACTION;}
  if(id>=7000&&id<7012){
   unsigned slot=id-7000;int changed=0;
-  if((edge&VO_ACCEPT)&&(controller.kind==1||controller.kind==4))changed=vo_controller_capture(&controller,slot);
+  if((edge&VO_ACCEPT)&&(controller.kind==1||controller.kind==4)){
+   if(input_begin&&input_begin(controller.player,controller.kind,1,game->threshold[controller.player])){capture_slot=slot;snprintf(capture_action,sizeof capture_action,"%s",selected.label);snprintf(capture_current,sizeof capture_current,"%s",selected.value);error("");show(s,CAPTURE);s->controller_ready=s->keyboard_ready=0;return VO_NO_ACTION;}
+   error("Assign a connected controller before capturing input.");
+  }
   else {int count=vo_controller_count(&controller,slot),current=vo_controller_selected(&controller,slot);if(count>0)changed=vo_controller_select(&controller,slot,(current+count+delta)%count);}
   if(changed)dirty=1;
   s->keyboard_ready=s->controller_ready=0;
  }else if(id>=6000&&id<6100){
   unsigned player=(id-6000)/10,action=(id-6000)%10;unsigned kind=(unsigned)game->devices[player];
   if(action==0){static const unsigned order[]={1,2,4,5,6,7,8,3,0};unsigned i=0;while(i<9&&order[i]!=kind)i++;unsigned next=order[(i+9+delta)%9];if(!vo_controller_profile(game,player,next))error("Profile could not be saved. Previous settings retained.");}
-  else if(action==1){int paused=*game->inactive!=0;if(!paused)game->pause(0);
-   int assigned=vo_controller_assign(owner,player,kind);
-   if(paused){if(!*game->inactive)game->pause(0);}else game->resume();
-   if(!assigned)error("Controller selection cancelled or unavailable.");s->keyboard_ready=s->controller_ready=0;}
+  else if(action==1){
+   if(input_begin&&input_begin(player,kind,0,0)){capture_player=player;error("");show(s,ASSIGN);s->controller_ready=s->keyboard_ready=0;return VO_NO_ACTION;}
+   error("Controller assignment could not start. Previous assignment retained.");
+  }
   else if(action==2){if(vo_controller_begin(&controller,game,owner,player,kind)){show(s,EDITOR);return VO_NO_ACTION;}error("Original controller settings could not be opened.");}
   else if(action==3){int value=vo_controller_deadzone(game,player,-1);value+=delta*5;if(value<5)value=95;if(value>95)value=5;if(vo_controller_deadzone(game,player,value)<0)error("Deadzone could not be saved.");}
  }else if(id==5000){
@@ -156,8 +172,8 @@ static unsigned navigate(VoOverlay *s,unsigned edge){
    default:ok=vo_native_click(&native,id==GRAPH_SKY?1075:id==GRAPH_TEX1?1077:id==GRAPH_TEX2?1079:1078);break;
   }
   if(ok)dirty=1;
- }else if(id==NO_SHOT||id==SE||id==CD||id==SCORES){
-  PostMessageW(owner,WM_COMMAND,id==NO_SHOT?0x9c47:id==SE?0x9c5b:id==CD?0x9c5c:0x9c67,0);
+ }else if(id==NO_SHOT||id==SE||id==CD){
+  PostMessageW(owner,WM_COMMAND,id==NO_SHOT?0x9c47:id==SE?0x9c5b:0x9c5c,0);
  }else if(id==LOG_LEVEL){
   int current=diagnostic_api(owner,0,0),next=(current+4+delta)%4;
   if(diagnostic_api(owner,1,next))error(next?"Saved. Restart Virtual-On to enable logging.":"Logging Off. Existing logs retained.");
@@ -189,12 +205,23 @@ static void refresh(VoOverlay *s){
    static const char *profiles[]={"Keyboard (Real)","Gamepad (XInput)","Twin-Stick (XInput)","Keyboard (Simple)","Twin-Stick (Custom)","Twin-Stick (Tanita)","Twin-Stick (HORI EX)","Twin-Stick (Raphnet DC)","Twin-Stick (Raphnet Saturn)"};
    unsigned kind=(unsigned)game->devices[p],base=6000+p*10;int keyboard=kind==0||kind==3;
    row(p?"PLAYER 2":"PLAYER 1",NULL,0,0);row("Profile",kind<9?profiles[kind]:"Unknown",base,1);
-   row("Controller",keyboard?"Keyboard":"Select physical controller >",base+1,!keyboard);
+   char identity[96]="Select physical controller >";int source=input_identity?input_identity(p,kind):-1;
+   if(source>=0)snprintf(identity,sizeof identity,"%s %u >",source<4?"XInput slot":source<6?"Tanita unit":source<8?"Raphnet DC unit":"Raphnet Saturn unit",source<4?(unsigned)source+1:1+(unsigned)(source-4)%2);
+   row("Controller",keyboard?"Keyboard":identity,base+1,!keyboard);
    int status=vo_controller_status(p,kind);row("Status",status<0?"Awaiting input":status?"Connected":"Disconnected",0,0);
    if(kind==0||kind==1||kind==3||kind==4)row(keyboard?"Configure Keys":"Configure Buttons",">",base+2,1);
-   if(kind==1||kind==2||kind==4||kind==6){char value[24];snprintf(value,sizeof value,"%d%%",vo_controller_deadzone(game,p,-1));row("Stick Deadzone",value,base+3,1);}
+   if(vo_controller_has_axes(game,p,kind)){char value[24];snprintf(value,sizeof value,"%d%%",vo_controller_deadzone(game,p,-1));row("Stick Deadzone",value,base+3,1);}
   }
   row("BACK",NULL,BACK,1);break;
+ case ASSIGN:{
+  char heading[64];snprintf(heading,sizeof heading,"ASSIGN PLAYER %u",capture_player+1);title(heading);
+  row("Release Start, then press START",NULL,0,0);row("on the controller you want to assign.",NULL,0,0);row("Tanita: use Options.",NULL,0,0);row("CANCEL",NULL,CANCEL,1);break;
+ }
+ case CAPTURE:{
+  char heading[64];snprintf(heading,sizeof heading,"ASSIGN INPUT : PLAYER %u",controller.player+1);title(heading);
+  row("Action",capture_action,0,0);row("Current",capture_current,0,0);
+  row("Release all controls, then press",NULL,0,0);row("one input for this action.",NULL,0,0);row("CANCEL",NULL,CANCEL,1);break;
+ }
  case EDITOR:{
   static const char *action_labels[]={"Move Forward","Move Backward","Move Left","Move Right","Turn Left","Turn Right","Left Weapon","Right Weapon","Center Weapon","Dash","Jump","Guard"};
   static const char *lever[]={"Up","Down","Left","Right","Trigger","Dash"};
@@ -230,6 +257,13 @@ static void refresh(VoOverlay *s){
   row("View Replay",vo_native_check(&native,1074)?"On":"Off",2000+1074,1);row("View Posing",vo_native_check(&native,1075)?"On":"Off",2000+1075,1);row("Display Ranking",vo_native_check(&native,1076)?"On":"Off",2000+1076,1);row("Quick VR Select 1P",vo_native_check(&native,1079)?"On":"Off",2000+1079,1);row("Quick VR Select 2P / Network VS",vo_native_check(&native,1080)?"On":"Off",2000+1080,1);row("Demo Movie",vo_native_check(&native,1081)?"On":"Off",2000+1081,1);actions(1);break;
  case APPENDIX:title("APPENDIX");row("Machine Color Select",vo_native_check(&native,1076)?"On":"Off",2000+1076,1);row("Enemy Color Random",vo_native_check(&native,1077)?"On":"Off",2000+1077,1);row("Color Format",vo_native_check(&native,1078)?"32000 color":"64000 color",5000,1);actions(1);break;
  case EXTRAS:title("EXTRAS");row("GAME UTILITIES",NULL,0,0);row("Credits",">",CREDITS,*game->mode==4);row("Scorekeeping",">",SCORES,1);row("DEBUG SETTINGS",">",10+DEBUG,1);row("DIAGNOSTICS",">",10+DIAGNOSTICS,diagnostic_api!=NULL);row("BACK",NULL,BACK,1);break;
+ case SCORE_PAGE:
+  title("SCOREKEEPING");
+  for(unsigned group=0;group<3;group++){
+   row(group==0?"BEST PILOTS":group==1?"TOP OF WINS":"FAVORITE MACHINES",NULL,0,0);
+   for(unsigned i=0;i<(group==2?8u:10u);i++){char text[192];if(vo_native_score(&native,group,i,text,sizeof text))row(text,NULL,8000+group*10+i,1);}
+  }
+  row("CLEAR",NULL,CLEAR_SCORES,1);actions(0);break;
  case DEBUG:{
   int j=(uintptr_t)game->mode==0x1adcdf0;
   title("DEBUG SETTINGS");row("No Shot",*(LONG*)(uintptr_t)(j?0x64efd8:0x652fd8)?"On":"Off",NO_SHOT,1);row("SE",*(LONG*)(uintptr_t)(j?0x6b89ac:0x6bcc4c)?"Off":"On",SE,1);row("CD",*(LONG*)(uintptr_t)(j?0x63b430:0x63f430)?"Off":"On",CD,1);row("Kill Player 1",">",KILL1,1);row("Kill Player 2",">",KILL2,1);row("BACK",NULL,BACK,1);break;
@@ -241,17 +275,35 @@ static void refresh(VoOverlay *s){
  case CONFIRM:
   title(confirm_action==DISCARD?"UNSAVED CHANGES":confirm_action==QUIT?"QUIT GAME":confirm_action==EXIT_TITLE?"EXIT TO TITLE":"CONFIRM ACTION");
   row("CANCEL",NULL,CANCEL,1);row(confirm_action==DISCARD?"DISCARD CHANGES":confirm_action==QUIT?"QUIT GAME":confirm_action==EXIT_TITLE?"EXIT TO TITLE":"CONTINUE",NULL,CONFIRM_YES,1);
-  row(confirm_action==DISCARD?"Pending changes will be discarded.":"Current match progress may be lost.",NULL,0,0);break;
+  row(confirm_action==DISCARD?"Pending changes will be discarded.":confirm_action==CLEAR_SCORES?"Score records will be cleared on Save.":"Current match progress may be lost.",NULL,0,0);break;
  }
  snprintf(menu.notice,sizeof menu.notice,"%s",notice);
  s->menu=&menu;s->selected=selected<menu.count?selected:0;
  if(menu.count&&!menu.rows[s->selected].enabled){for(unsigned i=0;i<menu.count;i++)if(menu.rows[i].enabled){s->selected=i;break;}}
 }
-void vo_pages_refresh(VoOverlay *s){if(game&&(page==ROOT||page==CONTROLLERS||page==DEBUG))refresh(s);}
+void vo_pages_refresh(VoOverlay *s){
+ if(!game)return;
+ if(page==ASSIGN||page==CAPTURE){
+  int result=input_poll?input_poll():-1;
+  if(result>0){
+   if(page==CAPTURE&&result>=0xe0&&result<0xf4){if(vo_controller_select(&controller,capture_slot,result-0xe0+(controller.kind==4)))dirty=1;}
+   error(page==ASSIGN?"Controller assigned.":"Input selected. Save to commit.");
+   show(s,page==ASSIGN?CONTROLLERS:EDITOR);s->controller_ready=s->keyboard_ready=0;
+  }else if(result==-1){error("Capture ended. No changes were applied.");leave(s);}
+  else if(result==-2)error("Multiple Start presses. Release and try one controller.");
+ }
+ if(page==ROOT||page==CONTROLLERS||page==DEBUG||page==ASSIGN||page==CAPTURE)refresh(s);
+}
 void vo_pages_begin(VoOverlay *s,const VoGame *g,HWND h){
  close_transaction();game=g;owner=h;page=ROOT;command=0;notice[0]=0;
  HMODULE module=GetModuleHandleW(L"vodisplay.dll");
  display_api=module?(void*)GetProcAddress(module,"VonDisplayTransaction"):NULL;
  diagnostic_api=module?(void*)GetProcAddress(module,"VonOverlayDiagnostics"):NULL;
+ HMODULE input=GetModuleHandleW(L"voinputux.dll");
+ if(!input)input=LoadLibraryW(L"voinputux.dll");
+ input_begin=input?(void*)GetProcAddress(input,"VonInputBegin"):NULL;
+ input_poll=input?(void*)GetProcAddress(input,"VonInputPoll"):NULL;
+ input_cancel=input?(void*)GetProcAddress(input,"VonInputCancel"):NULL;
+ input_identity=input?(void*)GetProcAddress(input,"VonInputIdentity"):NULL;
  s->navigate=navigate;s->selected=6;refresh(s);
 }

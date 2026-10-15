@@ -19,95 +19,53 @@ int vo_controller_available(const VoGame *g){
  static const unsigned char prefix[]={0x55,0x89,0xe5,0x53,0x56,0x57,0x8b,0x5d,0x08};
  return !memcmp((void*)a->custom_proc,prefix,sizeof prefix);
 }
-static unsigned char *used_keys(unsigned j){return (unsigned char*)(uintptr_t)(j?0xbf1598:0xbf6b20);}
 static unsigned offset(unsigned kind){return kind==0?32:kind==3?56:8;}
-static unsigned control(VoControllerSettings *s,unsigned slot){
- if(slot>=12)return 0;
- if(s->kind==4){static const unsigned order[]={0,1,2,3,8,10,4,5,6,7,9,11};return 100+order[slot];}
- const Addresses *a=&addresses[s->edition];
- const unsigned *ids=(const unsigned*)(s->kind==0?a->ids_real:a->ids_pad);
- if(s->kind==0){static const unsigned order[]={0,1,2,3,4,5,6,7,8,9,10,5};return ids[order[slot]];}
- static const unsigned order[]={0,1,2,3,4,5,6,7,11,8,9,10};return ids[order[slot]];
+static unsigned slot_index(unsigned kind,unsigned slot){
+ static const unsigned custom[]={0,1,2,3,8,10,4,5,6,7,9,11};
+ static const unsigned real[]={0,1,2,3,4,5,6,7,8,9,10,5};
+ static const unsigned pad[]={0,1,2,3,4,5,6,7,11,8,9,10};
+ return kind==4?custom[slot]:kind==0?real[slot]:pad[slot];
 }
-static int method(VoControllerSettings *s,uintptr_t address,unsigned command){
- typedef int (__thiscall *Method)(void*,HWND,unsigned,unsigned);
- return ((Method)address)(s->object,s->host,command,0);
+/* The original tables define both labels and encoded bindings. */
+static unsigned key_code(unsigned j,unsigned choice){
+ uintptr_t letters=j?0x6694c8:0x66d540,numbers=j?0x6694e8:0x66d560,keys=j?0x6693c4:0x66d43c;
+ return *(unsigned char*)(choice<26?letters+choice:choice<36?numbers+choice-26:keys+(choice-36)*8);
 }
-static int initialize(VoControllerSettings *s){
- const Addresses *a=&addresses[s->edition];
- for(unsigned i=0;i<12;i++)SendDlgItemMessageA(s->host,control(s,i),CB_RESETCONTENT,0,0);
- if(s->kind==4){
-  if(!((int(__cdecl*)(void))a->custom_resolve)())return 0;
-  ((DLGPROC)a->custom_proc)(s->host,WM_INITDIALOG,0,s->player);
- }else method(s,s->kind==0?a->init_real:a->init_pad,0);
- return 1;
-}
-static int open_controls(VoControllerSettings *s){
- s->host=CreateWindowExA(0,"STATIC","",WS_POPUP,0,0,1,1,s->owner,NULL,GetModuleHandleA(NULL),NULL);
- if(!s->host)return 0;
- for(unsigned i=0;i<12;i++){
-  unsigned id=control(s,i);if(GetDlgItem(s->host,id))continue;
-  if(!CreateWindowExA(0,"COMBOBOX","",WS_CHILD|CBS_DROPDOWNLIST,0,0,1,1,s->host,(HMENU)(uintptr_t)id,GetModuleHandleA(NULL),NULL))return 0;
- }
- if(!initialize(s))return 0;
- return 1;
-}
-void vo_controller_end(VoControllerSettings *s){
- if(!s)return;
- if(s->active){const Addresses *a=&addresses[s->edition];memcpy((void*)a->blocks,s->blocks,224);*(unsigned*)a->player=s->previous_player;
-  memcpy(used_keys(s->edition),s->used_keys,138);
-  memcpy((void*)a->custom_pending,s->custom_pending,24);*(unsigned*)a->custom_player=s->custom_player;}
- if(s->host)DestroyWindow(s->host);memset(s,0,sizeof *s);
-}
+static unsigned code(VoControllerSettings *s,unsigned choice){return s->kind==4?(choice?0xdf+choice:0):s->kind==1?0xe0+choice:key_code(s->edition,choice);}
+void vo_controller_end(VoControllerSettings *s){if(s)memset(s,0,sizeof *s);}
 int vo_controller_begin(VoControllerSettings *s,const VoGame *g,HWND owner,unsigned player,unsigned kind){
- if(!s||!vo_controller_available(g)||s->active||player>1||(kind!=0&&kind!=1&&kind!=3&&kind!=4))return 0;
- int j=edition(g);if(j<0)return 0;
- s->game=g;s->owner=owner;s->player=player;s->kind=kind;s->edition=j;
- const Addresses *a=&addresses[j];memcpy(s->blocks,(void*)a->blocks,224);s->previous_player=*(unsigned*)a->player;memcpy(s->used_keys,used_keys(j),138);memset(used_keys(j),0,138);
- memcpy(s->custom_pending,(void*)a->custom_pending,24);s->custom_player=*(unsigned*)a->custom_player;s->active=1;
- *(unsigned*)a->player=player;*(unsigned*)(a->blocks+player*112)=kind;
- if(!open_controls(s))goto fail;
- return 1;
- fail:vo_controller_end(s);return 0;
+ if(!s||s->active||!vo_controller_available(g)||player>1||(kind!=0&&kind!=1&&kind!=3&&kind!=4))return 0;
+ s->game=g;s->owner=owner;s->player=player;s->kind=kind;s->edition=edition(g);s->active=1;
+ const Addresses *a=&addresses[s->edition];
+ memcpy(s->pending,kind==4?g->custom+player*24:(void*)(a->blocks+player*112+offset(kind)),24);return 1;
 }
-int vo_controller_count(VoControllerSettings *s,unsigned slot){return s->active?(int)SendDlgItemMessageA(s->host,control(s,slot),CB_GETCOUNT,0,0):0;}
-int vo_controller_selected(VoControllerSettings *s,unsigned slot){return s->active?(int)SendDlgItemMessageA(s->host,control(s,slot),CB_GETCURSEL,0,0):-1;}
+int vo_controller_count(VoControllerSettings *s,unsigned slot){return s->active&&slot<12?(s->kind==4?21:s->kind==1?20:69):0;}
+int vo_controller_selected(VoControllerSettings *s,unsigned slot){
+ unsigned count=vo_controller_count(s,slot);if(!count)return -1;
+ unsigned c=s->pending[slot_index(s->kind,slot)*2];
+ for(unsigned i=0;i<count;i++)if(code(s,i)==c)return i;return -1;
+}
 int vo_controller_choice(VoControllerSettings *s,unsigned slot,unsigned choice,char *text,unsigned size){
  if(!text||!size||choice>=(unsigned)vo_controller_count(s,slot))return 0;
- int n=(int)SendDlgItemMessageA(s->host,control(s,slot),CB_GETLBTEXTLEN,choice,0);
- if(n<0||(unsigned)n>=size)return 0;
- return SendDlgItemMessageA(s->host,control(s,slot),CB_GETLBTEXT,choice,(LPARAM)text)==n;
+ if(s->kind==4&&!choice){snprintf(text,size,"None");return 1;}
+ if(s->kind==1||s->kind==4){uintptr_t list=s->edition?0x36b04e0:0x36b64e0;snprintf(text,size,"%s",*(const char**)(list+8*(choice-(s->kind==4))));}
+ else if(choice<36)snprintf(text,size,"%c",choice<26?'A'+choice:'0'+choice-26);
+ else {uintptr_t list=s->edition?0x6693c0:0x66d438;snprintf(text,size,"%s",*(const char**)(list+8*(choice-36)));}
+ return 1;
 }
 int vo_controller_select(VoControllerSettings *s,unsigned slot,unsigned choice){
  if(choice>=(unsigned)vo_controller_count(s,slot))return 0;
- return SendDlgItemMessageA(s->host,control(s,slot),CB_SETCURSEL,choice,0)!=CB_ERR;
+ unsigned i=slot_index(s->kind,slot)*2;s->pending[i]=code(s,choice);s->pending[i+1]=0;return 1;
 }
 static FARPROC helper(const char *name){HMODULE h=GetModuleHandleW(L"voinputux.dll");return h?GetProcAddress(h,name):NULL;}
-int vo_controller_assign(HWND owner,unsigned p,unsigned kind){
- typedef int(WINAPI *Select)(HWND,DWORD,DWORD);Select f=(Select)helper("VonSelectController");return f?f(owner,p,kind):0;
-}
 int vo_controller_status(unsigned p,unsigned kind){
  if(kind==0||kind==3)return 1;
  typedef int(WINAPI *Status)(DWORD,DWORD);Status f=(Status)helper("VonOverlayControllerStatus");return f?f(p,kind):-1;
 }
-int vo_controller_capture(VoControllerSettings *s,unsigned slot){
- if(!s->active||(s->kind!=1&&s->kind!=4))return 0;
- typedef int(WINAPI *Capture)(HWND,DWORD,DWORD,int);Capture f=(Capture)helper("VonCaptureInput");
- if(!f)return 0;
- int paused=*s->game->inactive!=0;
- if(!paused)s->game->pause(0);
- int value=f(s->owner,s->player,s->kind,s->game->threshold[s->player]);
- if(paused){if(!*s->game->inactive)s->game->pause(0);}else s->game->resume();
- if(value<0xe0||value>=0xf4)return 0;
- return vo_controller_select(s,slot,(unsigned)(value-0xe0+(s->kind==4)));
-}
 int vo_controller_defaults(VoControllerSettings *s){
- if(!s->active)return 0;
- const Addresses *a=&addresses[s->edition];
- if(s->kind==4){((DLGPROC)a->custom_proc)(s->host,WM_COMMAND,3,0);return 1;}
- uintptr_t defaults=s->kind==0?a->real_defaults:s->kind==1?a->pad_defaults:a->simple_defaults;
- memcpy((void*)(a->blocks+s->player*112+offset(s->kind)),(void*)(defaults+s->player*24),24);
- return initialize(s);
+ if(!s->active)return 0;const Addresses *a=&addresses[s->edition];
+ uintptr_t defaults=s->kind==4?a->custom_defaults:s->kind==0?a->real_defaults:s->kind==1?a->pad_defaults:a->simple_defaults;
+ memcpy(s->pending,(void*)(defaults+(s->kind==4?0:s->player*24)),24);return 1;
 }
 static int line(const Addresses *a,const char *key,const char *value){return ((int(__cdecl*)(const char*,const char*))a->writer)(key,value);}
 static int binding_line(const Addresses *a,unsigned p,const char *name,const unsigned char *data){
@@ -115,55 +73,29 @@ static int binding_line(const Addresses *a,unsigned p,const char *name,const uns
  for(unsigned i=0;i<24;i++)snprintf(value+i*2,3,"%02x",data[i]);
  return line(a,key,value);
 }
-/* Re-run the original keyboard validators in their normal P1 then P2 order.
- * Their used-key bitmap is modal scratch, not saved configuration. This also
- * prevents an unsuccessful file write from making a retry look like a duplicate. */
-static int validate_keyboards(VoControllerSettings *s){
- const Addresses *a=&addresses[s->edition];unsigned char blocks[224];memcpy(blocks,(void*)a->blocks,224);
- memset(used_keys(s->edition),0,138);int ok=1;
- for(unsigned p=0;p<2&&ok;p++){
-  unsigned kind=p==s->player?s->kind:(unsigned)s->game->devices[p];
-  if(kind!=0&&kind!=3)continue;
-  VoControllerSettings t={0};t.game=s->game;t.owner=s->owner;t.edition=s->edition;t.player=p;t.kind=kind;
-  *(unsigned*)a->player=p;*(unsigned*)(a->blocks+p*112)=kind;
-  if(!open_controls(&t))ok=0;
-  else{method(&t,kind==0?a->command_real:a->command_pad,kind==0?1017:1022);ok=*(HWND*)(t.object+12)==NULL;}
-  if(t.host)DestroyWindow(t.host);
+/* Same original slot uniqueness rule, using the original encoded key table.
+ * Real has eleven logical slots; its two Dash rows address one slot. Custom
+ * intentionally permits repeated inputs and None. Original Simple does not
+ * cross-check the other keyboard; Real P2 does (kbpage.asm). */
+static int validate(VoControllerSettings *s){
+ if(s->kind==4)return 1;
+ unsigned n=s->kind==0?11:12;unsigned char used[256]={0};
+ for(unsigned i=0;i<n;i++){unsigned k=s->pending[2*i];if(used[k])return 0;used[k]=1;}
+ if(s->kind==0&&s->player==1&&(s->game->devices[0]==0||s->game->devices[0]==3)){
+  const Addresses *a=&addresses[s->edition];const unsigned char *other=(void*)(a->blocks+offset(s->game->devices[0]));
+  for(unsigned i=0;i<(s->game->devices[0]==0?11u:12u);i++)if(used[other[2*i]])return 0;
  }
- memcpy((void*)a->blocks,blocks,224);*(unsigned*)a->player=s->player;
- memset(used_keys(s->edition),0,138);return ok;
+ return 1;
 }
 int vo_controller_save(VoControllerSettings *s){
- if(!s->active)return 0;
- const Addresses *a=&addresses[s->edition];unsigned char values[24],live[24];
- if(s->kind!=4){
-  memset(used_keys(s->edition),0,138);
-  *(HWND*)(s->object+12)=s->host;
-  method(s,s->kind==0?a->command_real:a->command_pad,s->kind==0?1017:1022);
-  if(*(HWND*)(s->object+12))return 0; /* original validator rejected */
-  memcpy(values,(void*)(a->blocks+s->player*112+offset(s->kind)),24);
-  if((s->kind==0||s->kind==3)&&!validate_keyboards(s))return 0;
- }else{
-  /* Native Custom OK owns its None/input conversion and serializer. Restore
-   * live bindings before publishing the staged file, even on failure. */
-  memcpy(live,s->game->custom+s->player*24,24);
- }
- VoIniTransaction t;if(!vo_ini_begin(&t,s->edition,"Device Settings"))return 0;
- int ok;
- if(s->kind==4){
-  ((DLGPROC)a->custom_proc)(s->host,WM_COMMAND,1,0);
-  memcpy(values,s->game->custom+s->player*24,24);memcpy(s->game->custom+s->player*24,live,24);
-  /* Repeat through the same writer to observe its result (native Save is void). */
-  ok=binding_line(a,s->player,"Custom Assign",values);
- }else{
-  ok=binding_line(a,s->player,s->kind==3?"Simple Assign":"Keyboard Assign",values);
-  if(ok&&s->kind==3)ok=binding_line(a,s->player,"Keyboard Assign",(void*)(a->blocks+s->player*112+8));
- }
+ if(!s->active||!validate(s))return 0;
+ const Addresses *a=&addresses[s->edition];VoIniTransaction t;if(!vo_ini_begin(&t,s->edition,"Device Settings"))return 0;
+ int ok=binding_line(a,s->player,s->kind==4?"Custom Assign":s->kind==3?"Simple Assign":"Keyboard Assign",s->pending);
+ if(ok&&s->kind==3)ok=binding_line(a,s->player,"Keyboard Assign",(void*)(a->blocks+s->player*112+8));
  if(!vo_ini_end(&t,ok))return 0;
  unsigned char *destination=s->kind==4?s->game->custom+s->player*24:s->kind==0?(unsigned char*)(uintptr_t)(s->edition?0x364c140:0x3651440)+s->player*24:(unsigned char*)s->game->padbinds+s->player*24;
- memcpy(destination,values,24);
- /* Keep the original saved block coherent after releasing modal scratch. */
- if(s->kind!=4)memcpy(s->blocks+s->player*112+offset(s->kind),values,24);
+ memcpy(destination,s->pending,24);
+ if(s->kind!=4)memcpy((void*)(a->blocks+s->player*112+offset(s->kind)),s->pending,24);
  return 1;
 }
 int vo_controller_profile(const VoGame *g,unsigned p,unsigned kind){
@@ -186,4 +118,15 @@ int vo_controller_deadzone(const VoGame *g,unsigned p,int value){
  /* Invoke the original F11 seed: ECX percent, EBX player. */
  __asm__ volatile("push %%ebx\n\tmov %1,%%ebx\n\tcall *%2\n\tpop %%ebx" : : "c"(value),"S"(p),"d"(a->seed) : "eax","memory","cc");
  return value;
+}
+
+/* Only real XInput axes use DZTHR. Native HID profiles are already digital.
+ * A configurable profile with no axis bindings has no adjustable stick range. */
+int vo_controller_has_axes(const VoGame *g,unsigned p,unsigned kind){
+ if(!g||p>1||(kind!=1&&kind!=2&&kind!=4&&kind!=6))return 0;
+ const unsigned char *binds=kind==1?g->padbinds:kind==4?g->custom:kind==2?g->twinbinds:g->horibinds;
+ if(!binds)return 0;
+ if(kind==1||kind==4)binds+=p*24;
+ for(unsigned i=0;i<12;i++)if(binds[i*2]>=0xe8&&binds[i*2]<=0xef)return 1;
+ return 0;
 }

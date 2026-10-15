@@ -5,6 +5,7 @@
 #include "runtime.c"
 void vo_pages_begin(VoOverlay*s,const VoGame*g,HWND h){(void)s;(void)g;(void)h;}
 void vo_pages_end(void){}
+int vo_pages_capture_active(void){return 0;}
 void vo_pages_refresh(VoOverlay*s){(void)s;}
 unsigned vo_pages_command(void){return 0;}
 static int cursor_count=-1;
