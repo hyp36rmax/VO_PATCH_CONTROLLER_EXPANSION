@@ -9,6 +9,7 @@ reduced to a 256-colour palette, which the artwork fits and which is a
 fifth of the size. Needs Pillow.
 """
 
+import argparse
 import base64
 import io
 import os
@@ -22,7 +23,7 @@ ROOT = os.path.dirname(HERE)
 ASSETS = os.path.join(ROOT, 'assets')
 PATCHER = os.path.join(ROOT, 'v-on-patcher.py')
 
-LOGO_SRC = 'VONPatcherLogo1.png'
+LOGO_SRC = 'VOPatchEXLogo.png'
 ICON_SRC = 'VONPatcherIcon.png'
 
 # Twice the height the window shows at 100% (LOGO_HEIGHT in the patcher),
@@ -50,6 +51,10 @@ def literal(name, data):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--logo-only", action="store_true",
+                        help="preserve the embedded icon and icon.ico byte-for-byte")
+    args = parser.parse_args()
     logo = Image.open(os.path.join(ASSETS, LOGO_SRC)).convert('RGBA')
     width = int(round(logo.width * LOGO_HEIGHT / float(logo.height)))
     logo = logo.resize((width, LOGO_HEIGHT), Image.LANCZOS)
@@ -62,14 +67,17 @@ def main():
     pattern = re.compile(re.escape(BEGIN) + '.*?' + re.escape(END), re.S)
     if not pattern.search(source):
         raise SystemExit('no ASSETS BLOB markers in v-on-patcher.py')
-    block = BEGIN + literal('LOGO_PNG', logo_png) \
-        + literal('ICON_PNG', icon_png) + END
+    icon_literal = (re.search(r'ICON_PNG = \(.*?\n\)\n', source, re.S).group()
+                    if args.logo_only else literal('ICON_PNG', icon_png))
+    block = BEGIN + literal('LOGO_PNG', logo_png) + icon_literal + END
     source = pattern.sub(lambda _m: block, source, count=1)
     with open(PATCHER, 'w', encoding='utf-8', newline='\n') as fh:
         fh.write(source)
     print('logo %dx%d, %d bytes; icon %dx%d, %d bytes -> v-on-patcher.py'
           % (logo.size + (len(logo_png),) + icon.size + (len(icon_png),)))
 
+    if args.logo_only:
+        return 0
     icon.save(os.path.join(ASSETS, 'icon.ico'),
               sizes=[(s, s) for s in ICO_SIZES])
     print('icon.ico %s' % ', '.join(str(s) for s in ICO_SIZES))

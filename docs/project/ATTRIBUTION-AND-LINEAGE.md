@@ -7,7 +7,7 @@ It does not imply endorsement by SEGA, Pairomaniac or earlier patch authors.
 |---|---|
 | Cyber Troopers Virtual-On PC | Original game and game assets belong to their respective owners, including SEGA. Original copyright and staff credits remain unchanged |
 | Earlier VO_Patch lineage | Existing upstream attribution is retained; no new authorship or licensing claim is inferred from the historical name |
-| V-On Patcher | Pairomaniac foundation, MIT copyright 2026 pairo; original source history, version label, repository link and artwork credits retained |
+| V-On Patcher | Pairomaniac foundation, MIT copyright 2026 pairo; original source history, in-game version label, upstream repository link and artwork credits retained |
 | Controllers Expansion | hyp36rmax controller work and measured hardware records, inherited intact from Controller-Expansion |
 | Display Expansion | Private rendering/presentation work through F04B; automated validation is distinct from pending Windows acceptance |
 | Unified Overlay Menu Expansion | Not included in Experience. Existing R3 experimental source remains in its original worktree and recovery archive |
@@ -21,8 +21,8 @@ is separate and remains unchanged; no new in-game dialog was introduced.
 
 G02 adds `VO PATCH EX 0.1-dev` at title tile row 48, columns 43–78, above the existing
 right-aligned upstream version on row 50. It uses the same CURSOR/PRINT functions,
-state gates and patch-generation path. The About card adds hyp36rmax and the
-included Controller/Display scope, explicitly identifying Overlay as not included.
+state gates and patch-generation path. The About card leads with VO PATCH EX, hyp36rmax and the included Controller/Display
+scope, followed by Pairomaniac and original artist SirRockEmSockEm.
 `0.1-dev` denotes a local development identity, not a published release.
 
 ### Ending-roll addition: BLOCKED
@@ -71,8 +71,8 @@ wrapper copies. Preserve Python/runtime and toolchain notices where distributed.
 No blanket grant is made for SEGA assets or the separate native Experience code.
 
 Public packages must contain only reviewed patcher/helper/runtime files and
-required notices, applied to user-provided game data. Private UAT archives contain
-game assets and are excluded. Reachable-history scans supplement, rather than
+required notices, applied to user-provided game data. Historical private UAT archives containing
+game assets are excluded. Current installable UAT archives contain no game assets. Reachable-history scans supplement, rather than
 replace, artifact review; `.gitignore` cannot remove existing history.
 
 ## Branch authorities and upstream updates
@@ -95,3 +95,11 @@ history. No new upstream changes are automatically merged.
 
 Experience is intended as the future default/release authority. Remote settings,
 CI branch triggers and public branch names remain unchanged in G02.
+
+## Patcher branding
+
+The project URL is https://github.com/hyp36rmax/VO_PATCH_EX. The window title is
+`V-On Patcher EX`; its executable remains `v-on-patcher.exe`. The derivative
+header preserves the original logo and adds the approved EX source beneath PATCHER.
+See [asset provenance](../../assets/BRANDING.md). The original icon, ending-roll
+resources, title-screen attribution and upstream license remain unchanged.

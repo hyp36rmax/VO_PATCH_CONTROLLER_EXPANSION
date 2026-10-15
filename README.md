@@ -2,20 +2,23 @@
 
 Private integration of Controller Expansion and Display Expansion for
 *Cyber Troopers Virtual-On* (PC, 1997).
-Maintained by [hyp36rmax](https://github.com/hyp36rmax/VO_PATCH_CONTROLLER_EXPANSION), built on
+Maintained by [hyp36rmax](https://github.com/hyp36rmax/VO_PATCH_EX), built on
 [Pairomaniac's V-On Patcher](https://github.com/pairomaniac/v-on-patcher) for
 modern Windows systems.
 
-The local Experience branch includes Display F04B and the current Controller
-history. Windows integration acceptance is pending; the public CE pre-release
-remains separate. Unified Overlay and the separately licensed native Experience
-component are not included. See [attribution and lineage](docs/project/ATTRIBUTION-AND-LINEAGE.md)
-for credit preservation, the blocked ending-roll extension and license boundaries.
+The private Experience build integrates Controllers Expansion and Display Expansion
+through the original patcher. Configure displays in **F5 → Graphic Settings →
+Display...**; saved changes apply on next launch. The development identity is
+**0.1-dev**. Windows integration acceptance remains pending; the published
+Controller Expansion pre-release is a separate distribution.
 
-The normal installation workflow and pending in-game display configuration are
-documented in [Installation workflow](docs/project/INSTALLATION-WORKFLOW.md).
-Earlier prototype diagnostic exports are documented in
-[Experience diagnostics](docs/project/EXPERIENCE-DIAGNOSTICS.md).
+VO PATCH EX is an independent community project, not affiliated with or endorsed
+by SEGA. Original patcher logo and icon: **SirRockEmSockEm**. The header combines
+the unchanged upstream artwork with the approved red EX lettering.
+
+See [installation](docs/project/INSTALLATION-WORKFLOW.md),
+[attribution and lineage](docs/project/ATTRIBUTION-AND-LINEAGE.md), and
+[branding assets](assets/BRANDING.md). Unified Overlay is not included.
 
 ## Overview
 

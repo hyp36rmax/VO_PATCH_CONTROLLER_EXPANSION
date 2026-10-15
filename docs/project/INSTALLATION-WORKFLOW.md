@@ -1,43 +1,36 @@
-# Installation workflow — G03A
+# Installation workflow
 
-VO PATCH EX uses Pairomaniac's patcher for installation. Keep the original
-ISO/file selection, patch options, Apply patches, Restore original, backups,
-validation and error handling. No separate installer or mandatory Experience
-launcher is part of this workflow. Controller Expansion is the integration
-reference; G03A leaves these patcher methods unchanged.
+VO PATCH EX preserves Pairomaniac's ISO/file selection, patch options, Apply
+patches, Restore original, backups, validation and error handling. Use the
+original supported disc image/files. No separate installer or mandatory game
+launcher is required.
 
-For a new installation, use the patcher's INSTALL section with the original
-supported disc image. For an existing installation, select the original
-`v_on.exe`. An already patched installation must use **Restore original** before
-applying VO PATCH EX. Modified executables are not accepted as pristine inputs.
-Launch the patched game normally through `v_on.exe`.
+For a new installation, use INSTALL with the original disc image. For an existing
+installation, select its original `v_on.exe`. If already patched, use **Restore
+original** first; applying over a patched executable is rejected. Keep the entire
+Windows package together, including `_internal`. Launch the installed `v_on.exe`
+normally after Apply.
 
-## Default and configuration boundary
+## Game configuration
 
-A fresh installation defaults to single-display 16:9, using the existing
-1920×1080 patch. Display mode and rendering-profile selection belong in the game,
-not in new installation controls. The F-key functions will be reviewed separately.
+Fresh defaults use **16:9 Single Display**. The existing Native widescreen checkbox
+is retained; explicitly disabling it starts from original 4:3 unless a saved
+Display preference overrides that choice. There is no additional expansion checkbox.
 
-The existing Display implementation generates different executable layouts and
-uses a temporary external selector for presentation configuration. It does not
-yet connect the expanded display settings to the in-game F-key menus. Completing
-that configuration path is a prerequisite for integrated three-mode acceptance.
-The validated Display implementations remain preserved in this branch; their
-presence does not mean the normal patcher currently installs all three modes.
+**F5 → Graphic Settings → Display...** selects Single Display, Dual Display —
+Versus or Dual Display — Mirror, monitor assignments and game aspect ratio.
+OK saves for next launch; Cancel discards pending edits. Dual Versus presents
+independent player views; Dual Mirror duplicates the complete primary presentation,
+including both Local VS views. Movie presentation retains its established policy.
+Controller selection and Custom remapping remain in F7.
 
-## Private installation control
+Restore original restores owned installation files and retains saved preferences,
+diagnostics and unrelated files. Modified runtime files are preserved and reported.
+No administrator privileges or manual configuration edits are required.
 
-The G03A Windows control uses the upstream launcher and bundled Python/Tk runtime,
-the current patcher, and its Controller Expansion and network helpers. It contains
-no game files, external Experience coordinator, profile preparer or mode selector.
-It verifies the normal installation path and default patch generation, not full
-Display runtime integration or Windows physical acceptance.
+## Validation boundary
 
-The earlier G03 package and its diagnostic coordinator are retained as prototype
-and recovery evidence. They are superseded as an installation workflow and must
-not be presented as a required installer or launcher.
-
-Acceptance still requires Windows execution. Automated Retail/JPRE patch and
-restore checks cannot establish GUI interaction or physical display behavior.
-No F-key assignments, runtime mode switching, renderer changes or Unified Overlay
-work are included in G03A.
+Automated Retail/JPRE Apply/Restore and configuration tests cover transaction
+behavior. Normal Windows GUI use, display presentation, movie framing, scaling
+and physical hardware acceptance remain separate checks. Private packages include
+patch data and redistributables, never original game executables or assets.
