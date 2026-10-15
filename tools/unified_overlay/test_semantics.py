@@ -27,6 +27,13 @@ int main(void){
  x.Gamepad.wButtons=0x20;assert(!(semantic(4,&x)&VO_BACK));
  x.Gamepad.wButtons=0;x.Gamepad.sThumbLY=threshold;assert(!(semantic(2,&x)&15));
  x.Gamepad.sThumbLY=threshold+1;assert(semantic(2,&x)&VO_UP);
+ x=(XINPUT_STATE){0};x.Gamepad.wButtons=0x103f;x.Gamepad.bLeftTrigger=120;x.Gamepad.bRightTrigger=120;
+ isolate(6,&x);assert(x.Gamepad.wButtons==0x30&&x.Gamepad.bLeftTrigger==120&&x.Gamepad.bRightTrigger==120);
+ x=(XINPUT_STATE){0};x.Gamepad.sThumbLX=20000;x.Gamepad.sThumbLY=30000;x.Gamepad.sThumbRX=12345;
+ isolate(2,&x);assert(!x.Gamepad.sThumbLX&&!x.Gamepad.sThumbLY&&x.Gamepad.sThumbRX==12345);
+ for(unsigned kind=7;kind<=8;kind++){
+  VonTwinState n={0x3fff};isolate(kind,&n);assert(n.controls==(0x3fff&~(15|VON_START)));
+ }
  puts("PASS actual CE condition table, live F7 Custom/gamepad bindings, Twin/Tanita/HORI directions, trigger/deadzone boundaries, stock accept, camera Back preserved");
 }
 '''

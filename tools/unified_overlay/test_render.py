@@ -27,13 +27,14 @@ fixture=r'''
 typedef unsigned COLORREF;typedef void *HDC,*HBRUSH,*HFONT,*LPDIRECTDRAWSURFACE;
 typedef struct {int left,top,right,bottom;} RECT;
 typedef struct {unsigned dwSize,dwWidth,dwHeight;} DDSURFACEDESC;
-typedef struct {LPDIRECTDRAWSURFACE surface;HFONT title,body;int width,height,area_width,x,y,w,h,row,first,visible;} VoPaint;
-static int width,height,mode,refs,fonts,labels;
+typedef struct {LPDIRECTDRAWSURFACE surface;HFONT title,body;int width,height,area_width,x,y,w,h,row,first,visible,page;} VoPaint;
+static int width,height,mode,refs,fonts,labels,pending,flushes;
+static int GdiFlush(void){pending=0;flushes++;return 1;}
 static HBRUSH CreateSolidBrush(COLORREF c){(void)c;return (void*)1;}
 static void FillRect(HDC d,const RECT*r,HBRUSH b){(void)d;(void)b;assert(r->left>=0&&r->top>=0&&r->right<=width&&r->bottom<=height);}
 static void DeleteObject(void*p){(void)p;}
 static void SetTextColor(HDC h,COLORREF c){(void)h;(void)c;}
-static void DrawTextA(HDC h,const char*s,int n,const RECT*r,int f){(void)h;(void)s;(void)n;(void)f;assert(r->right<=width&&r->bottom<=height);labels++;}
+static void DrawTextA(HDC h,const char*s,int n,const RECT*r,int f){(void)h;(void)s;(void)n;(void)f;assert(r->right<=width&&r->bottom<=height);labels++;pending=1;}
 static void IDirectDrawSurface_Release(LPDIRECTDRAWSURFACE s){(void)s;refs--;}
 static int IDirectDrawSurface_GetSurfaceDesc(LPDIRECTDRAWSURFACE s,DDSURFACEDESC*d){(void)s;d->dwWidth=width;d->dwHeight=height;return 0;}
 static void IDirectDrawSurface_AddRef(LPDIRECTDRAWSURFACE s){(void)s;refs++;}
@@ -42,7 +43,7 @@ static HFONT CreateFontA(int h,int w,int a,int b,int c,int d,int e,int f,int g,i
 static int IDirectDrawSurface_IsLost(LPDIRECTDRAWSURFACE s){(void)s;return 0;}
 static int IDirectDrawSurface_GetDC(LPDIRECTDRAWSURFACE s,HDC*d){(void)s;*d=(void*)1;return 0;}
 static int SaveDC(HDC d){(void)d;return 1;}static void RestoreDC(HDC d,int n){(void)d;assert(n==1);}
-static int IDirectDrawSurface_ReleaseDC(LPDIRECTDRAWSURFACE s,HDC d){(void)s;(void)d;return 0;}
+static int IDirectDrawSurface_ReleaseDC(LPDIRECTDRAWSURFACE s,HDC d){(void)s;(void)d;assert(!pending&&flushes);return 0;}
 static void SelectObject(HDC d,HFONT f){(void)d;(void)f;}static void SetBkMode(HDC d,int m){(void)d;(void)m;}
 '''
 main=r'''
@@ -66,3 +67,12 @@ with tempfile.TemporaryDirectory() as td:
  p=Path(td);(p/'test.c').write_text(fixture+body+main)
  subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Werror','-fsanitize=address,undefined','-I',str(here),str(p/'test.c'),'-o',str(p/'test')],check=True)
  subprocess.run([str(p/'test')],check=True)
+
+ # Negative control: delayed GDI writes must not reach publication unflushed.
+ (p/'unflushed.c').write_text((fixture+body+main).replace('pending=0;flushes++;return 1;', 'flushes++;return 1;'))
+ subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Werror','-I',str(here),str(p/'unflushed.c'),'-o',str(p/'unflushed')],check=True)
+ import resource
+ def no_core():resource.setrlimit(resource.RLIMIT_CORE,(0,0))
+ failed=subprocess.run([str(p/'unflushed')],capture_output=True,preexec_fn=no_core)
+ assert failed.returncode!=0 and b'!pending' in failed.stderr,failed.stderr
+ print('PASS negative control: omitted GDI completion is rejected before frame publication')

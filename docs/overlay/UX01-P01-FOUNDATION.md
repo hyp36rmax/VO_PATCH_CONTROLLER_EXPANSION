@@ -1,95 +1,117 @@
-# Unified Overlay foundation — private P01
+# Unified Overlay foundation — private P01-F02
 
-P01 adds a main menu to offline gameplay. It does not replace the patcher,
-legacy F-key menus, controller assignment, or configuration authorities.
-Physical Windows acceptance is pending.
+The six-entry menu adds optional access during verified title, attract-demo and
+offline gameplay states. Installation, controller profiles and configuration
+remain with their existing authorities. Physical Windows acceptance is pending.
 
-## Controls
+## Controls and availability
 
 | Input | Behavior |
 |---|---|
-| Assigned P1 Start | Pause and open; close and resume after release |
-| Native Raphnet Pause / Start | Pause toggles; Start confirms |
+| ESC | Open, Back from a placeholder page, close at root; release before repress |
+| Controller Start / native Pause | Original game behavior; never activates overlay |
 | P1 left lever / existing directions | Navigate using the current F7 profile |
-| Existing menu accept | Select |
-| Keyboard | Arrows, Enter, Escape |
-| Mouse | Hover, click, wheel when the list scrolls; visible Back and Resume |
-| F11 Extras | Additive “Unified Overlay (gameplay)...” entry |
-| F10 | Not enabled; Windows menu conflict validation remains pending |
-| Existing F-keys | Original functions retained |
+| Existing accept | Select, including BACK and RESUME; native Raphnet uses Start |
+| Keyboard | Arrows and Enter |
+| Mouse | Hover, click, scroll when necessary; visible BACK and RESUME |
+| F11 Extras | Additive “Unified Overlay...” fallback |
+| F10 | Unassigned |
+| Original F-keys | Relinquish overlay and run the original handler |
 
-The existing shoulder/trigger soft-reset chord passes through unchanged.
-Assignment takes priority over activation. Pending assignment presses are consumed
-by the original helper; the overlay waits for assigned participants and a fresh
-press. P2 cannot navigate the overlay. Keyboard and mouse remain available if P1
-disconnects. Start, levers, buttons, and triggers must return to neutral before
-controller navigation is armed. Back retains its existing game camera behavior;
-no new hardware-specific Back binding is assigned.
+CONTROLLERS, DISPLAY, GRAPHICS, GAME SETTINGS and EXTRAS display an explicit
+unavailable notice. Their BACK and RESUME controls are selectable with P1
+navigation. No configuration pages are implemented.
 
-CONTROLLERS, DISPLAY, GRAPHICS, GAME SETTINGS, and EXTRAS show an explicit
-private-build unavailable notice. Back returns to the main menu; Resume closes.
-Configuration pages are outside this milestone.
+| Original state | Overlay policy |
+|---|---|
+| Attract machine 1, substates 6 / 23 | Title prompt eligible |
+| Attract machine 1, substate 17 | Title menu eligible |
+| Attract machine 1, substate 7 | Automated match eligible |
+| Match machine 4, substates 8–12 | Offline Solo / Local VS eligible |
+| Movie flag bit 0 set | Excluded; original movie controls pass through |
+| Network mode 2, startup and other states | Excluded |
 
-## Integration
+Title and demo states follow the original dispatcher documented in
+`asm/titlever.asm`; match states follow the original input predicate. No delay
+or resolution heuristic determines eligibility. Transitions between eligible
+states retain the menu. Entering an ineligible state dismisses it without
+queuing a later reopen.
 
-The original `vontanita.dll`, its source, assignment dialogs, and capture logic
-remain unchanged. A private `voinputux.dll` forwards the existing APIs and offers
-returned, already-owned samples to `vooverlay.dll`. There is no second controller
-polling loop. Directional bindings and deadzones are read from the existing F7
-condition tables. Claimed input is withheld from gameplay only during the queued
-open, open, and release-drain transaction.
+## Input and pause ownership
 
-A guarded `.vouo` section connects the existing message pump, game window
-procedure, inactive rendering path, and pre-flip presentation seam. Every replaced
-site is checked against known original or selected upstream patch bytes.
-`GPAUSE(0)` and `GRESUME` retain pause authority; the overlay opens only after the
-original inactive flag is set and its drawing surface is available. Supported
-activation is limited to offline gameplay states accepted by the game's own
-availability predicate. Unsupported states keep stock Start behavior.
+The original `vontanita.dll`, source, claim dialogs, release-before-press policy,
+and capture logic remain unchanged. `voinputux.dll` forwards each original API
+call once. Closed or ineligible overlay input is untouched. Only assigned P1
+samples enter menu navigation; P2 input is not suppressed.
 
-DLL/export failure preserves the original pump and pause behavior. Drawing
-failure or focus loss relinquishes UI input ownership. A drawing failure retains
-stock pause for F3 recovery. Existing F-key dialogs relinquish overlay ownership
-before their original handlers run; F3 sees the original paused state.
+While open or awaiting navigation release, only P1 directions and existing
+accept are filtered. XInput Start, native Pause, unrelated controls and the
+original reset chord retain their destinations. Native Start is consumed solely
+as existing confirmation inside the explicitly opened overlay. No controller
+button posts ESC or an activation request.
 
-The paused frame uses the existing game rendering routine. The overlay draws a
-bounded panel into its back surface; no new simulation clock or timer is created.
-Single centers within the selected source profile. Versus confines the panel to
-the P1 half. Complete Mirror presents the same composed image on both outputs.
-Output-window mouse coordinates use the existing fitted source rectangles, and
-Single mouse events pass through cnc-ddraw's original coordinate conversion.
+A guarded seam after P1's original DirectInput read clears only arrows, Enter
+and ESC from that player's key buffer while the menu owns input. It preserves
+the original read/reacquire path, compare flags, other keys and P2 buffer.
+Keyboard navigation samples are edge-gated; ESC messages are processed separately
+before accelerator dispatch, avoiding duplicate asynchronous ESC processing.
+
+Overlay visibility is independent of the inactive flag. Neither open nor close
+calls GPAUSE/GRESUME. A running game continues running; a paused game remains
+paused. Selecting RESUME dismisses the menu without changing the pre-existing
+pause state. F3/Start retains the game's original Pause/Resume operation.
+
+## Presentation and recovery
+
+The guarded `.vouo` bridge retains the original pump, window procedure, inactive
+rendering path and pre-flip seam. The existing frame renderer draws while already
+paused; no simulation clock, overlay window or separate display system is added.
+
+GDI drawing is explicitly flushed before releasing the composed surface. The
+pinned wrapper's ReleaseDC does not flush GDI's per-thread batch; the flush closes
+that CPU-drawing/publication race. The regression models delayed drawing and
+rejects an unflushed surface. Physical confirmation that this eliminates the
+reported flicker remains pending.
+
+Single centers the bounded panel in the selected source aspect; Versus confines
+it to P1; Complete Mirror presents the same composed image on both displays.
+Text scales uniformly. Mouse mapping retains the existing output/source fit.
+Cursor visibility increments are balanced on dismissal and recovery.
+
+Focus loss, unavailable drawing surfaces, movie entry and legacy F-key access
+release overlay ownership. No focus stealing, window recreation, forced resume,
+movie lifecycle change or automatic reopening is introduced. Keyboard and mouse
+remain usable if P1 disconnects. Display fallback remains unchanged.
 
 ## Configuration and diagnostics
 
-P01 adds no configuration keys. Display settings remain in the established
-`player-displays.ini` authority, and controller settings remain with the existing
-F7 implementation. Future pages must use these same authorities.
+Display settings remain in `player-displays.ini`; controller settings remain
+with F7. Future overlay pages must use these same authorities.
 
-Diagnostics remain Off by default. When enabled, the existing bounded local
-`events.jsonl` sink accepts `overlay_lifecycle` with a numeric code only:
+Diagnostics default to Off. Existing restart, immediate Off, explicit export,
+retention and no-upload rules remain unchanged. The bounded `overlay_lifecycle`
+event contains only a numeric code:
 
-| Code | Event |
+| Code | Meaning |
 |---|---|
-| 1 | Opened after pause verification |
-| 2 | Resumed or handed back to a legacy menu |
-| 3 | Initialization/drawing unavailable |
-| 4 | Focus/window/pause ownership released |
+| 1 | Opened |
+| 2 | Dismissed or handed to an original menu |
+| 3 | Drawing unavailable |
+| 4 | Focus/window/eligibility ownership released |
 
-No raw inputs, device identifiers, new log files, or automatic uploads are added.
-Existing explicit export and retention rules apply.
+No continuous raw input or new diagnostic file is collected.
 
 ## Evidence boundaries
 
 | Area | Status |
 |---|---|
-| Controller helper preservation | VERIFIED by unchanged source/binary pins and baseline regressions |
-| Menu state, input forwarding, original binding interpretation | VERIFIED by host tests executing production code with API doubles |
-| Retail/JPRE hook identity and calling conventions | VERIFIED by x86 emulation |
-| Layout bounds and output mouse routing | VERIFIED by production-code harnesses |
-| Pause/render/focus behavior on Windows | NEEDS VALIDATION |
-| Readability and actual mouse alignment on physical displays | NEEDS VALIDATION |
-| F10 coexistence with Windows menu activation | NEEDS VALIDATION; not implemented |
-| Configuration pages | Intentionally not implemented |
+| Original controller source and profile preservation | VERIFIED by source pins and regressions |
+| Runtime state, navigation, input filtering and recovery logic | VERIFIED with production-code API doubles |
+| Retail/JPRE patch guards, keyboard seam, stack/register/flags | VERIFIED by x86 emulation |
+| Layout bounds, mouse routing, GDI flush order | VERIFIED with production-code harnesses |
+| Physical Raphnet selection and all controller behavior | NEEDS VALIDATION against this candidate |
+| Actual Windows flicker, focus, cursor and multi-monitor presentation | NEEDS VALIDATION |
+| Exact state sequence that caused the reported F7 failure | UNKNOWN; no physical trace supplied |
+| Configuration pages | Not implemented |
 
-Host and emulation results are not physical game acceptance. Use only the
-consolidated private UAT package for the next Windows run.
+Automated results are not physical game acceptance.

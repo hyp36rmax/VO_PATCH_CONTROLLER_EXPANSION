@@ -1,6 +1,6 @@
 bits 32
 org SECTION_VA
-dd wndproc,pump,idle,present,context
+dd wndproc,pump,idle,present,context,keyboard
 wndproc:
     cmp dword [function],0
     je .pass
@@ -124,6 +124,23 @@ present:
     popad
 .done:
     popfd
+    ret
+keyboard:
+    ; After the original DirectInput read/reacquire, before P1 handlers.
+    ; Preserve every register and replay the displaced compare exactly.
+    pushad
+    cmp dword [function],0
+    je .done
+    push 0
+    push KEYBUFFER
+    push 0
+    push 4
+    push context
+    push dword [HWND]
+    call [function]
+.done:
+    popad
+    cmp dword [KEYCHECK],0
     ret
 align 4
 function: dd 0

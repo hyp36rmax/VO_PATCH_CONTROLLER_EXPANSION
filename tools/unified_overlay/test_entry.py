@@ -68,7 +68,11 @@ def verify(path):
    assert u.reg_read(r.UC_X86_REG_EFLAGS)==0x246
    assert ('original-present' in calls)==bool(s['ORIGINAL_PRESENT'])
    assert (('step',3) in calls)==(scenario not in ('missing-dll','missing-export'))
-   calls.clear();value=execute('wndproc',(0x1234,0x100,0x74,0))
+   calls.clear();u.mem_write(s['KEYCHECK'],struct.pack('<I',1));execute('keyboard',())
+   assert (('step',4) in calls)==(scenario not in ('missing-dll','missing-export'))
+   assert not u.reg_read(r.UC_X86_REG_EFLAGS)&0x40
+   u.mem_write(s['KEYCHECK'],struct.pack('<I',0));execute('keyboard',());assert u.reg_read(r.UC_X86_REG_EFLAGS)&0x40
+   calls.clear();value=execute('wndproc' ,(0x1234,0x100,0x74,0))
    assert value==(0 if scenario in ('open','mouse') else 77)
  print(edition.short+': PASS 8 option combinations x 6 ABI scenarios; exact hook guards, fallback, poll preservation, context, register/stack balance, render seam')
 for arg in sys.argv[1:]:verify(Path(arg))

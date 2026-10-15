@@ -16,6 +16,9 @@ WM_MOUSEFIRST=512,WM_MOUSEMOVE=512,WM_LBUTTONDOWN=513,WM_LBUTTONUP=514,WM_MOUSEW
 #define GET_X_LPARAM(l) ((short)(l))
 #define GET_Y_LPARAM(l) ((short)((l)>>16))
 #define GET_WHEEL_DELTA_WPARAM(w) ((short)((w)>>16))
+typedef struct {DWORD cbSize,flags;} CURSORINFO;
+#define CURSOR_SHOWING 1
+int ShowCursor(int);int GetCursorInfo(CURSORINFO*);
 DWORD GetTickCount(void);int IsWindow(HWND);int IsIconic(HWND);HWND GetForegroundWindow(void);short GetAsyncKeyState(int);
 int PostMessageW(HWND,UINT,WPARAM,LPARAM);HMODULE GetModuleHandleW(const wchar_t*);void *GetProcAddress(HMODULE,const char*);
 LONG InterlockedExchange(LONG*,LONG);LONG InterlockedCompareExchange(LONG*,LONG,LONG);

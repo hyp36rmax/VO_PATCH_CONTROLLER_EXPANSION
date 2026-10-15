@@ -10,17 +10,18 @@ enum { VO_NO_ACTION, VO_REQUEST_PAUSE, VO_REQUEST_RESUME };
 typedef struct {
  unsigned state, selected, unavailable, controller_ready, previous;
  unsigned keyboard_ready, previous_keyboard, owns_pause;
+ int hover;
 } VoOverlay;
 static const char *const vo_overlay_labels[]={
  "CONTROLLERS", "DISPLAY", "GRAPHICS", "GAME SETTINGS", "EXTRAS", "RESUME"
 };
-static inline void vo_overlay_init(VoOverlay *s) { *s=(VoOverlay){0}; }
-/* Opening is a two-phase transaction. Never display a menu before the
- * adapter confirms that the original pause operation actually succeeded. */
+static inline void vo_overlay_init(VoOverlay *s) { *s=(VoOverlay){0}; s->hover=-1; }
+/* UI ownership is independent of the original game pause flag. */
 static inline int vo_overlay_pause_result(VoOverlay *s, int paused,
                                          int presentation_ready) {
- if (!paused || !presentation_ready) return 0;
- s->state=VO_OPEN; s->selected=0; s->unavailable=0; s->owns_pause=1;
+ (void)paused;
+ if (!presentation_ready) return 0;
+ s->state=VO_OPEN; s->selected=0; s->unavailable=0; s->owns_pause=0; s->hover=-1;
  s->controller_ready=0; s->keyboard_ready=0;
  s->previous=0; s->previous_keyboard=0; return 1;
 }
@@ -38,17 +39,25 @@ static inline unsigned vo_overlay_release(VoOverlay *s, int all_released) {
 static inline void vo_overlay_focus_lost(VoOverlay *s) { vo_overlay_init(s); }
 static inline unsigned vo_overlay_event(VoOverlay *s, unsigned edge) {
  if(s->state!=VO_OPEN) return VO_NO_ACTION;
- if(edge & VO_START) return vo_overlay_close(s);
+ s->hover=-1;
+ /* Start is never an overlay toggle. */
  if(edge & VO_BACK) {
-  if(s->unavailable) s->unavailable=0; else vo_overlay_close(s);
+  if(s->unavailable) { s->unavailable=0; s->selected=0; } else vo_overlay_close(s);
   return VO_NO_ACTION;
  }
- if(s->unavailable) return VO_NO_ACTION;
+ if(s->unavailable) {
+  if(edge&(VO_UP|VO_DOWN|VO_LEFT|VO_RIGHT))s->selected=s->selected==6?5:6;
+  if(edge&VO_ACCEPT){
+   if(s->selected==5)return vo_overlay_close(s);
+   s->unavailable=0;s->selected=0;
+  }
+  return VO_NO_ACTION;
+ }
  if((edge&(VO_UP|VO_DOWN))==VO_UP) s->selected=(s->selected+5)%6;
  if((edge&(VO_UP|VO_DOWN))==VO_DOWN) s->selected=(s->selected+1)%6;
  if(edge&VO_ACCEPT) {
   if(s->selected==5) return vo_overlay_close(s);
-  s->unavailable=1;
+  s->unavailable=1; s->selected=6;
  }
  return VO_NO_ACTION;
 }
@@ -57,6 +66,7 @@ static inline unsigned vo_overlay_event(VoOverlay *s, unsigned edge) {
 static inline unsigned vo_overlay_controller(VoOverlay *s, unsigned player,
  unsigned held, int connected, int assignment_pending, int stock_menu,
  int supported_gameplay) {
+ (void)stock_menu;(void)supported_gameplay;
  if(player!=0) return VO_NO_ACTION;
  if(!connected || assignment_pending) {
   s->controller_ready=0; s->previous=held; return VO_NO_ACTION;
@@ -65,9 +75,6 @@ static inline unsigned vo_overlay_controller(VoOverlay *s, unsigned player,
  if(!held) { s->controller_ready=1; return VO_NO_ACTION; }
  if(!s->controller_ready) return VO_NO_ACTION;
  if(s->state==VO_OPEN) return vo_overlay_event(s,edge);
- if(s->state==VO_CLOSED && !stock_menu && supported_gameplay && (edge&VO_START)) {
-  s->controller_ready=0; return VO_REQUEST_PAUSE;
- }
  return VO_NO_ACTION;
 }
 static inline unsigned vo_overlay_keyboard(VoOverlay *s,unsigned held) {
@@ -77,7 +84,8 @@ static inline unsigned vo_overlay_keyboard(VoOverlay *s,unsigned held) {
  return vo_overlay_event(s,edge);
 }
 static inline void vo_overlay_hover(VoOverlay *s,int item) {
- if(s->state==VO_OPEN && !s->unavailable && item>=0 && item<6) s->selected=(unsigned)item;
+ s->hover=item;
+ if(s->state==VO_OPEN && ((s->unavailable && (item==5||item==6)) || (!s->unavailable && item>=0 && item<6))) s->selected=(unsigned)item;
 }
 static inline unsigned vo_overlay_click(VoOverlay *s,int item) {
  if(s->state!=VO_OPEN) return VO_NO_ACTION;

@@ -45,7 +45,7 @@ __declspec(dllexport) INT_PTR WINAPI VonDiagnosticsF11(HWND h,UINT msg,WPARAM wp
   for(unsigned i=0;i<4;i++)add(h,DIAGNOSTICS_LEVEL,(const WCHAR*[]){L"Off",L"Normal",L"Detailed",L"Development"}[i]);
   SendDlgItemMessageW(h,DIAGNOSTICS_LEVEL,CB_SETCURSEL,vo_diagnostic_level(),0);
   control(h,L"BUTTON",L"Export Diagnostics...",WS_TABSTOP,DIAGNOSTICS_EXPORT,94,y+14,84,14);
-  control(h,L"BUTTON",L"Unified Overlay (gameplay)...",WS_TABSTOP,OVERLAY_BUTTON,8,y+56,170,14);
+  control(h,L"BUTTON",L"Unified Overlay...",WS_TABSTOP,OVERLAY_BUTTON,8,y+56,170,14);
   control(h,L"STATIC",L"Enable: restart game. Off stops collection. Local only.",0,0,8,y+32,178,18);
  }
  return result;

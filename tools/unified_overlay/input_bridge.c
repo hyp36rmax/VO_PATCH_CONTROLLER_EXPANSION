@@ -21,11 +21,12 @@ static FARPROC function(const char *name){
  return original?GetProcAddress(original,name):NULL;
 }
 static void sample(DWORD player,DWORD kind,void *state,DWORD result,int native){
- typedef int (WINAPI *OverlayInput)(DWORD,DWORD,const void*,DWORD,DWORD);
+ (void)native;
+ typedef int (WINAPI *OverlayInput)(DWORD,DWORD,void*,DWORD,DWORD);
  HMODULE overlay=GetModuleHandleW(L"vooverlay.dll");
  OverlayInput step=overlay?(OverlayInput)GetProcAddress(overlay,"VonOverlayInput"):NULL;
  if(player<2){if(result)ready&=~(1u<<player);else ready|=1u<<player;}
- if(step&&step(player,kind,state,result,ready))ZeroMemory(state,native?sizeof(VonTwinState):sizeof(XINPUT_STATE));
+ if(step)step(player,kind,state,result,ready);
 }
 __declspec(dllexport) DWORD WINAPI TanitaGetState(DWORD index,XINPUT_STATE *state){
  typedef DWORD (WINAPI *Read)(DWORD,XINPUT_STATE*);Read read=(Read)function("TanitaGetState");

@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <string.h>
 #include "runtime.c"
+static int cursor_count=-1;
+int ShowCursor(int show){cursor_count+=show?1:-1;return cursor_count;}
+int GetCursorInfo(CURSORINFO *info){info->flags=cursor_count>=0?CURSOR_SHOWING:0;return 1;}
 static DWORD now;static HWND foreground_window=(void*)1;static unsigned keys[256];
 static int pause_ok=1,attach_ok=1,paint_ok=1,pauses,resumes,posted,draws;
 static LONG inactive,mode=4,submode=9,gamemode,movie,threshold=8000,devices[2]={4,4};
@@ -21,36 +24,69 @@ int vo_attach(VoPaint*p,LPDIRECTDRAWSURFACE s){p->surface=s;p->visible=6;return 
 int vo_paint(VoPaint*p,const VoOverlay*s){(void)p;assert(s->state==VO_OPEN);draws++;return paint_ok;}
 int vo_hit(VoPaint*p,HWND h,int x,int y){(void)p;(void)h;(void)y;return x;}int vo_hit_source(VoPaint*p,int x,int y){(void)p;(void)y;return x;}
 static void step(unsigned kind,unsigned msg,unsigned w,int l){VonOverlayStep((void*)1,&context,kind,msg,w,l);}
-static void reset(void){clear();inactive=0;mode=4;submode=9;gamemode=0;movie=0;pauses=resumes=posted=draws=0;pause_ok=attach_ok=paint_ok=1;foreground_window=(void*)1;memset(keys,0,sizeof keys);step(2,0,0,0);}
+static void reset(void){clear();escape_down=0;inactive=0;mode=4;submode=9;gamemode=0;movie=0;pauses=resumes=posted=draws=0;pause_ok=attach_ok=paint_ok=1;foreground_window=(void*)1;memset(keys,0,sizeof keys);step(2,0,0,0);}
 static void sample(unsigned player,unsigned buttons,unsigned ready){XINPUT_STATE s={0};s.Gamepad.wButtons=buttons;VonOverlayInput(player,4,&s,0,ready);}
-static void open_start(void){sample(0,0,3);sample(0,0x10,3);assert(posted==1);step(0,VO_OPEN_MESSAGE,0,0);}
+
+static void esc(void){step(0,WM_KEYDOWN,VK_ESCAPE,0);step(0,WM_KEYUP,VK_ESCAPE,0);}
+static void open_start(void){esc();assert(state.state==VO_OPEN);}
 int main(void){
- reset();sample(0,0,3);
- XINPUT_STATE reset_chord={0};reset_chord.Gamepad.wButtons=0x310;
- reset_chord.Gamepad.bLeftTrigger=reset_chord.Gamepad.bRightTrigger=30;
- assert(!VonOverlayInput(0,4,&reset_chord,0,3)&&!posted&&state.state==VO_CLOSED);
- reset();sample(0,0,3);sample(1,0x10,3);assert(!posted);
- mode=1;sample(0,0,3);sample(0,0x10,3);assert(!posted);mode=4;
- gamemode=1;sample(0,0,1);sample(0,0x10,1);assert(!posted);gamemode=0;
- open_start();assert(state.state==VO_OPEN&&inactive&&pauses==1);assert(VonOverlayVisible());
- sample(0,0x10,3);assert(state.state==VO_OPEN);sample(0,0,3);sample(0,2,3);assert(state.selected==1);
- sample(1,1,3);assert(state.selected==1);step(3,0,0,0);assert(draws==1);
- sample(0,0,3);sample(0,0x10,3);assert(state.state==VO_DRAINING);step(2,0,0,0);assert(!resumes);
- sample(0,0,3);step(2,0,0,0);assert(resumes==1&&state.state==VO_CLOSED&&!VonOverlayVisible());
- reset();pause_ok=0;open_start();assert(state.state==VO_CLOSED&&!inactive&&!resumes);
- reset();attach_ok=0;open_start();assert(state.state==VO_CLOSED&&inactive&&!resumes);
- reset();open_start();foreground_window=(void*)9;step(1,0,0,0);assert(state.state==VO_CLOSED&&!resumes);
- reset();open_start();step(0,WM_KEYDOWN,VK_F11,0);assert(state.state==VO_CLOSED&&resumes==1);
- reset();gamemode=2;sample(0,0,3);sample(0,0x10,3);assert(!posted);
- reset();open_start();sample(0,0,3);step(1,0,0,0);keys[VK_DOWN]=1;step(1,0,0,0);assert(state.selected==1);
- keys[VK_DOWN]=0;step(1,0,0,0);keys[VK_RETURN]=1;step(1,0,0,0);assert(state.unavailable);
- step(0,WM_LBUTTONUP,0,6);assert(!state.unavailable);step(0,WM_MOUSEMOVE,0,3);assert(state.selected==3);
- step(0,WM_LBUTTONUP,0,3);assert(state.unavailable);step(0,WM_LBUTTONUP,0,6);assert(!state.unavailable);
- /* Approved native exception: Pause toggles, Start accepts; one lever suffices. */
- reset();VonTwinState native={0};VonOverlayInput(0,7,&native,0,3);native.controls=VON_PAUSE;VonOverlayInput(0,7,&native,0,3);assert(posted==1);step(0,VO_OPEN_MESSAGE,0,0);
- native.controls=0;VonOverlayInput(0,7,&native,0,3);native.controls=VON_LEFT_DOWN;VonOverlayInput(0,7,&native,0,3);assert(state.selected==1);
- native.controls=0;VonOverlayInput(0,7,&native,0,3);native.controls=VON_START;VonOverlayInput(0,7,&native,0,3);assert(state.unavailable&&state.state==VO_OPEN);
- reset();open_start();paint_ok=0;step(3,0,0,0);assert(state.state==VO_CLOSED&&inactive&&!resumes);
- puts("PASS production runtime with platform doubles: pause verification/failure, Start routing/edges, native exception, P1/P2, keyboard/mouse, F11 recovery, focus/render failure");
+ for(int m=0;m<6;m++)for(int sub=0;sub<36;sub++)for(int video=0;video<2;video++){
+  reset();mode=m;submode=sub;movie=video;
+  for(unsigned kind=1;kind<=8;kind++)for(unsigned player=0;player<2;player++){
+   XINPUT_STATE x={0};VonTwinState n={VON_START|VON_PAUSE};x.Gamepad.wButtons=0x1010;
+   assert(!VonOverlayInput(player,kind,kind>=7?(void*)&n:(void*)&x,0,3));
+  }
+  assert(!posted&&!pauses&&!resumes&&state.state==VO_CLOSED);
+  int eligible=!video&&((m==1&&(sub==6||sub==7||sub==17||sub==23))||(m==4&&sub>=8&&sub<=12));
+  esc();assert((state.state==VO_OPEN)==eligible);assert(!pauses&&!resumes);
+ }
+ reset();open_start();assert(!inactive&&VonOverlayVisible()&&cursor_count==0);
+ sample(0,2,3);assert(state.selected==0);sample(0,0,3);sample(0,2,3);assert(state.selected==1);
+ XINPUT_STATE p2={0};p2.Gamepad.wButtons=0xffff;p2.Gamepad.sThumbLX=12345;XINPUT_STATE original_p2=p2;
+ assert(!VonOverlayInput(1,4,&p2,0,3)&&!memcmp(&p2,&original_p2,sizeof p2));assert(state.selected==1);
+ sample(0,0,3);sample(0,0x1000,3);assert(state.unavailable&&state.selected==6);
+ sample(0,0,3);sample(0,0x1000,3);assert(!state.unavailable); // controller BACK
+ sample(0,0,3);sample(0,1,3);assert(state.selected==5);
+ sample(0,0,3);sample(0,0x1000,3);assert(state.state==VO_DRAINING);
+ sample(0,0,3);step(2,0,0,0);assert(state.state==VO_CLOSED&&!resumes&&!pauses&&cursor_count==-1);
+ // Never change original pause, whether initially paused or running.
+ for(int paused=0;paused<2;paused++){
+  reset();inactive=paused;open_start();step(3,0,0,0);assert(draws==1);
+  mode=1;submode=7;step(2,0,0,0);assert(state.state==VO_OPEN); // eligible transition
+  esc();assert(state.state==VO_CLOSED&&inactive==paused&&!pauses&&!resumes);
+ }
+ reset();step(0,WM_KEYDOWN,VK_ESCAPE,0);assert(state.state==VO_OPEN);
+ step(0,WM_KEYDOWN,VK_ESCAPE,1<<30);assert(state.state==VO_OPEN);
+ step(2,0,0,0);assert(state.state==VO_OPEN); // asynchronous poll cannot double ESC
+ step(0,WM_KEYUP,VK_ESCAPE,0);step(0,WM_KEYDOWN,VK_ESCAPE,0);assert(state.state==VO_DRAINING);
+ step(0,WM_KEYUP,VK_ESCAPE,0);assert(state.state==VO_CLOSED);
+ reset();movie=1;assert(!VonOverlayStep((void*)1,&context,0,WM_KEYDOWN,VK_ESCAPE,0));
+ movie=0;step(2,0,0,0);assert(state.state==VO_CLOSED); // no deferred activation
+ step(0,WM_KEYUP,VK_ESCAPE,0);open_start();movie=1;step(3,0,0,0);assert(state.state==VO_CLOSED&&!draws);
+ reset();open_start();sample(0,0,3);step(2,0,0,0);keys[VK_DOWN]=1;step(2,0,0,0);assert(state.selected==1);
+ keys[VK_DOWN]=0;step(2,0,0,0);keys[VK_RETURN]=1;step(2,0,0,0);assert(state.unavailable);
+ keys[VK_RETURN]=0;step(2,0,0,0);esc();assert(!state.unavailable&&state.state==VO_OPEN);
+ step(0,WM_MOUSEMOVE,0,3);assert(state.selected==3);step(0,WM_LBUTTONUP,0,3);assert(state.unavailable);
+ step(0,WM_MOUSEMOVE,0,6);assert(state.selected==6);step(0,WM_LBUTTONUP,0,6);assert(!state.unavailable);
+ for(unsigned kind=7;kind<=8;kind++){
+  reset();open_start();VonTwinState native={0};VonOverlayInput(0,kind,&native,0,1);
+  native.controls=VON_LEFT_DOWN;VonOverlayInput(0,kind,&native,0,1);assert(state.selected==1);
+  native.controls=0;VonOverlayInput(0,kind,&native,0,1);native.controls=VON_START;
+  VonOverlayInput(0,kind,&native,0,1);assert(state.unavailable);
+ }
+ for(unsigned key=VK_F1;key<=VK_F11;key++){
+  if(key!=VK_F1&&key!=VK_F3&&!(key>=VK_F4&&key<=VK_F9)&&key!=VK_F11)continue;
+  reset();inactive=1;open_start();assert(!VonOverlayStep((void*)1,&context,0,WM_KEYDOWN,key,0));
+  assert(state.state==VO_CLOSED&&inactive&&!resumes);
+ }
+ reset();open_start();foreground_window=(void*)9;step(2,0,0,0);assert(state.state==VO_CLOSED&&!resumes);
+ reset();attach_ok=0;esc();assert(state.state==VO_CLOSED&&!inactive&&!resumes);
+ reset();open_start();paint_ok=0;step(3,0,0,0);assert(state.state==VO_CLOSED&&!inactive&&!resumes);
+ reset();unsigned char keybuffer[256];memset(keybuffer,0x80,sizeof keybuffer);
+ VonOverlayStep((void*)1,&context,4,0,(WPARAM)keybuffer,0);assert(keybuffer[0xc8]==0x80);
+ open_start();VonOverlayStep((void*)1,&context,4,0,(WPARAM)keybuffer,0);
+ for(unsigned i=0;i<256;i++)assert(keybuffer[i]==((i==0xc8||i==0xd0||i==0xcb||i==0xcd||i==0x1c||i==1)?0:0x80));
+ reset();gamemode=2;esc();assert(state.state==VO_CLOSED);
+ puts("PASS F02 production runtime: 432 state/movie combinations, Start pass-through, ESC edges, pause independence, P1/P2, native confirm, Back/Resume, keyboard/mouse, movie/focus/failure/F-key recovery");
  return 0;
 }

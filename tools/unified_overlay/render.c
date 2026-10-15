@@ -20,11 +20,12 @@ int vo_attach(VoPaint *p,LPDIRECTDRAWSURFACE surface){
 }
 int vo_paint(VoPaint *p,const VoOverlay *s){
  HDC dc;if(!p->surface||IDirectDrawSurface_IsLost(p->surface)!=DD_OK||IDirectDrawSurface_GetDC(p->surface,&dc)!=DD_OK)return 0;
+ p->page=s->unavailable;
  int saved=SaveDC(dc);if(!saved){IDirectDrawSurface_ReleaseDC(p->surface,dc);return 0;}
  RECT panel={p->x,p->y,p->x+p->w,p->y+p->h};fill(dc,panel,RGB(16,24,32));SetBkMode(dc,TRANSPARENT);
  SelectObject(dc,p->title);RECT title={p->x+16,p->y+8,p->x+p->w-16,p->y+48};text(dc,title,"VO PATCH EX",RGB(244,247,250));SelectObject(dc,p->body);
- if(s->selected<(unsigned)p->first)p->first=s->selected;
- if(s->selected>=(unsigned)(p->first+p->visible))p->first=s->selected-p->visible+1;
+ if(!s->unavailable && s->selected<(unsigned)p->first)p->first=s->selected;
+ if(!s->unavailable && s->selected>=(unsigned)(p->first+p->visible))p->first=s->selected-p->visible+1;
  if(s->unavailable){
   RECT r={p->x+16,p->y+56,p->x+p->w-16,p->y+p->h-60};
   SetTextColor(dc,RGB(244,247,250));DrawTextA(dc,"Not available in this private build.\nUse the existing F-key menus for settings.",-1,&r,DT_LEFT|DT_WORDBREAK|DT_NOPREFIX);
@@ -33,13 +34,18 @@ int vo_paint(VoPaint *p,const VoOverlay *s){
   if(i==s->selected){fill(dc,r,RGB(36,61,80));RECT edge=r;edge.right=edge.left+3;fill(dc,edge,RGB(94,231,247));}
   r.left+=12;text(dc,r,vo_overlay_labels[i],RGB(244,247,250));
  }
- RECT back={p->x+16,p->y+p->h-48,p->x+p->w/2,p->y+p->h-12};text(dc,back,"Back",RGB(94,231,247));
- RECT resume={p->x+p->w/2,p->y+p->h-48,p->x+p->w-16,p->y+p->h-12};text(dc,resume,"Resume",RGB(94,231,247));
- RestoreDC(dc,saved);return IDirectDrawSurface_ReleaseDC(p->surface,dc)==DD_OK;
+ RECT back={p->x+16,p->y+p->h-48,p->x+p->w/2,p->y+p->h-12};if((s->unavailable&&s->selected==6)||s->hover==6)fill(dc,back,RGB(36,61,80));text(dc,back,"BACK",RGB(94,231,247));
+ RECT resume={p->x+p->w/2,p->y+p->h-48,p->x+p->w-16,p->y+p->h-12};if((s->unavailable&&s->selected==5)||s->hover==5)fill(dc,resume,RGB(36,61,80));text(dc,resume,"RESUME",RGB(94,231,247));
+ /* cnc-ddraw ReleaseDC does not flush GDI's per-thread batch. Its
+  * render thread reads DIB pixels at publication, so complete CPU drawing
+  * before releasing this frame to DirectDraw. */
+ int flushed=GdiFlush();RestoreDC(dc,saved);
+ return IDirectDrawSurface_ReleaseDC(p->surface,dc)==DD_OK&&flushed;
 }
 int vo_hit_source(VoPaint *p,int x,int y){
  if(x<p->x||x>=p->x+p->w||y<p->y||y>=p->y+p->h)return -1;
  if(y>=p->y+p->h-48)return x<p->x+p->w/2?6:5;
+ if(p->page)return -1;
  int row=(y-p->y-52)/p->row;
  return y>=p->y+52&&row<p->visible?row+p->first:-1;
 }

@@ -16,10 +16,14 @@ def install(data,edition,v):
   FRAME=0x5c6441 if edition.short=='retail' else 0x5c0d10,
   MOVIEFLAG=0x6bc598 if edition.short=='retail' else 0x6b82f8,
   ALLOWED=0x5c54a0 if edition.short=='retail' else 0x5bfd40)
+ symbols.update(KEYBUFFER=v.symbol_va('ACCEPT1',edition)-0x39,
+  KEYCHECK=0x3651550 if edition.short=='retail' else 0x364c1b0)
  sites={k:v.site_in(o,edition) for k,o in (('wndproc',0x1c4d7e),('pump',0x1c530e),('idle',0x1c5412),('present',0x1c5900))}
+ sites['keyboard']=pe.off((0x442d91 if edition.short=='retail' else 0x442451)-pe.base)
  if data[sites['wndproc']:sites['wndproc']+4]==struct.pack('<I',v.symbol_va('ORIGWNDPROC',edition)):
   symbols['ORIGINAL_WNDPROC']=v.symbol_va('ORIGWNDPROC',edition)
- expected={'wndproc':struct.pack('<I',symbols['ORIGINAL_WNDPROC'])}
+ expected={'wndproc':struct.pack('<I',symbols['ORIGINAL_WNDPROC']),
+  'keyboard':b'\x83\x3d'+struct.pack('<I',symbols['KEYCHECK'])+b'\x00'}
  for key in ('pump','idle','present'):
   at=v._va_at(pe,sites[key]);expected[key]=b'\xe8'+struct.pack('<i',symbols['ORIGINAL_'+key.upper()]-at-5)+(b'\x90' if key=='pump' else b'')
  if data[sites['pump']:sites['pump']+6]==b'\xff\x15'+struct.pack('<I',symbols['PEEKMSG']):
@@ -32,12 +36,12 @@ def install(data,edition,v):
   binary=Path(td)/'entry.bin'
   subprocess.run(['nasm','-f','bin',*(f'-D{k}={x}' for k,x in symbols.items()),'-o',str(binary),str(HERE/'entry.asm')],check=True)
   blob=binary.read_bytes()
- entries=dict(zip(('wndproc','pump','idle','present','context'),struct.unpack_from('<5I',blob)))
+ entries=dict(zip(('wndproc','pump','idle','present','context','keyboard'),struct.unpack_from('<6I',blob)))
  address,offset=v.add_section(data,len(blob),blob,name=b'.vouo')
  assert address==symbols['SECTION_VA']
  patches=[]
  for key,off in sites.items():
-  new=struct.pack('<I',entries[key]) if key=='wndproc' else b'\xe8'+struct.pack('<i',entries[key]-v._va_at(pe,off)-5)+(b'\x90' if key=='pump' else b'')
+  new=struct.pack('<I',entries[key]) if key=='wndproc' else b'\xe8'+struct.pack('<i',entries[key]-v._va_at(pe,off)-5)+(b'\x90' if key=='pump' else b'\x90\x90' if key=='keyboard' else b'')
   data[off:off+len(new)]=new;patches.append(dict(name=key,offset=off,before=expected[key].hex(),after=new.hex()))
  # Only the already linked helper-name literals change. The original helper
  # remains installed; the private shim forwards its API without reassignment.

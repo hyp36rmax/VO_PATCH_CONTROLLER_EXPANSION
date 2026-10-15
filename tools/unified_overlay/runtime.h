@@ -30,7 +30,7 @@ _Static_assert(sizeof(VoGame)==76,"Overlay bridge requires the verified 32-bit A
 #endif
 typedef struct {
  LPDIRECTDRAWSURFACE surface;HFONT title,body;
- int width,height,area_width,x,y,w,h,row,first,visible;
+ int width,height,area_width,x,y,w,h,row,first,visible,page;
 } VoPaint;
 int vo_attach(VoPaint*,LPDIRECTDRAWSURFACE);
 int vo_paint(VoPaint*,const VoOverlay*);
