@@ -14,6 +14,19 @@ static int vo_export_diagnostics(HWND owner){
  }
  CloseHandle(pi.hThread);CloseHandle(pi.hProcess);return 1;
 }
+/* Both configuration interfaces share this immediate-consent transaction. */
+static int vo_save_diagnostics_level(int level){
+ const WCHAR *names[]={L"OFF",L"NORMAL",L"DETAILED",L"DEVELOPMENT"};
+ if(level<0||level>3||!path_config()||!WritePrivateProfileStringW(L"Diagnostics",L"Level",names[level],config))return 0;
+ WritePrivateProfileStringW(NULL,NULL,NULL,config);
+ InterlockedExchange(&diagnostic_level,level);return 1;
+}
+__declspec(dllexport) int WINAPI VonOverlayDiagnostics(HWND owner,unsigned command,int value){
+ if(command==0)return (int)vo_diagnostic_level();
+ if(command==1)return vo_save_diagnostics_level(value);
+ if(command==2)return vo_export_diagnostics(owner);
+ return 0;
+}
 __declspec(dllexport) INT_PTR WINAPI VonDiagnosticsF11(HWND h,UINT msg,WPARAM wp,LPARAM lp,DLGPROC original){
  if(msg==WM_COMMAND&&LOWORD(wp)==OVERLAY_BUTTON){
   HWND game=GetParent(h);original(h,WM_COMMAND,IDCANCEL,0);PostMessageW(game,WM_APP+0x350,0,0);return TRUE;
@@ -22,14 +35,11 @@ __declspec(dllexport) INT_PTR WINAPI VonDiagnosticsF11(HWND h,UINT msg,WPARAM wp
  if(msg==WM_COMMAND&&LOWORD(wp)==DIAGNOSTICS_LEVEL){
   if(HIWORD(wp)!=CBN_SELCHANGE)return TRUE;
   int level=(int)SendDlgItemMessageW(h,DIAGNOSTICS_LEVEL,CB_GETCURSEL,0,0);
-  const WCHAR *names[]={L"OFF",L"NORMAL",L"DETAILED",L"DEVELOPMENT"};
   unsigned prior=vo_diagnostic_level();
-  if(level<0||level>3||!path_config()||!WritePrivateProfileStringW(L"Diagnostics",L"Level",names[level],config)){
+  if(!vo_save_diagnostics_level(level)){
    SendDlgItemMessageW(h,DIAGNOSTICS_LEVEL,CB_SETCURSEL,prior,0);
    MessageBoxW(h,L"Diagnostic preference could not be saved. The previous selection remains active.",L"Diagnostics",MB_OK|MB_ICONERROR);
   }else{
-   WritePrivateProfileStringW(NULL,NULL,NULL,config);
-   InterlockedExchange(&diagnostic_level,level);
    MessageBoxW(h,level==0?L"Diagnostics are Off. Existing logs are retained.":L"Diagnostic level saved. Restart Virtual-On to start a new diagnostic session. No information is uploaded.",L"Diagnostics",MB_OK|MB_ICONINFORMATION);
   }
   return TRUE;

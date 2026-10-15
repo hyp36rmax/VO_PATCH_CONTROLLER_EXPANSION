@@ -16,6 +16,13 @@ HMODULE LoadLibraryW(const wchar_t*);
 #include "../../input/twinstick_state.h"
 static HMODULE original;
 static DWORD ready;
+static DWORD sampled_kind[2],sample_known;
+/* Last result from the existing owned-input path. This does not enumerate,
+ * poll, or invent a physical device identity. -1 means no current sample. */
+__declspec(dllexport) int WINAPI VonOverlayControllerStatus(DWORD player,DWORD kind){
+ if(player>1||!(sample_known&(1u<<player))||sampled_kind[player]!=kind)return -1;
+ return !!(ready&(1u<<player));
+}
 static FARPROC function(const char *name){
  if(!original)original=LoadLibraryW(L"vontanita.dll");
  return original?GetProcAddress(original,name):NULL;
@@ -25,7 +32,7 @@ static void sample(DWORD player,DWORD kind,void *state,DWORD result,int native){
  typedef int (WINAPI *OverlayInput)(DWORD,DWORD,void*,DWORD,DWORD);
  HMODULE overlay=GetModuleHandleW(L"vooverlay.dll");
  OverlayInput step=overlay?(OverlayInput)GetProcAddress(overlay,"VonOverlayInput"):NULL;
- if(player<2){if(result)ready&=~(1u<<player);else ready|=1u<<player;}
+ if(player<2){sample_known|=1u<<player;sampled_kind[player]=kind;if(result)ready&=~(1u<<player);else ready|=1u<<player;}
  if(step)step(player,kind,state,result,ready);
 }
 __declspec(dllexport) DWORD WINAPI TanitaGetState(DWORD index,XINPUT_STATE *state){
@@ -47,7 +54,7 @@ __declspec(dllexport) DWORD WINAPI VonTwinGetState(DWORD player,DWORD kind,VonTw
 }
 __declspec(dllexport) int WINAPI VonSelectController(HWND parent,DWORD player,DWORD kind){
  typedef int (WINAPI *Select)(HWND,DWORD,DWORD);Select select=(Select)function("VonSelectController");
- if(player<2)ready&=~(1u<<player);
+ if(player<2){ready&=~(1u<<player);sample_known=0;}
  return select?select(parent,player,kind):0;
 }
 __declspec(dllexport) int WINAPI VonCaptureInput(HWND parent,DWORD player,DWORD kind,int threshold){

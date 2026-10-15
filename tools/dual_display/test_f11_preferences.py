@@ -3,7 +3,7 @@ from pathlib import Path
 import subprocess,tempfile
 here=Path(__file__).resolve().parent
 s=(here/'f11_diagnostics.h').read_text();start=s.index('__declspec(dllexport) INT_PTR WINAPI VonDiagnosticsF11');end=s.index(' INT_PTR result=original',start)
-body=s[start:end]+' return original(h,msg,wp,lp);\n}\n'
+body=s[s.index('static int vo_save_diagnostics_level'):start]+s[start:end]+' return original(h,msg,wp,lp);\n}\n'
 fixture=r'''
 #include <assert.h>
 #include <wchar.h>
@@ -53,6 +53,16 @@ int main(void){
  VonDiagnosticsF11(7,WM_COMMAND,DIAGNOSTICS_LEVEL|(CBN_SELCHANGE<<16),0,original);
  assert(!wcscmp(stored,L"DETAILED")&&diagnostic_level==2&&restored==2);
  assert(VonDiagnosticsF11(7,55,8,9,original)==42&&forwarded==1);
+ int previous_messages=messages;
+ assert(VonOverlayDiagnostics(7,0,0)==2);
+ assert(!VonOverlayDiagnostics(7,1,0)&&diagnostic_level==2&&!wcscmp(stored,L"DETAILED"));
+ denied=0;
+ for(int value=0;value<4;value++){
+  assert(VonOverlayDiagnostics(7,1,value)&&diagnostic_level==value&&!wcscmp(stored,names[value]));
+ }
+ assert(!VonOverlayDiagnostics(7,1,-1)&&!VonOverlayDiagnostics(7,1,4));
+ assert(messages==previous_messages&&!exports);
+ assert(VonOverlayDiagnostics(7,2,0)&&exports==1);exports=0;
  VonDiagnosticsF11(7,WM_COMMAND,DIAGNOSTICS_EXPORT,0,original);assert(exports==1);
  VonDiagnosticsF11(7,WM_COMMAND,OVERLAY_BUTTON,0,original);assert(ended==1&&overlay_posted==1);
  puts("PASS production F11 choices, same INI authority, saved level/atomic consent, failed-write retention, upstream command forwarding and explicit export dispatch");

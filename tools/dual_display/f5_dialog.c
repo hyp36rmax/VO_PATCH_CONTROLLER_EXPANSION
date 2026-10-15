@@ -183,6 +183,9 @@ __declspec(dllexport) INT_PTR WINAPI VonDisplayF5(HWND h,UINT msg,WPARAM wp,LPAR
  }
  return result;
 }
+
+#include "overlay_settings.h"
+
 /* Uses effective launch state, never the pending/saved next-launch mode. */
 __declspec(dllexport) int WINAPI VonDisplayCanResize(HWND owner){
  char dual[2]={0};

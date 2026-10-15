@@ -7,11 +7,15 @@ enum { VO_UP=1, VO_DOWN=2, VO_LEFT=4, VO_RIGHT=8, VO_ACCEPT=16,
 enum { VO_CLOSED, VO_OPEN, VO_DRAINING };
 enum { VO_SINGLE, VO_VERSUS, VO_MIRROR };
 enum { VO_NO_ACTION, VO_REQUEST_PAUSE, VO_REQUEST_RESUME, VO_REQUEST_EXIT };
-typedef struct {
+typedef struct {char label[112],value[192];unsigned id,enabled;} VoMenuRow;
+typedef struct {char title[96],notice[256];VoMenuRow rows[48];unsigned count;} VoMenu;
+typedef struct VoOverlay {
  unsigned state, selected, unavailable, controller_ready, previous;
  unsigned keyboard_ready, previous_keyboard, owns_pause;
  unsigned confirm, exit_allowed, exit_requested;
  int hover;
+ VoMenu *menu;
+ unsigned (*navigate)(struct VoOverlay*,unsigned);
 } VoOverlay;
 static const char *const vo_overlay_labels[]={
  "CONTROLLERS", "DISPLAY", "GRAPHICS", "GAME SETTINGS", "EXTRAS", "RESUME", "EXIT TO TITLE"
@@ -41,6 +45,7 @@ static inline void vo_overlay_focus_lost(VoOverlay *s) { vo_overlay_init(s); }
 static inline unsigned vo_overlay_event(VoOverlay *s, unsigned edge) {
  if(s->state!=VO_OPEN) return VO_NO_ACTION;
  s->hover=-1;
+ if(s->navigate)return s->navigate(s,edge);
  /* Start is never an overlay toggle. */
  if(s->confirm) {
   if(edge&VO_BACK){s->confirm=0;s->selected=6;return VO_NO_ACTION;}
@@ -92,12 +97,19 @@ static inline unsigned vo_overlay_keyboard(VoOverlay *s,unsigned held) {
  return vo_overlay_event(s,edge);
 }
 static inline void vo_overlay_hover(VoOverlay *s,int item) {
+ if(s->menu){s->hover=item;if(item>=0&&(unsigned)item<s->menu->count&&s->menu->rows[item].enabled)s->selected=(unsigned)item;return;}
  if(s->confirm){s->hover=item;if(item==8||item==9)s->selected=(unsigned)(item-8);return;}
  s->hover=item;
  if(s->state==VO_OPEN && ((s->unavailable && (item==5||item==7)) || (!s->unavailable && item>=0 && item<7))) s->selected=(unsigned)item;
 }
 static inline unsigned vo_overlay_click(VoOverlay *s,int item) {
  if(s->state!=VO_OPEN) return VO_NO_ACTION;
+ if(s->menu){
+  if(item==1000)return vo_overlay_event(s,VO_BACK);
+  if(item==1001)return vo_overlay_close(s);
+  if(item>=0&&(unsigned)item<s->menu->count&&s->menu->rows[item].enabled){s->selected=(unsigned)item;return vo_overlay_event(s,VO_ACCEPT);}
+  return VO_NO_ACTION;
+ }
  if(s->confirm){if(item==8||item==9){s->selected=(unsigned)(item-8);return vo_overlay_event(s,VO_ACCEPT);}return VO_NO_ACTION;}
  if(item==5) return vo_overlay_close(s); /* Resume also works on unavailable pages. */
  if(item==7) return vo_overlay_event(s,VO_BACK); /* visible Back */

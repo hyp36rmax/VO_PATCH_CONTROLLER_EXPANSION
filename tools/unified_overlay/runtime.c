@@ -1,4 +1,5 @@
 #include "runtime.h"
+#include "pages.h"
 #include <string.h>
 #include "../../input/twinstick_state.h"
 static VoOverlay state;
@@ -40,7 +41,7 @@ static unsigned keyboard(void){
  for(unsigned i=0;i<5;i++)if(GetAsyncKeyState(keys[i])&0x8000)held|=1u<<i;
  return held;
 }
-static void clear(void){reset_pending=0;confirmation_seen=0;vo_pause_restore_to(game?*game->primary:NULL);escape_down=0;cursor_release();vo_dispose(&paint);vo_overlay_focus_lost(&state);controller_held=0;InterlockedExchange(&published_open,0);}
+static void clear(void){vo_pages_end();(void)vo_pages_command();reset_pending=0;confirmation_seen=0;vo_pause_restore_to(game?*game->primary:NULL);escape_down=0;cursor_release();vo_dispose(&paint);vo_overlay_focus_lost(&state);controller_held=0;InterlockedExchange(&published_open,0);}
 static void request_exit(void){
  if(!can_exit()){lifecycle(9);return;}
  /* Original inactive loop does not run the negative-mode state tick.
@@ -63,13 +64,16 @@ static void confirmation(void){
 static void release_if_ready(void){
  if(GetTickCount()-last_sample>500)controller_held=0;
  if(state.state==VO_DRAINING&&!controller_held&&!keyboard()&&!escape_down&&!(GetAsyncKeyState(VK_LBUTTON)&0x8000)){
+  unsigned command=vo_pages_command();vo_pages_end();
   vo_pause_restore_to(*game->primary);vo_overlay_init(&state);cursor_release();vo_dispose(&paint);InterlockedExchange(&published_open,0);lifecycle(2);
   if(reset_pending){reset_pending=0;request_exit();}
+  if(command==0x51){if(*game->mode==4&&*game->gamemode!=2){*game->submode=0x1f;game->cdstop();}}
+  else if(command)PostMessageW(owner,WM_COMMAND,command,0);
  }
 }
 static int open_menu(void){
  if(!supported()||!vo_attach(&paint,*game->back)){return 0;}
- vo_overlay_pause_result(&state,0,1);state.exit_allowed=can_exit();cursor_acquire();
+ vo_overlay_pause_result(&state,0,1);state.exit_allowed=can_exit();vo_pages_begin(&state,game,owner);cursor_acquire();
  mouse_ready=0;InterlockedExchange(&published_open,1);lifecycle(1);lifecycle(*game->inactive?5:11);return 1;
 }
 static unsigned semantic(DWORD kind,const void *raw){
@@ -121,7 +125,7 @@ __declspec(dllexport) int WINAPI VonOverlayInput(DWORD player,DWORD kind,void *r
  if(!game||busy||player!=0||state.state==VO_CLOSED)return 0;
  if(!supported()){clear();return 0;}
  unsigned held=result?0:semantic(kind,raw);controller_held=held;last_sample=GetTickCount();
- vo_overlay_controller(&state,0,held,!result,!(ready&1),0,1);confirmation();
+ busy=1;vo_overlay_controller(&state,0,held,!result,!(ready&1),0,1);confirmation();busy=0;
  if(!result)isolate(kind,raw);
  return state.state!=VO_CLOSED;
 }
@@ -144,7 +148,7 @@ __declspec(dllexport) int WINAPI VonOverlayStep(HWND hwnd,const VoGame *g,UINT k
   }
   goto done;
  }
- if(kind==2){if(state.state!=VO_CLOSED)vo_overlay_keyboard(&state,keyboard());release_if_ready();goto done;}
+ if(kind==2){if(state.state==VO_OPEN)vo_pages_refresh(&state);if(state.state!=VO_CLOSED)vo_overlay_keyboard(&state,keyboard());release_if_ready();goto done;}
  if(kind==1){
   if(state.state!=VO_CLOSED){vo_overlay_keyboard(&state,keyboard());confirmation();release_if_ready();}
   paused_surface=*g->primary;paused_transaction=state.state==VO_OPEN&&supported()&&*g->inactive;
@@ -170,7 +174,7 @@ __declspec(dllexport) int WINAPI VonOverlayStep(HWND hwnd,const VoGame *g,UINT k
    if(mouse==WM_MOUSEMOVE)vo_overlay_hover(&state,item);
    if(mouse==WM_LBUTTONDOWN)mouse_ready=1;
    if(mouse==WM_LBUTTONUP){if(mouse_ready)vo_overlay_click(&state,item);mouse_ready=0;}
-   if(mouse==WM_MOUSEWHEEL)vo_overlay_wheel(&state,(short)(wp>>16),paint.visible<7);
+   if(mouse==WM_MOUSEWHEEL)vo_overlay_wheel(&state,(short)(wp>>16),paint.visible<(int)(state.menu?state.menu->count:7));
   }consumed=1;goto done;
  }
  if(msg==VO_OPEN_MESSAGE){if(state.state==VO_OPEN)vo_overlay_close(&state);else if(state.state==VO_CLOSED)open_menu();consumed=1;goto done;}
@@ -201,7 +205,7 @@ __declspec(dllexport) int WINAPI VonOverlayStep(HWND hwnd,const VoGame *g,UINT k
    if(msg==WM_MOUSEMOVE)vo_overlay_hover(&state,item);
    if(msg==WM_LBUTTONDOWN)mouse_ready=1;
    if(msg==WM_LBUTTONUP){if(mouse_ready)vo_overlay_click(&state,item);mouse_ready=0;}
-   if(msg==WM_MOUSEWHEEL)vo_overlay_wheel(&state,GET_WHEEL_DELTA_WPARAM(wp),paint.visible<7);
+   if(msg==WM_MOUSEWHEEL)vo_overlay_wheel(&state,GET_WHEEL_DELTA_WPARAM(wp),paint.visible<(int)(state.menu?state.menu->count:7));
   }
  }
  done:confirmation();busy=0;return consumed;

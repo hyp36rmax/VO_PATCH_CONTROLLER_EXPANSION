@@ -3,6 +3,10 @@
 #include <stdio.h>
 #include <string.h>
 #include "runtime.c"
+void vo_pages_begin(VoOverlay*s,const VoGame*g,HWND h){(void)s;(void)g;(void)h;}
+void vo_pages_end(void){}
+void vo_pages_refresh(VoOverlay*s){(void)s;}
+unsigned vo_pages_command(void){return 0;}
 static int cursor_count=-1;
 int ShowCursor(int show){cursor_count+=show?1:-1;return cursor_count;}
 int GetCursorInfo(CURSORINFO *info){info->flags=cursor_count>=0?CURSOR_SHOWING:0;return 1;}

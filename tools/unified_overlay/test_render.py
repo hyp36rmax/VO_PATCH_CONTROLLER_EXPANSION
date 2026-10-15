@@ -8,6 +8,7 @@ fixture=r'''
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <wchar.h>
 #include "model.h"
 #define min(a,b) ((a)<(b)?(a):(b))
 #define max(a,b) ((a)>(b)?(a):(b))
@@ -24,6 +25,17 @@ fixture=r'''
 #define DT_SINGLELINE 32
 #define DT_NOPREFIX 2048
 #define DT_WORDBREAK 16
+#define DT_END_ELLIPSIS 32768
+#define CP_UTF8 65001
+#define MB_ERR_INVALID_CHARS 8
+typedef wchar_t WCHAR;
+static int utf8_seen;
+static int MultiByteToWideChar(unsigned cp,unsigned flags,const char *s,int n,WCHAR *out,int cap){
+ assert(cp==CP_UTF8&&flags==MB_ERR_INVALID_CHARS&&n==-1&&cap==1024);
+ if(!strcmp(s,"Monitor \xc3\xa9")){wcscpy(out,L"Monitor \u00e9");utf8_seen++;return 10;}
+ for(int i=0;i<cap;i++){out[i]=(unsigned char)s[i];if(!s[i])return i+1;}return 0;
+}
+static void lstrcpynW(WCHAR *out,const WCHAR *in,int cap){wcsncpy(out,in,cap);out[cap-1]=0;}
 typedef unsigned COLORREF;typedef void *HDC,*HBRUSH,*HFONT,*LPDIRECTDRAWSURFACE;
 typedef struct {int left,top,right,bottom;} RECT;
 typedef struct {unsigned dwSize,dwWidth,dwHeight;} DDSURFACEDESC;
@@ -35,6 +47,9 @@ static void FillRect(HDC d,const RECT*r,HBRUSH b){(void)d;(void)b;assert(r->left
 static void DeleteObject(void*p){(void)p;}
 static void SetTextColor(HDC h,COLORREF c){(void)h;(void)c;}
 static void DrawTextA(HDC h,const char*s,int n,const RECT*r,int f){(void)h;(void)s;(void)n;(void)f;assert(r->right<=width&&r->bottom<=height);labels++;pending=1;}
+static void DrawTextW(HDC h,const WCHAR*s,int n,const RECT*r,int f){
+ (void)s;assert(f&DT_END_ELLIPSIS);DrawTextA(h,"wide",n,r,f);
+}
 static void IDirectDrawSurface_Release(LPDIRECTDRAWSURFACE s){(void)s;refs--;}
 static int IDirectDrawSurface_GetSurfaceDesc(LPDIRECTDRAWSURFACE s,DDSURFACEDESC*d){(void)s;d->dwWidth=width;d->dwHeight=height;return 0;}
 static void IDirectDrawSurface_AddRef(LPDIRECTDRAWSURFACE s){(void)s;refs++;}
@@ -59,9 +74,15 @@ int main(void){
   assert(vo_hit_source(&paint,paint.x+paint.w-20,paint.y+paint.h-25)==5);
   assert(vo_hit_source(&paint,0,0)==-1);s.unavailable=1;assert(vo_paint(&paint,&s));
   s.unavailable=0;s.confirm=1;assert(vo_paint(&paint,&s));assert(vo_hit_source(&paint,paint.x+20,paint.y+paint.h-25)==8);assert(vo_hit_source(&paint,paint.x+paint.w-20,paint.y+paint.h-25)==9);
+  VoMenu menu={0};menu.count=32;strcpy(menu.title,"CONTROLLERS");
+  for(unsigned k=0;k<menu.count;k++){strcpy(menu.rows[k].label,"Long setting label");strcpy(menu.rows[k].value,"Monitor \xc3\xa9");menu.rows[k].enabled=1;}
+  s.menu=&menu;s.confirm=0;
+  for(unsigned k=0;k<menu.count;k++){s.selected=k;assert(vo_paint(&paint,&s));assert(vo_hit_source(&paint,paint.x+20,paint.y+53+(k-paint.first)*paint.row)==(int)k);}
+  assert(vo_hit_source(&paint,paint.x+20,paint.y+paint.h-25)==1000);
+  assert(vo_hit_source(&paint,paint.x+paint.w-20,paint.y+paint.h-25)==1001);
   vo_dispose(&paint);assert(!refs);
  }
- assert(fonts&&labels);puts("PASS production layout/render calls: 320/640 4:3, 16:9, 21:9, 32:9, Versus P1 bounds, bounded width, scroll visibility, Back/Resume hit tests, surface release");
+ assert(fonts&&labels&&utf8_seen);puts("PASS production layout/render calls: 320/640 4:3, 16:9, 21:9, 32:9, Versus P1 bounds, bounded width, scroll visibility, Back/Resume hit tests, surface release");
 }
 '''
 with tempfile.TemporaryDirectory() as td:

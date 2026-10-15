@@ -21,13 +21,18 @@ void *GetProcAddress(HMODULE h,const char*n){
 }
 int main(void){
  XINPUT_STATE x;VonTwinState t;
+ assert(VonOverlayControllerStatus(0,4)==-1&&VonOverlayControllerStatus(2,4)==-1);
  overlay_enabled=0;assert(!VonGetState(0,4,&x)&&x.Gamepad.wButtons==0x1010&&calls==1);
  overlay_enabled=1;assert(!VonGetState(1,4,&x)&&x.Gamepad.wButtons==0x1010&&observed_ready==3&&calls==2);
+ int before=calls;
+ assert(VonOverlayControllerStatus(0,4)==1&&VonOverlayControllerStatus(1,4)==1&&VonOverlayControllerStatus(0,7)==-1&&calls==before);
  consumed=1;assert(!VonGetState(0,4,&x)&&x.Gamepad.wButtons==0x10&&observed_buttons==0x1010&&calls==3);
  assert(!VonTwinGetState(0,7,&t)&&t.controls==VON_PAUSE&&observed_buttons==(VON_START|VON_PAUSE)&&calls==4);
  assert(VonSelectController((void*)7,1,4)==1&&selection==1&&!(ready&2));
+ assert(VonOverlayControllerStatus(0,4)==-1&&VonOverlayControllerStatus(1,4)==-1);
  assert(VonCaptureInput((void*)7,0,4,9000)==0xe8&&captures==1);
  connected=0;assert(VonGetState(0,4,&x)==1167&&observed_ready==0);
+ assert(VonOverlayControllerStatus(0,4)==0);
  assert(VonGetState(0,4,0)==160&&calls==5);
  puts("PASS private input forwarding: original call count, unchanged samples when closed, ownership status, capture/selection forwarding, native semantics and failure result");
 }
