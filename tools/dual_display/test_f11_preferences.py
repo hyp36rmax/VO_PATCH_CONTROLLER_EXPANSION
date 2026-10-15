@@ -23,6 +23,9 @@ fixture=r'''
 #define NULLHWND 0
 #define DIAGNOSTICS_LEVEL 0x5e10
 #define DIAGNOSTICS_EXPORT 0x5e11
+#define OVERLAY_BUTTON 0x5e12
+#define WM_APP 32768
+#define IDCANCEL 2
 typedef wchar_t WCHAR;typedef int HWND;typedef unsigned UINT;typedef unsigned long WPARAM;typedef long LPARAM;typedef long INT_PTR;typedef INT_PTR (*DLGPROC)(HWND,UINT,WPARAM,LPARAM);
 static WCHAR config[]=L"C:\\Games With Spaces\\player-displays.ini",stored[32];
 static int selected,prior,denied,restored=-1,messages,exports,forwarded,diagnostic_level;
@@ -33,7 +36,10 @@ static int SendDlgItemMessageW(HWND h,int id,int msg,int w,int l){(void)h;(void)
 static void MessageBoxW(HWND h,const WCHAR *text,const WCHAR *title,int flags){(void)h;(void)text;(void)title;(void)flags;messages++;}
 static void InterlockedExchange(int *where,int value){*where=value;}
 static int vo_export_diagnostics(HWND h){(void)h;exports++;return 1;}
-static INT_PTR original(HWND h,UINT m,WPARAM w,LPARAM l){assert(h==7&&m==55&&w==8&&l==9);forwarded++;return 42;}
+static int ended,overlay_posted;
+static HWND GetParent(HWND h){assert(h==7);return 8;}
+static int PostMessageW(HWND h,UINT msg,WPARAM w,LPARAM l){assert(h==8&&msg==WM_APP+0x350&&!w&&!l&&ended==1);overlay_posted++;return 1;}
+static INT_PTR original(HWND h,UINT m,WPARAM w,LPARAM l){if(m==WM_COMMAND&&w==IDCANCEL){assert(h==7&&!l);ended++;return 1;}assert(h==7&&m==55&&w==8&&l==9);forwarded++;return 42;}
 '''
 main=r'''
 int main(void){
@@ -48,6 +54,7 @@ int main(void){
  assert(!wcscmp(stored,L"DETAILED")&&diagnostic_level==2&&restored==2);
  assert(VonDiagnosticsF11(7,55,8,9,original)==42&&forwarded==1);
  VonDiagnosticsF11(7,WM_COMMAND,DIAGNOSTICS_EXPORT,0,original);assert(exports==1);
+ VonDiagnosticsF11(7,WM_COMMAND,OVERLAY_BUTTON,0,original);assert(ended==1&&overlay_posted==1);
  puts("PASS production F11 choices, same INI authority, saved level/atomic consent, failed-write retention, upstream command forwarding and explicit export dispatch");
 }
 '''

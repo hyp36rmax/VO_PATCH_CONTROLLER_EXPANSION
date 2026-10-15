@@ -15,7 +15,7 @@ LIMIT = 256 * 1024
 ROTATIONS = 3
 LEVELS = ('OFF', 'NORMAL', 'DETAILED', 'DEVELOPMENT')
 EVENTS = {'startup', 'shutdown', 'module_init', 'controller_discovery',
-          'display_discovery', 'configuration', 'selection', 'presentation',
+          'overlay_lifecycle', 'display_discovery', 'configuration', 'selection', 'presentation',
           'movie', 'warning', 'error', 'recovery', 'previous_session_incomplete'}
 FIELDS = set('code count mode profile fallback player device type vid pid width height '
              'primary uploads draw_frames presented_pairs complete_mirror mirror_p1 '
@@ -45,7 +45,7 @@ def level(root):
 
 def permitted(root, name):
     required = (1 if name in {'startup', 'shutdown', 'warning', 'error', 'recovery',
-                             'previous_session_incomplete'} else
+                             'previous_session_incomplete', 'overlay_lifecycle'} else
                 3 if name == 'movie' else 2)
     return level(root) >= required
 

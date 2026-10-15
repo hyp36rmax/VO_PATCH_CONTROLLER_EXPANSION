@@ -16,7 +16,7 @@ static HFONT font;
 static HWND secondary_label;
 static unsigned save_stage;static DWORD save_error;
 static void event(unsigned code,int result){
- if(vo_diagnostic_level()<(code==3?1u:2u))return;
+ if(vo_diagnostic_level()<((code==3||code>=20)?1u:2u))return;
  WCHAR path[MAX_PATH];SYSTEMTIME t;GetSystemTime(&t);
  DWORD length=GetModuleFileNameW(NULL,path,MAX_PATH);if(!length||length>=MAX_PATH)return;
  WCHAR *slash=wcsrchr(path,L'\\');if(!slash)return;slash[1]=0;
@@ -27,8 +27,15 @@ static void event(unsigned code,int result){
  LARGE_INTEGER size;if(GetFileSizeEx(h,&size)&&size.QuadPart<256*1024){
   char line[512];int n=snprintf(line,sizeof line,"{\"event\":\"%s\",\"utc\":\"%04u-%02u-%02uT%02u:%02u:%02uZ\",\"fields\":{\"code\":%u,\"mode\":%d,\"profile\":%d,\"primary\":%d,\"secondary\":%d,\"result\":%d,\"restart_required\":%d,\"save_stage\":%u,\"winerror\":%lu}}\n",code==3?"error":"configuration",t.wYear,t.wMonth,t.wDay,t.wHour,t.wMinute,t.wSecond,code,pending.mode,pending.aspect,vo_find(monitors,count,pending.primary),vo_find(monitors,count,pending.secondary),result,code==4,save_stage,(unsigned long)save_error);
   if(code==6)n=snprintf(line,sizeof line,"{\"event\":\"configuration\",\"fields\":{\"code\":6,\"result\":0}}\n");
+  if(code>=20)n=snprintf(line,sizeof line,"{\"event\":\"overlay_lifecycle\",\"fields\":{\"code\":%u}}\n",code-20);
   DWORD written;if(n>0&&n<(int)sizeof line&&size.QuadPart+n<=256*1024){WriteFile(h,line,(DWORD)n,&written,NULL);FlushFileBuffers(h);}
  }CloseHandle(h);
+}
+/* Overlay lifecycle uses the existing bounded event sink and consent. No raw
+ * device samples or automatic uploads are recorded. */
+__declspec(dllexport) void WINAPI VonOverlayLifecycle(unsigned code){
+ if(vo_diagnostic_level()<1||code<1||code>4)return;
+ event(20+code,0);
 }
 static int path_config(void){
  DWORD length=GetModuleFileNameW(NULL,config,MAX_PATH);if(!length||length>=MAX_PATH)return 0;

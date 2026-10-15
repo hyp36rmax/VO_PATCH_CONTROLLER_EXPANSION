@@ -60,3 +60,6 @@ for c in sorted((out/'src').glob('**/*.c')):
 subprocess.run([a.windres,'-J','rc',str(out/'res.rc'),str(out/'res.o')],cwd=out,check=True)
 subprocess.run([a.cc,'-Wl,--enable-stdcall-fixup','-Wl,--no-insert-timestamp','-s','-static','-shared','-o',str(out/'ddraw.dll'),*objects,str(out/'res.o'),str(out/'exports.def'),'-lgdi32','-lwinmm','-lole32','-lmsimg32','-lavifil32','-luuid'],check=True)
 (out/'private-build.json').write_text(json.dumps({'base':PIN,'dll_sha256':hashlib.sha256((out/'ddraw.dll').read_bytes()).hexdigest(),'mode_aware':a.mode_aware,'normal_projection_sha256':hashlib.sha256((here/'normal_projection.py').read_bytes()).hexdigest() if a.profiles else None,'selected_profiles_sha256':hashlib.sha256((out/'inc/game_profiles.h').read_bytes()).hexdigest(),'mode_extension_sha256':hashlib.sha256((here/'mode_extension.py').read_bytes()).hexdigest() if a.mode_aware else None,'extension':{n:hashlib.sha256((here/n).read_bytes()).hexdigest() for n in ('presentation.h','movie_window.h','inventory.h','layout.h','policy.h','state_bridge.h','state_bridge.c','game_profiles.h','build_wrapper.py')}},indent=2)+'\n')
+# Build the private forwarding/presentation seam without replacing CE input.
+import sys
+subprocess.run([sys.executable,str(here.parent/'unified_overlay/build.py'),str(out),'--cc',a.cc],check=True)

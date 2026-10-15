@@ -1,3 +1,4 @@
+#define OVERLAY_BUTTON 0x5e12
 #define DIAGNOSTICS_LEVEL 0x5e10
 #define DIAGNOSTICS_EXPORT 0x5e11
 static int vo_export_diagnostics(HWND owner){
@@ -14,6 +15,9 @@ static int vo_export_diagnostics(HWND owner){
  CloseHandle(pi.hThread);CloseHandle(pi.hProcess);return 1;
 }
 __declspec(dllexport) INT_PTR WINAPI VonDiagnosticsF11(HWND h,UINT msg,WPARAM wp,LPARAM lp,DLGPROC original){
+ if(msg==WM_COMMAND&&LOWORD(wp)==OVERLAY_BUTTON){
+  HWND game=GetParent(h);original(h,WM_COMMAND,IDCANCEL,0);PostMessageW(game,WM_APP+0x350,0,0);return TRUE;
+ }
  if(msg==WM_COMMAND&&LOWORD(wp)==DIAGNOSTICS_EXPORT){vo_export_diagnostics(h);return TRUE;}
  if(msg==WM_COMMAND&&LOWORD(wp)==DIAGNOSTICS_LEVEL){
   if(HIWORD(wp)!=CBN_SELCHANGE)return TRUE;
@@ -35,12 +39,13 @@ __declspec(dllexport) INT_PTR WINAPI VonDiagnosticsF11(HWND h,UINT msg,WPARAM wp
   RECT client,window,unit={0,0,4,8};GetClientRect(h,&client);GetWindowRect(h,&window);MapDialogRect(h,&unit);
   int y=client.bottom*8/unit.bottom;
   font=(HFONT)SendMessageW(h,WM_GETFONT,0,0);
-  SetWindowPos(h,NULL,0,0,window.right-window.left,window.bottom-window.top+unit.bottom*7,SWP_NOMOVE|SWP_NOZORDER);
+  SetWindowPos(h,NULL,0,0,window.right-window.left,window.bottom-window.top+unit.bottom*10,SWP_NOMOVE|SWP_NOZORDER);
   control(h,L"STATIC",L"Diagnostics (saved immediately)",0,0,8,y+2,170,10);
   control(h,L"COMBOBOX",L"",WS_TABSTOP|WS_VSCROLL|CBS_DROPDOWNLIST,DIAGNOSTICS_LEVEL,8,y+14,80,70);
   for(unsigned i=0;i<4;i++)add(h,DIAGNOSTICS_LEVEL,(const WCHAR*[]){L"Off",L"Normal",L"Detailed",L"Development"}[i]);
   SendDlgItemMessageW(h,DIAGNOSTICS_LEVEL,CB_SETCURSEL,vo_diagnostic_level(),0);
   control(h,L"BUTTON",L"Export Diagnostics...",WS_TABSTOP,DIAGNOSTICS_EXPORT,94,y+14,84,14);
+  control(h,L"BUTTON",L"Unified Overlay (gameplay)...",WS_TABSTOP,OVERLAY_BUTTON,8,y+56,170,14);
   control(h,L"STATIC",L"Enable: restart game. Off stops collection. Local only.",0,0,8,y+32,178,18);
  }
  return result;

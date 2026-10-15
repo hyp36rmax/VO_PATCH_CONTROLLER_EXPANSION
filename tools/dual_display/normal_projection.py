@@ -8,6 +8,28 @@ def apply(out):
  from pathlib import Path
  (out/'inc/diagnostics_privacy.h').write_bytes(Path(__file__).with_name('diagnostics_privacy.h').read_bytes())
  (out/'inc/diagnostics_runtime.h').write_bytes(Path(__file__).with_name('diagnostics_runtime.h').read_bytes())
+ # Mouse forwarding is private overlay-only; use the exact fitted source
+ # rectangle already chosen by the validated presentation path.
+ mouse_bridge = r'''    typedef int (WINAPI *OverlayVisible)(void);
+    HMODULE overlay=GetModuleHandleW(L"vooverlay.dll");
+    OverlayVisible visible=overlay?(OverlayVisible)GetProcAddress(overlay,"VonOverlayVisible"):NULL;
+    if(visible && visible() && (window==vo_dual.window[0] || vo_dual.mirror)) {
+        if(msg==WM_MOUSEACTIVATE)return MA_NOACTIVATE;
+        if(msg>=WM_MOUSEFIRST && msg<=WM_MOUSELAST) {
+            int index=window==vo_dual.window[0]?0:1;
+            VoOutput o=vo_dual.output[index];VoRect monitor=monitors[o.monitor].desktop;
+            POINT point={(short)LOWORD(l),(short)HIWORD(l)};
+            if(msg==WM_MOUSEWHEEL)ScreenToClient(window,&point);
+            int x=point.x-(o.destination.x-monitor.x), y=point.y-(o.destination.y-monitor.y);
+            if(o.destination.w>0 && o.destination.h>0 && x>=0 && y>=0 && x<o.destination.w && y<o.destination.h) {
+                x=o.source.x+x*o.source.w/o.destination.w;y=o.source.y+y*o.source.h/o.destination.h;
+                PostMessageA(g_ddraw.hwnd,WM_APP+0x351,(WPARAM)msg|(w&0xffff0000),MAKELPARAM(x,y));
+            }
+            return 0;
+        }
+    }
+'''
+ s=replace_once(s,'    if (msg == WM_MOUSEACTIVATE) return MA_NOACTIVATEANDEAT;',mouse_bridge+'    if (msg == WM_MOUSEACTIVATE) return MA_NOACTIVATEANDEAT;')
  s=replace_once(s,'#include \"policy.h\"','#include \"policy.h\"\n#include \"diagnostics_runtime.h\"')
  s=replace_once(s,'    if(vo_dual.attempted) {','    if(vo_dual.attempted && vo_diagnostic_level()>=2) {')
  s=replace_once(s,'FILE *log=_wfopen(path,L\"a\");','WIN32_FILE_ATTRIBUTE_DATA info;\n            int room=!GetFileAttributesExW(path,GetFileExInfoStandard,&info)||(info.nFileSizeHigh==0&&info.nFileSizeLow<256*1024-32768);\n            FILE *log=room?_wfopen(path,L\"a\"):NULL;')

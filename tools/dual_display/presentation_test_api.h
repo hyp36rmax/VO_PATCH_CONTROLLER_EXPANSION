@@ -145,3 +145,21 @@ static unsigned vo_unknown_policy_count(void){return 0;}
 static unsigned vo_unknown_policy_value(unsigned i){(void)i;return 0;}
 
 static void vo_policy_log(FILE *log){(void)log;}
+
+/* Optional private overlay seam: disabled in existing display-only cases. */
+#define WINAPI
+#define WM_APP 32768
+#define WM_MOUSEFIRST 512
+#define WM_MOUSELAST 526
+#define WM_MOUSEWHEEL 522
+#define MA_NOACTIVATE 3
+#define LOWORD(x) ((unsigned)(x)&65535)
+#define HIWORD(x) (((unsigned)(x)>>16)&65535)
+#define MAKELPARAM(x,y) ((LPARAM)(((unsigned)(x)&65535)|((unsigned)(y)<<16)))
+typedef void *HMODULE;
+typedef struct {long x,y;} POINT;
+static int fake_overlay_visible;
+static int overlay_visible(void){return fake_overlay_visible;}
+static HMODULE GetModuleHandleW(const WCHAR *name){(void)name;return (HMODULE)1;}
+static void *GetProcAddress(HMODULE module,const char *name){(void)module;(void)name;return (void*)overlay_visible;}
+static int ScreenToClient(HWND window,POINT *point){(void)window;(void)point;return 1;}

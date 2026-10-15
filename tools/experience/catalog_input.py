@@ -15,7 +15,9 @@ def sources():
     paths = [ROOT / 'v-on-patcher.py', * (ROOT / 'asm').glob('*.asm'),
              * (ROOT / 'tools/dual_display').glob('*.py'),
              * (ROOT / 'tools/dual_display').glob('*.h'),
-             * (ROOT / 'tools').glob('engineering*.py')]
+             * (ROOT / 'tools').glob('engineering*.py'),
+             * (ROOT / 'tools/unified_overlay').glob('*.py'),
+             * (ROOT / 'tools/unified_overlay').glob('*.asm')]
     return {p.relative_to(ROOT).as_posix(): digest(p.read_bytes()) for p in sorted(paths)}
 
 def pack(catalog, destination):

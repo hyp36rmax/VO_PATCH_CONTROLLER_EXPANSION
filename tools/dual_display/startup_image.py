@@ -75,6 +75,8 @@ def plan(raw, wanted=None):
         if own_end < end:
             v.add_section(image, end-own_end, name=b'.vofill')
         images[name], _ = f5_hook.install(image, v.BUILDS[hashlib.md5(raw).hexdigest()])
+        from unified_overlay.install import install as overlay_install
+        images[name], _ = overlay_install(images[name],v.BUILDS[hashlib.md5(raw).hexdigest()],v)
     largest = images['dual']; template = v._PE(largest)
     maps = {n: mapped(data) for n, data in images.items()}
     size = len(maps['dual']); base = maps['wide'] + bytes(size-len(maps['wide']))
