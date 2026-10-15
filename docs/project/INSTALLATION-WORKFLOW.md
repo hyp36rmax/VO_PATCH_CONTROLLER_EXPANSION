@@ -34,3 +34,11 @@ Automated Retail/JPRE Apply/Restore and configuration tests cover transaction
 behavior. Normal Windows GUI use, display presentation, movie framing, scaling
 and physical hardware acceptance remain separate checks. Private packages include
 patch data and redistributables, never original game executables or assets.
+
+## Experience build preparation
+
+The canonical [VO PATCH EX Build workflow](https://github.com/hyp36rmax/VO_PATCH_EX/actions/workflows/build.yml)
+is prepared to produce a complete Experience Windows ZIP with the existing
+`v-on-patcher.exe` and `_internal` structure. Its first GitHub Windows execution
+and final integrated UAT remain pending. This is separate from the published
+Controller Expansion pre-release; no Experience release is announced.

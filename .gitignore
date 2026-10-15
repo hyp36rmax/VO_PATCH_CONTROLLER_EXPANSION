@@ -25,3 +25,8 @@ maps/*
 # Claude Code: instructions and settings kept local to this machine.
 CLAUDE.md
 .claude/
+
+# Local-only game inputs, captures and private distribution staging.
+/private-game-inputs/
+/private-uat/
+/private-diagnostics/

@@ -23,7 +23,7 @@ def main():
  payload=experience/'payload';payload.mkdir()
  shutil.copy2(a.helper,payload/'vodisplay.dll');shutil.copy2(a.wrapper/'ddraw.dll',payload/'ddraw.dll')
  shutil.copy2(ROOT/'input/vontanita.dll',internal/'input/vontanita.dll')
- ini=ROOT/'../../outputs/g03/VO-PATCH-EX-G03-PRIVATE-UAT/support/ddraw.ini'
+ ini=HERE/'ci/ddraw.ini'
  shutil.copy2(ini,payload/'ddraw.ini')
  runtime=payload/'experience-runtime';runtime.mkdir()
  for name in ('pythonw.exe','python312.dll','python3.dll','python312.zip','vcruntime140.dll','vcruntime140_1.dll','LICENSE.txt'):
@@ -32,11 +32,11 @@ def main():
  (runtime/'python312._pth').write_text('python312.zip\n.\nDLLs\n')
  for name in ('normal_lifecycle.py','diagnostics.py','discovery.py','movie_geometry.py'):shutil.copy2(HERE/name,runtime/name)
  shutil.copy2(HERE/'EXPORT-DIAGNOSTICS.cmd',payload/'EXPORT-DIAGNOSTICS.cmd')
- version={'revision':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'wrapper_sha256':sha(payload/'ddraw.dll'),'helper_sha256':sha(payload/'vodisplay.dll'),'experience':'B01-F02-private','display':'F01-P04'}
- manifest={'version':version,'files':{str(f.relative_to(payload)).replace('\\','/'):sha(f) for f in sorted(payload.rglob('*')) if f.is_file()}}
+ version={'revision':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'wrapper_sha256':sha(payload/'ddraw.dll'),'helper_sha256':sha(payload/'vodisplay.dll'),'experience':'Experience-private','display':'F01-P04'}
+ manifest={'version':version,'files':{f.relative_to(payload).as_posix().replace('\\','/'):sha(f) for f in sorted(payload.rglob('*')) if f.is_file()}}
  (experience/'payload-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
  notices=out/'Licenses';notices.mkdir();shutil.copy2(ROOT/'LICENSE',notices/'Pairomaniac-MIT.txt');shutil.copy2(a.wrapper/'LICENSE',notices/'cnc-ddraw-MIT.txt');shutil.copy2(internal/'LICENSE.txt',notices/'Python.txt')
- (out/'READ-ME.txt').write_text('''VO PATCH EX B01-F02 — PRIVATE WINDOWS UAT
+ (out/'READ-ME.txt').write_text('''VO PATCH EX — PRIVATE WINDOWS UAT
 
 Use your original Virtual-On disc image/files with the supplied v-on-patcher.exe.
 If the game is already patched, use Restore Original before Apply.
@@ -70,7 +70,7 @@ mixed monitor sizes, movies, exit/cleanup, export, and Restore Original.
 This package contains patch data and redistributables, not game executables/assets.
 No administrator privileges, manual INI edits or compilation are required.
 ''')
- files={str(f.relative_to(out)):sha(f) for f in sorted(out.rglob('*')) if f.is_file()}
+ files={f.relative_to(out).as_posix():sha(f) for f in sorted(out.rglob('*')) if f.is_file()}
  (out/'PACKAGE-SHA256.json').write_text(json.dumps(files,indent=2)+'\n')
  print(out)
 if __name__=='__main__':main()

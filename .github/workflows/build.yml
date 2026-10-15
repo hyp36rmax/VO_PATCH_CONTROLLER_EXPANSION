@@ -2,7 +2,7 @@ name: "Build"
 
 on:
   push:
-    branches: [main, Controller-Expansion]
+    branches: [main, Controller-Expansion, Experience]
     tags: ['v*']
   pull_request:
   workflow_dispatch:
@@ -36,7 +36,22 @@ jobs:
           sudo apt-get install -y nasm
           nasm -v
 
-      - run: pip install pyflakes unicorn
+      - run: pip install pyflakes unicorn pillow capstone
+
+      - name: Experience publication guard
+        if: github.ref_type == 'tag'
+        run: |
+          if [ -f tools/experience/ci/catalog.json.xz ]; then
+            echo 'Experience tags are not authorized for publication.'
+            exit 1
+          fi
+
+      - name: Experience privacy and branding
+        run: |
+          python tools/brandingtest.py
+          python tools/experience/test_repository.py
+          python tools/experience/test_diagnostics.py
+          python tools/experience/test_normal_lifecycle.py
 
       # The window checks need a display. xvfb is what gives them one; with
       # nothing here tools/guitest.py skips itself and says so, which would
@@ -133,6 +148,37 @@ jobs:
       # credit   the same proof for the credit line in the ending roll
       # uiemu    the resolution blob run under Unicorn, on the retail file
 
+  experience-native:
+    needs: verify
+    if: github.ref_name == 'Experience'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build Display dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-mingw-w64-i686 binutils-mingw-w64-i686
+          python tools/experience/catalog_input.py unpack tools/experience/ci/catalog.json.xz build/catalog
+          git clone https://github.com/FunkyFr3sh/cnc-ddraw.git build/cnc-ddraw
+          git -C build/cnc-ddraw checkout --detach 279a057ee7e1e4d584b56141c014ab01f3c6ee6d
+          python tools/dual_display/build_wrapper.py build/cnc-ddraw build/wrapper --mode-aware --profiles build/catalog/game_profiles.h --cc /usr/bin/i686-w64-mingw32-gcc --windres /usr/bin/i686-w64-mingw32-windres
+          i686-w64-mingw32-gcc -shared -O2 -Wl,--kill-at -Wl,--no-insert-timestamp tools/dual_display/f5_dialog.c -o build/wrapper/vodisplay.dll -luser32 -lgdi32
+          for sym in VonDisplayStartup VonDisplayF5 VonDisplaySettings VonDisplayCanResize VonDiagnosticsF11 VonDiagnosticsLevel; do
+            i686-w64-mingw32-objdump -p build/wrapper/vodisplay.dll | grep -q "$sym"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experience-native
+          path: |
+            build/wrapper/ddraw.dll
+            build/wrapper/vodisplay.dll
+            build/wrapper/LICENSE
+            build/wrapper/private-build.json
+          retention-days: 7
+
   # Builds on every push to a branch above, on a tag, and on demand from
   # the Actions tab. Pull requests are left out: the push that follows the
   # merge builds the same tree.
@@ -146,11 +192,16 @@ jobs:
   # with the script, and a small launcher beside it. No PyInstaller: its
   # bootloader and packed archive are what scanners flag.
   windows:
-    needs: verify
-    if: github.event_name != 'pull_request'
+    needs: [verify, experience-native]
+    if: ${{ !cancelled() && needs.verify.result == 'success' && (needs.experience-native.result == 'success' || needs.experience-native.result == 'skipped') && github.event_name != 'pull_request' }}
     runs-on: windows-latest
+    env:
+      PYTHONUTF8: '1'
 
     steps:
+      - name: Preserve source bytes for catalog verification
+        shell: bash
+        run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
 
       # The Python the release carries, pinned to the patch release so each
@@ -165,6 +216,7 @@ jobs:
       # short SHA, so a downloaded artifact says which commit built it.
       # The window title, --version and the zip names read this one line.
       - name: Stamp the version
+        if: github.ref_name != 'Experience'
         shell: bash
         run: |
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then
@@ -265,7 +317,6 @@ jobs:
           pathlib.Path('dist/v-on-patcher-%s.py' % version).write_bytes(text)
           shutil.copy('net/dpctrl.dll', 'dist/dpctrl.dll')
           shutil.copy('input/vontanita.dll', 'dist/vontanita.dll')
-          shutil.copy('input/vontanita.dll', 'dist/vontanita.dll')
           print('staged v-on-patcher-%s.py and dpctrl.dll' % version)
           EOF
           if grep -q $'\r' dist/v-on-patcher-*.py; then
@@ -285,12 +336,33 @@ jobs:
             echo "artifact=v-on-patcher-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
           fi
 
+      - uses: actions/download-artifact@v4
+        if: github.ref_name == 'Experience'
+        with:
+          name: experience-native
+          path: build/experience-native
+
+      - name: Assemble Experience Windows package
+        if: github.ref_name == 'Experience'
+        shell: bash
+        run: |
+          python tools/experience/catalog_input.py unpack tools/experience/ci/catalog.json.xz build/catalog
+          python tools/experience/package_normal.py dist/experience dist/v-on-patcher build/catalog build/experience-native build/experience-native/vodisplay.dll
+          python tools/experience/test_normal_package.py dist/experience
+          timeout 60 dist/experience/v-on-patcher.exe --selfcheck
+          python - <<'PYCODE'
+          import shutil, zipfile
+          path = shutil.make_archive('dist/VO-PATCH-EX-Experience', 'zip', 'dist/experience')
+          with zipfile.ZipFile(path) as archive:
+              assert archive.testzip() is None
+          PYCODE
+
       # Two zips: -win with the exe and _internal/ at its top, -python with
       # the script and the netplay DLL beside it (tools/package.py). Not
       # -src: GitHub adds its own "Source code" zip to every release, and
       # two of those confuse.
       - name: Zip
-        if: github.ref_type != 'tag'
+        if: github.ref_type != 'tag' && github.ref_name != 'Experience'
         shell: bash
         run: |
           python tools/package.py dist "$artifact"

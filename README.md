@@ -1,11 +1,9 @@
 # VO PATCH EX
 
-Private integration of Controller Expansion and Display Expansion for
-*Cyber Troopers Virtual-On* (PC, 1997).
-Maintained by [hyp36rmax](https://github.com/hyp36rmax/VO_PATCH_EX), built on
-[Pairomaniac's V-On Patcher](https://github.com/pairomaniac/v-on-patcher) for
-modern Windows systems.
-
+VO PATCH EX expands *Cyber Troopers Virtual-On* (PC, 1997) for modern Windows
+systems with Controllers Expansion and Display Expansion. Independently maintained
+by [hyp36rmax](https://github.com/hyp36rmax/VO_PATCH_EX), it builds on
+[Pairomaniac's V-On Patcher](https://github.com/pairomaniac/v-on-patcher).
 The private Experience build integrates Controllers Expansion and Display Expansion
 through the original patcher. Configure displays in **F5 → Graphic Settings →
 Display...**; saved changes apply on next launch. The development identity is
@@ -48,8 +46,16 @@ apply on next launch.
 | Setting | Behavior |
 |---|---|
 | Single Display | One selected display; 4:3, 16:9, 21:9 or 32:9 game aspect ratio |
-| Dual Display — Versus | Independent P1/P2 gameplay views on separate displays |
-| Dual Display — Mirror | Complete primary presentation duplicated, including both Local VS views |
+| Dual Display Versus | Independent P1/P2 gameplay views on separate displays |
+| Dual Display Mirror | Complete primary presentation duplicated, including both Local VS views |
+
+Choose Primary Display and, in dual modes, Secondary Display in F5. Outputs can
+use different desktop resolutions and aspect ratios; each view fits its assigned
+display independently. Hardware specifications do not imply that every combination
+has been physically tested, and universal monitor compatibility is not claimed.
+Local VS selection is shared; Versus separates gameplay views and Mirror duplicates
+the complete primary presentation. Movies retain upstream framing compatibility;
+dual-mode movie playback remains on the primary display with the secondary black.
 
 Monitor assignments and saved preferences are retained during temporary hardware
 fallback. Existing F4, F5 graphics controls, movies and Local VS settings remain
@@ -57,6 +63,23 @@ available. Dual-mode F4 transitions retain the current supported presentation.
 See [display requirements](docs/display/DUX-V1.0.md) and
 [installation](docs/project/INSTALLATION-WORKFLOW.md). Windows acceptance for the
 current integrated package remains pending.
+
+### Display hardware inventory
+
+This frozen inventory records hardware specifications supplied by the maintainer.
+It is not a matrix of physically validated gameplay modes, monitor pairings or
+refresh-rate configurations. Integrated Windows acceptance remains separate.
+
+| Display | Resolution | Refresh Rate |
+|---|---|---|
+| Acer Nitro 34" | 3440×1440 | 200 Hz |
+| Samsung Odyssey G9 32" | 2560×1440 | 240 Hz |
+| Samsung Odyssey G9 49" | 5120×1440 | 240 Hz |
+| Samsung Odyssey CRG9 49" | 5120×1440 | 120 Hz |
+| HyperX Armada 27 | 2560×1440 | 165 Hz |
+| HyperX Armada 24 | 1920×1080 | 240 Hz |
+| ASUS ROG Strix XG17 | 1920×1080 | 240 Hz |
+| LG UltraGear 32" | 2560×1440 | 165 Hz |
 
 ## Diagnostics and Privacy
 
@@ -76,9 +99,11 @@ locations, retention limits, disabling collection, export and deleting old logs.
 
 ## Getting Started
 
-1. Download the Windows ZIP from a successful **Controller-Expansion**
-   [Build run](https://github.com/hyp36rmax/VO_PATCH_CONTROLLER_EXPANSION/actions/workflows/build.yml).
-   See [Project Status](#project-status) for the published pre-release.
+1. For the published controller package, see [Project Status](#project-status).
+   Experience integration packages are separate: use only a reviewed **Experience**
+   Windows ZIP from the [Build workflow](https://github.com/hyp36rmax/VO_PATCH_EX/actions/workflows/build.yml).
+   CI execution and Windows acceptance for this preparation remain pending; no
+   Experience release is announced here.
 2. Extract the complete package and keep its directory structure, including
    `_internal`, beside `v-on-patcher.exe`. The current Windows bundle includes
    its Python runtime; no separate Python installation is needed.
@@ -501,14 +526,14 @@ the connected controller. Then use the symptom below.
 
 The latest published CE pre-release is
 [v0.17.0-controller-expansion.2](https://github.com/hyp36rmax/VO_PATCH_CONTROLLER_EXPANSION/releases/tag/v0.17.0-controller-expansion.2).
-**Controller-Expansion** is the default and maintained development branch;
-**main** tracks the upstream foundation for synchronization. The first upstream
-pulse incorporates the current native-launcher/bundled-Python packaging described
-above. Those branch builds are separate from the earlier published package.
+**Controller-Expansion** remains the remote default. **Experience** is the intended
+integrated product/default branch; **Display-Expansion** remains independent display
+development and **main** preserves the upstream foundation. Experience CI preparation
+is local, with its first remote build and integrated Windows acceptance pending.
 
-[Build artifacts](https://github.com/hyp36rmax/VO_PATCH_CONTROLLER_EXPANSION/actions/workflows/build.yml)
-provide development packages. CE releases remain explicitly approved pre-releases;
-branch builds do not publish a release. See the
+[Build artifacts](https://github.com/hyp36rmax/VO_PATCH_EX/actions/workflows/build.yml)
+are development packages, not releases. CE releases remain explicitly approved
+pre-releases. Preserve the existing
 [release history](https://github.com/hyp36rmax/VO_PATCH_CONTROLLER_EXPANSION/releases) and
 [CE.2 release notes](docs/releases/v0.17.0-controller-expansion.2.md).
 
@@ -516,7 +541,7 @@ branch builds do not publish a release. See the
 
 [Pairomaniac](https://github.com/pairomaniac/v-on-patcher) created V-On Patcher and
 its patching, XInput and Twin-Stick foundation.
-[hyp36rmax](https://github.com/hyp36rmax/VO_PATCH_CONTROLLER_EXPANSION) maintains Controller Expansion
+[hyp36rmax](https://github.com/hyp36rmax/VO_PATCH_EX) maintains Controller Expansion
 and supplies physical hardware characterization and testing.
 
 The upstream [credits](docs/PATCHER.md#credits-and-licence) retain attribution to

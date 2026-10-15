@@ -103,3 +103,12 @@ The project URL is https://github.com/hyp36rmax/VO_PATCH_EX. The window title is
 header preserves the original logo and adds the approved EX source beneath PATCHER.
 See [asset provenance](../../assets/BRANDING.md). The original icon, ending-roll
 resources, title-screen attribution and upstream license remain unchanged.
+
+## G04 repository preparation
+
+Experience includes B01-F02 through adf46270ce1b7922f5bca3677387a801469caa2c.
+The G02 byte-size discussion above records that attribution change, not every later
+Experience modification. Controller-Expansion remains the public controller authority;
+Controllers-Expansion is an existing local alias. The canonical repository is
+hyp36rmax/VO_PATCH_EX; its remote default remains Controller-Expansion as verified
+during G04-P02. Experience is the intended future default, not a published release.
