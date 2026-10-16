@@ -1,6 +1,6 @@
 # Release package benchmark
 
-Status: VERIFIED local archive measurements and regression results; Windows hardware acceptance NEEDS VALIDATION.
+Status: VERIFIED local archive measurements and regression results; hosted Windows codec/launcher checks VERIFIED; physical Windows hardware acceptance NEEDS VALIDATION.
 
 ## Published inputs
 
@@ -87,3 +87,9 @@ The dedicated read-only Windows workflow downloads the hash-pinned original, pre
 NEEDS VALIDATION on physical Windows hardware: interactive patcher launch, XInput/HID discovery, all controller profiles and P1/P2 assignments, bindings, single/dual/mixed-display behavior, settings persistence, networking and portable operation after installation. Byte-identical runtime preservation and automated tests do not substitute for those checks. No new hardware pass is claimed.
 
 Rollback is to discard the unmerged branch/candidate; published artifacts and Experience remain unchanged. Future dependency pruning must have its own measured runtime evidence.
+
+## Hosted Windows result
+
+VERIFIED: [branch CI run 38862890224](https://github.com/hyp36rmax/VO_PATCH_EX/actions/runs/38862890224), commit b0874f9f7d5ac3dab3431a1db9af402e431f12f2, passed the shipped Python codec checks for all 512 recipes, upstream launcher selfcheck, manifest completeness and license/runtime checks. The normal package assembler was also exercised locally with the published native inputs and passed package validation.
+
+The downloaded [Windows candidate artifact](https://github.com/hyp36rmax/VO_PATCH_EX/actions/runs/38862890224/artifacts/12030331647) contains a 43,627,142-byte player ZIP, 74,865,362 extracted bytes and the same 1,208 files. SHA-256: `d11559e95d6502a3ad29d949274b5601d5d497a8f61e9b106c696cd22ad82977`. Independent comparison confirms only recipes.zip and PACKAGE-SHA256.json differ from the original. Windows newline conventions account for the manifest size difference from the local candidate. Hosted compressed reduction is 6,457,388 bytes (12.89%); extracted reduction is 6,546,855 bytes (8.04%). The Actions artifact wrapper is a separate ZIP and is not the player-package benchmark. Artifacts expire after seven days; published originals remain unchanged.
