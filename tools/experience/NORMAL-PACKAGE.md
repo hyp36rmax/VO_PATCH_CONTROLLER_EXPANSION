@@ -95,3 +95,24 @@ Provide `MinGW-runtime.txt` beside the wrapper DLL and LICENSE: use the compiler
 installation's MinGW-w64 runtime notice for local LLVM-MinGW builds. The Ubuntu CI
 build copies mingw-w64-common's copyright file for its GCC runtime. The assembler
 requires and distributes this build-specific notice; no runtime code changes.
+
+## Product version
+
+`release_version.py:VERSION` is the authoritative Experience product version.
+Normal package assembly uses it for the window title, About card, `--version`,
+package readme and payload metadata (`version.release`, installed as
+`experience-version.json`). Update this definition with the corresponding release
+document before building a future release; tag builds reject a different version.
+
+The upstream source's `VERSION` and historical `EX_VERSION` remain unchanged in
+the recipe-locked source. The packaged presentation adapter overrides only the
+Experience display globals and handles `--version`; it does not regenerate or
+change patch recipes or the game's title-screen patch stamp. Pairomaniac's
+attribution, upstream version history and the reusable signed launcher's own
+file/product version (1.0.0.0 / 1) remain intact. Windows file properties describe
+that launcher component; About identifies the Experience product release.
+
+Run `python tools/experience/test_release_version.py PACKAGE` to check packaged
+presentation values, command-line output and metadata consistency. Hosted Windows
+validation also checks the shipped interpreter and launcher selfcheck; visual
+inspection of title/About remains a separate Windows acceptance check.
