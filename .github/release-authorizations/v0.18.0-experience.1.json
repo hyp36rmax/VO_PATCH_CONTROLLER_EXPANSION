@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "repository": "hyp36rmax/VO_PATCH_EX",
+  "version": "v0.18.0-experience.1",
+  "title": "VO PATCH EX \u2014 Controllers + Display Expansion",
+  "prerelease": true,
+  "application_commit": "8afce868f70f8d82ecb21f7ea083d8f5b2f07f07",
+  "artifact_name": "VO-PATCH-EX-Experience.zip",
+  "artifact_sha256": "d9afa87394bc3b69e596c942064dd2be6b489d67f3cfdc61e265600d6c05f4d7",
+  "artifact_size": 50084530,
+  "ci_run_id": 38853951171,
+  "ci_run_attempt": 1,
+  "ci_artifact_id": 12026064942,
+  "ci_artifact_name": "v-on-patcher-8afce86",
+  "notes_sha256": "3e101ab53715a8c33714efe19686a1dd489af669337a3d30fb7c77158fa9d7b2",
+  "windows_acceptance": {
+    "status": "PASS",
+    "confirmed_by": "hyp36rmax",
+    "record": "R01-P07 physical Windows acceptance confirmed by maintainer; R01-P07-F01 authorizes publication of this exact candidate.",
+    "application_commit": "8afce868f70f8d82ecb21f7ea083d8f5b2f07f07",
+    "artifact_sha256": "d9afa87394bc3b69e596c942064dd2be6b489d67f3cfdc61e265600d6c05f4d7"
+  }
+}

@@ -1,0 +1,44 @@
+name: Publish approved Experience prerelease
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: experience-prerelease-publication
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: github.repository == 'hyp36rmax/VO_PATCH_EX' && github.ref == 'refs/heads/Experience' && github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Guard rejection and acceptance tests
+        run: python3 tools/release/test_experience.py
+      - name: Experience publication guard
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/release/experience.py verify
+
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Revalidate and promote the exact approved artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/release/experience.py publish
