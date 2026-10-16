@@ -9,9 +9,12 @@ It does not imply endorsement by SEGA, Pairomaniac or earlier patch authors.
 | Earlier VO_Patch lineage | Existing upstream attribution is retained; no new authorship or licensing claim is inferred from the historical name |
 | V-On Patcher | Pairomaniac foundation, MIT copyright 2026 pairo; original source history, in-game version label, upstream repository link and artwork credits retained |
 | Controllers Expansion | hyp36rmax controller work and measured hardware records, inherited intact from Controller-Expansion |
-| Display Expansion | Private rendering/presentation work through F04B; automated validation is distinct from pending Windows acceptance |
-| Unified Overlay Menu Expansion | Not included in Experience. Existing R3 experimental source remains in its original worktree and recovery archive |
-| Native Experience component | Separate proprietary repository; not imported or relicensed |
+| Display Expansion | hyp36rmax extensions to upstream rendering and display presentation, including the existing F5 interface; automated evidence is distinct from integrated Windows acceptance |
+
+Pairomaniac provides modern Windows compatibility, disc-image installation, native
+widescreen, XInput, original F-key configuration, audio improvements and other
+upstream features. VO PATCH EX extends these systems; it does not claim their
+original authorship. See the [current display implementation](../display/IMPLEMENTATION.md).
 
 ## Existing and added attribution
 
@@ -47,7 +50,7 @@ Missing either credit resource retains upstream's skip-all-attribution behavior.
 Resource backup, Restore Original and original About resources are unchanged.
 No modified game asset is included in Git or a public package.
 
-## Expected generated-image changes
+## Historical attribution-only image changes
 
 Only the TITLEVER assembly blob changes; every other assembly/table blob and all
 ending bitmaps remain exact. The blob grows from 109 to 155 bytes. Annex alignment
@@ -81,9 +84,7 @@ Experience starts at reviewed F04B `0737ebf99bf3f1bdfe672eab83e47d0b6261a8a6`,
 which already contains Controller HEAD `73639a4d369dba02c97842906828f588ee4602f5`.
 No duplicate merge or cherry-pick is needed. `Controllers-Expansion` preserves
 that controller authority while singular `Controller-Expansion` remains for
-existing workflow/public links. Display-Expansion remains independent. No empty
-Unified-Overlay-Menu-Expansion branch is created; the untracked implementation
-must first receive an authorized preservation/resume checkpoint.
+existing workflow/public links. Display-Expansion remains independent.
 
 Local `upstream/pairomaniac` tracks remote `upstream/main` at
 `441921828611fa0d159525939c50d6ad4ab00d43`. Keep it free of project commits.
@@ -93,8 +94,8 @@ module authority, run complete tests and Windows acceptance, then merge the
 validated descendant into Experience. Never force-push or rewrite upstream
 history. No new upstream changes are automatically merged.
 
-Experience is intended as the future default/release authority. Remote settings,
-CI branch triggers and public branch names remain unchanged in G02.
+Experience is the integrated Controllers + Display source branch. This document
+does not authorize changes to repository settings or publication.
 
 ## Patcher branding
 

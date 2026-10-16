@@ -3,7 +3,8 @@
 **Diagnostics are disabled by default.** Missing or invalid preferences also select
 Off. Patcher installation feedback in the LOG panel is separate and remains active.
 
-Open **F11 Extras**, select a Diagnostics level, and restart Virtual-On to start a
+Open **F11 Extras**, choose a level under **Diagnostics (saved immediately)**,
+and restart Virtual-On to start a
 new diagnostic session. The selection is saved immediately in the existing
 `player-displays.ini` under `[Diagnostics]`, `Level`; no repatching or manual editing
 is needed. F11 is provided by the existing **Disable menu bar (Extras menu on F11)**

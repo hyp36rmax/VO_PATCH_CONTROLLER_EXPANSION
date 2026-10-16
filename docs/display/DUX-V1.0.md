@@ -4,6 +4,10 @@ This is the canonical frozen design specification, confirmed by the project
 owner. Requirements below define the intended behavior; they do not establish
 implementation completion or physical validation.
 
+For the current shipped-source behavior and file boundaries, see
+[Display Expansion implementation](IMPLEMENTATION.md). The checkpoint tables below
+are historical requirements and evidence, not a current installation guide.
+
 ## Original frozen requirements (Mirror revised by F04B)
 
 The approved F04B amendment below supersedes P1-only Mirror and the requirement

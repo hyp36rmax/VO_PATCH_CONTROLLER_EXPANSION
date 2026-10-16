@@ -11,6 +11,30 @@ original** first; applying over a patched executable is rejected. Keep the entir
 Windows package together, including `_internal`. Launch the installed `v_on.exe`
 normally after Apply.
 
+## Install and upgrade
+
+The complete patcher retains **INSTALL**, **GAME FILE**, **ESSENTIAL PATCHES**,
+**EXTRA PATCHES** and **ADD-ONS**. For disc-image installation, select the `.cue`
+sheet with its referenced data files available, choose the destination and use
+**Install game**; **Rip soundtrack** is available through the upstream workflow.
+For an existing original installation, select `v_on.exe` in GAME FILE. See the
+[upstream installation guide](../PATCHER.md#installing-from-a-disc-image).
+
+Essential patches are automatic; choose Extra patches, then **Apply patches**.
+Retain XInput gamepad support for expanded controllers and **Disable menu bar
+(Extras menu on F11)** for diagnostic controls. Optional add-ons retain their
+existing Install actions and requirements; consult the [patcher guide](../PATCHER.md)
+before adding or replacing a presentation component.
+
+To upgrade, close the game and back up the installation and saved settings.
+Use the previous patcher's **Restore original**, then Apply patches with the new
+complete package. Do not copy individual patched game files over an existing
+installation. Restore preserves unrelated files and reports modified owned files
+it will not overwrite. Keep original backups until the new installation is accepted.
+If restoration cannot complete, recover your backup rather than patching over a
+partial installation. Integrated patch recipes are verified for Retail/JPRE;
+upstream recognition of another edition is not equivalent expansion validation.
+
 ## Game configuration
 
 Fresh defaults use **16:9 Single Display**. The existing Native widescreen checkbox
@@ -39,6 +63,6 @@ patch data and redistributables, never original game executables or assets.
 
 The canonical [VO PATCH EX Build workflow](https://github.com/hyp36rmax/VO_PATCH_EX/actions/workflows/build.yml)
 is prepared to produce a complete Experience Windows ZIP with the existing
-`v-on-patcher.exe` and `_internal` structure. Its first GitHub Windows execution
-and final integrated UAT remain pending. This is separate from the published
+`v-on-patcher.exe` and `_internal` structure. Complete hosted Windows packaging
+and final integrated UAT remain acceptance gates. This is separate from the published
 Controller Expansion pre-release; no Experience release is announced.

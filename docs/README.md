@@ -1,11 +1,15 @@
 # Documentation map
 
-The root [README](../README.md) covers Controller Expansion profiles, assignment
+The root [README](../README.md) covers Controllers + Display Expansion, installation
 and hardware status. The [patcher guide](PATCHER.md) covers installation and
 other game features; this index covers development.
 
 | Read | For |
 | --- | --- |
+| [Display implementation](display/IMPLEMENTATION.md) | current rendering, discovery, routing, persistence and source boundaries |
+| [Installation](project/INSTALLATION-WORKFLOW.md) | complete patcher, upgrades and recovery |
+| [Diagnostics](project/EXPERIENCE-DIAGNOSTICS.md) | player controls, retention and explicit export |
+| [Draft prerelease](releases/v0.18.0-experience.1.md) | distribution scope and acceptance status |
 | [controllers/](controllers/README.md) | hardware characterization, profile implementation, validation records and testing methodology |
 | [MAP.md](MAP.md) | where things are: the repository, the regions of `v-on-patcher.py`, and the executable's layout - stock sections, the game's code and data as far as it is mapped, the sections the patcher appends, the annex blob by blob, sites by patch |
 | [DEVELOPING.md](DEVELOPING.md) | setup, the daily loop, the checks and what each catches, adding a blob, a site or a build, netplay development, releasing, signing and the Windows build, troubleshooting |

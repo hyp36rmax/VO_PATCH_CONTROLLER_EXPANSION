@@ -1,14 +1,21 @@
 # VO PATCH EX
 
-VO PATCH EX expands *Cyber Troopers Virtual-On* (PC, 1997) for modern Windows
-systems with Controllers Expansion and Display Expansion. Independently maintained
-by [hyp36rmax](https://github.com/hyp36rmax/VO_PATCH_EX), it builds on
-[Pairomaniac's V-On Patcher](https://github.com/pairomaniac/v-on-patcher).
-The private Experience build integrates Controllers Expansion and Display Expansion
-through the original patcher. Configure displays in **F5 → Graphic Settings →
-Display...**; saved changes apply on next launch. The development identity is
-**0.1-dev**. Windows integration acceptance remains pending; the published
-Controller Expansion pre-release is a separate distribution.
+VO PATCH EX is an expanded version of [Pairomaniac's V-On Patcher](https://github.com/pairomaniac/v-on-patcher)
+for the original 1997 Windows release of *Cyber Troopers Virtual-On*. Maintained
+by [hyp36rmax](https://github.com/hyp36rmax/VO_PATCH_EX), it adds dedicated Twin-Stick
+support and configurable single- and dual-monitor presentation so original arcade
+controllers and modern displays can be used with the existing game.
+
+Controllers Expansion adds hardware profiles, explicit P1/P2 assignment and
+Custom remapping. Display Expansion adds 4:3, 16:9, 21:9 and 32:9 presentation,
+independent Local VS displays and complete mirroring. Install through the supplied
+**V-On Patcher EX** using your original game files or disc image, then configure
+controllers in F7 and displays in F5. The original patch options and Restore
+original workflow remain available.
+
+The integrated prerelease **v0.18.0-experience.1** is being prepared; it is not
+published. See [release notes](docs/releases/v0.18.0-experience.1.md) for validation
+status and known limitations.
 
 VO PATCH EX is an independent community project, not affiliated with or endorsed
 by SEGA. Original patcher logo and icon: **SirRockEmSockEm**. The header combines
@@ -60,11 +67,17 @@ dual-mode movie playback remains on the primary display with the secondary black
 Monitor assignments and saved preferences are retained during temporary hardware
 fallback. Existing F4, F5 graphics controls, movies and Local VS settings remain
 available. Dual-mode F4 transitions retain the current supported presentation.
-See [display requirements](docs/display/DUX-V1.0.md) and
+Game aspect ratio controls the rendered view; physical monitor resolution controls
+the output surface. Selecting 32:9 does not simply stretch a 16:9 image. A selected
+aspect is fitted to each output, so unused space may remain on a differently shaped
+monitor. Dual Versus uses its dedicated two-player profile.
+
+See [current display implementation](docs/display/IMPLEMENTATION.md),
+[display requirements](docs/display/DUX-V1.0.md) and
 [installation](docs/project/INSTALLATION-WORKFLOW.md). Windows acceptance for the
 current integrated package remains pending.
 
-### Validated display configurations
+### Validated hardware
 
 The maintainer reports these eight display configurations as validated. This is
 not an exclusive compatibility list or evidence that every gameplay mode, monitor
@@ -103,8 +116,8 @@ locations, retention limits, disabling collection, export and deleting old logs.
 1. For the published controller package, see [Project Status](#project-status).
    Experience integration packages are separate: use only a reviewed **Experience**
    Windows ZIP from the [Build workflow](https://github.com/hyp36rmax/VO_PATCH_EX/actions/workflows/build.yml).
-   CI execution and Windows acceptance for this preparation remain pending; no
-   Experience release is announced here.
+   Complete hosted packaging and integrated Windows acceptance remain release
+   gates; do not treat an incomplete build as an installable release.
 2. Extract the complete package and keep its directory structure, including
    `_internal`, beside `v-on-patcher.exe`. The current Windows bundle includes
    its Python runtime; no separate Python installation is needed.
@@ -115,9 +128,11 @@ locations, retention limits, disabling collection, export and deleting old logs.
 4. Leave **XInput gamepad support** enabled under **EXTRA PATCHES**, choose any
    other patches you want, then select **Apply patches**. This option also
    installs the native HID profiles on [compatible executables](#compatibility).
-5. Launch Virtual-On. Use **F7** to select each player's profile, then follow
+5. Open **ADD-ONS** for optional upstream components; read the information for each
+   before installing. Launch Virtual-On normally. Use **F7** to select each player's profile, then follow
    the controller-selection prompt. Fixed profiles need no button setup;
-   Custom remapping is optional.
+   Custom remapping is optional. Use **F5 → Graphic Settings → Display...** for
+   display mode, monitor assignments and aspect ratio; choose **OK**, then restart.
 
 The patcher installs its supplied 32-bit `vontanita.dll` beside the game.
 Keep the packaged helper: it requires the Windows Universal C Runtime and its
@@ -129,6 +144,78 @@ backed-up game files and retains patched settings as `v_on.ini.patched`; use it
 instead of manually replacing only the executable, because the title artwork
 must match. See [what gets written](docs/PATCHER.md#what-gets-written) and the
 [full patcher guide](docs/PATCHER.md) for restoration, add-ons and Python usage.
+
+## Installation and Display Questions
+
+The [controller questions](#common-questions) and [controller troubleshooting](#troubleshooting)
+remain below the profile reference.
+
+**Which Virtual-On version do I need?**
+
+Use original 1997 Windows game files. The integrated Controllers + Display recipe
+set is verified for English retail/US–Global and the Japanese rerelease. The
+upstream patcher recognizes additional editions; that does not establish the same
+integrated expansion support. See [build identification](docs/PATCHER.md#builds).
+
+**Does this replace Pairomaniac's work?**
+
+It extends that implementation. Modern Windows fixes, installation, native
+widescreen, XInput, F-key settings, music improvements and other upstream features
+remain the foundation. Use the complete supplied patcher rather than layering
+individual executables over an existing patched installation.
+
+**Does it support ultrawide, and does 32:9 stretch the game?**
+
+Single Display and Dual Mirror offer the selected 21:9 and 32:9 rendering profiles.
+They change rendering dimensions rather than stretching a 16:9 picture. Output
+fitting preserves aspect; a differently shaped monitor can have unused borders.
+
+**Can each player use a separate monitor?**
+
+Select **Dual Display — Versus**, assign distinct active displays, choose **OK**
+and restart. Local VS gameplay routes P1 and P2 independently. **Dual Display —
+Mirror** instead duplicates the complete presentation, including both split-screen
+views; it is not a second independent camera.
+
+**Do both monitors need the same resolution or aspect ratio?**
+
+No. Each output fits its assigned desktop independently. The validated hardware
+inventory is not a guarantee for every pairing or refresh-rate combination.
+
+**What happens if a monitor disconnects?**
+
+At the next launch, unavailable dual output can fall back to Single Display while
+retaining saved preferences. Reconnect and restart to resolve the saved layout.
+Do not assume a running dual renderer can switch modes seamlessly after display loss.
+
+**How do I upgrade or restore the original game?**
+
+Close the game, back up settings and use **Restore original** before **Apply
+patches** with the new complete package. Do not replace individual patched game
+files manually. See [installation and recovery](docs/project/INSTALLATION-WORKFLOW.md).
+
+**Are diagnostics enabled automatically?**
+
+No. F11 provides **Diagnostics (saved immediately)** and **Export Diagnostics...**.
+Choose a level and restart to begin collection. Off stops new collection and keeps
+existing logs. Export is local and player initiated; nothing uploads automatically.
+
+### Display troubleshooting
+
+First confirm Windows detects the intended active displays, check the selected
+mode and assignments in F5, choose OK and restart. Keep the complete patcher/runtime
+files together. Do not change drivers or administrator settings as a default remedy.
+
+| Symptom | Check / action |
+|---|---|
+| Missing monitor | Check that Windows has an active desktop on it; reconnect and restart before reopening F5. |
+| Wrong output | Re-select Primary Display and Secondary Display, save and restart. |
+| Unexpected aspect or borders | Check Game Aspect Ratio separately from desktop resolution. Fitting preserves aspect; borders can be expected. |
+| Both players appear together | Single retains the original split-screen; Mirror duplicates it. Use Dual Versus for independent gameplay outputs. |
+| Mirror seems different during a movie | Original movie playback stays on the primary display with the secondary black. |
+| Dual mode falls back | Use distinct active outputs; cloned outputs at the same desktop origin are not independent. Saved preferences remain available for the next launch. |
+| Display settings cannot save | Record the dialog's step and Windows error. Check that the game folder and existing settings are writable; use F11 diagnostics for details. Do not delete saved preferences or run as administrator as a workaround. |
+| Saved change is not visible | Restart the game. OK saves next-launch choices; Cancel discards pending edits. |
 
 ## Controller Profiles
 
@@ -529,8 +616,9 @@ The latest published CE pre-release is
 [v0.17.0-controller-expansion.2](https://github.com/hyp36rmax/VO_PATCH_CONTROLLER_EXPANSION/releases/tag/v0.17.0-controller-expansion.2).
 **Controller-Expansion** remains the remote default. **Experience** is the intended
 integrated product/default branch; **Display-Expansion** remains independent display
-development and **main** preserves the upstream foundation. Experience CI preparation
-is local, with its first remote build and integrated Windows acceptance pending.
+development and **main** preserves the upstream foundation. The integrated prerelease remains unpublished. Hosted verification and native
+component building passed for the earlier baseline, but complete Windows packaging
+and integrated Windows acceptance remain gates; see the [draft release notes](docs/releases/v0.18.0-experience.1.md).
 
 [Build artifacts](https://github.com/hyp36rmax/VO_PATCH_EX/actions/workflows/build.yml)
 are development packages, not releases. CE releases remain explicitly approved
@@ -542,7 +630,7 @@ pre-releases. Preserve the existing
 
 [Pairomaniac](https://github.com/pairomaniac/v-on-patcher) created V-On Patcher and
 its patching, XInput and Twin-Stick foundation.
-[hyp36rmax](https://github.com/hyp36rmax/VO_PATCH_EX) maintains Controller Expansion
+[hyp36rmax](https://github.com/hyp36rmax/VO_PATCH_EX) maintains Controllers Expansion and Display Expansion
 and supplies physical hardware characterization and testing.
 
 The upstream [credits](docs/PATCHER.md#credits-and-licence) retain attribution to
