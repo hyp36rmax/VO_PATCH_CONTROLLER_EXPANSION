@@ -1,5 +1,10 @@
 # D04-P05 three-phase dual-display presentation
 
+> Historical engineering record. Findings and pending tests below belong to the
+> named checkpoint; they are not a current release checklist. The
+> [DUX specification](DUX-V1.0.md) defines the display contract, including the
+> F04B complete-presentation Mirror amendment.
+
 **Historical checkpoint: physical UAT FAILED.** All recorded outputs remained
 primary-only. The missing backbuffer Flip capture is corrected in
 [the F01 record](PRIVATE-DUAL-DISPLAY-P05-F01.md). Statements below describe the
@@ -9,8 +14,7 @@ Implementation and host validation: **VERIFIED**. Physical Windows acceptance:
 **NEEDS VALIDATION**. Starting private HEAD:
 `1d0147f46b3d24e13f0d0583a6347271f6cc4d51`.
 
-The prior P03 independent-output implementation is physically validated according
-to the maintainer's report. Its game executable and control package remain intact.
+The prior P03 independent-output implementation was physically validated. Its game executable and control package remain intact.
 P04 established that the centered HUD rectangle is not the shared content boundary;
 P05 presents the complete 3840×1080 frame instead of changing producer geometry.
 
@@ -83,7 +87,7 @@ Both outputs draw the same generation before sequential presents. No scanout
 synchronization, zero-latency or cross-adapter performance claim is made. P03 focus,
 window stacking, shutdown, display-change fallback and controller code are retained.
 
-Movie visibility remains **UNKNOWN / NEEDS VALIDATION**: the maintainer reports
+Movie visibility remains **UNKNOWN / NEEDS VALIDATION**: the physical test report records
 working audio and skip but no picture. No decoder or separate video path is changed.
 A movie that bypasses the completed primary surface remains outside this routing.
 

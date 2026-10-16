@@ -1,8 +1,13 @@
 # D04-P04 shared presentation gate
 
+> Historical engineering record. Findings and pending tests below belong to the
+> named checkpoint; they are not a current release checklist. The
+> [DUX specification](DUX-V1.0.md) defines the display contract, including the
+> F04B complete-presentation Mirror amendment.
+
 Status: **BLOCKED — shared composition; D04-P03 runtime preserved.**
 
-Baseline: `7c676682175489adfa57c23e6b1335539878547c`, clean `Display-Expansion` checkout. Its complete-history recovery bundle verified successfully. The user reports D04-P03 independent P1/P2 physical UAT passed; this is physical evidence, distinct from the host API-double tests. The intro has audio and can be skipped, but its picture is not visible according to the same brief.
+Baseline: `7c676682175489adfa57c23e6b1335539878547c`, clean `Display-Expansion` checkout. Its complete-history recovery bundle verified successfully. Physical testing confirmed D04-P03 independent P1/P2 operation; this is physical evidence, distinct from the host API-double tests. The intro has audio and can be skipped, but its picture is not visible according to the same physical test record.
 
 ## Verified dependency
 
@@ -12,7 +17,7 @@ The D02 `hud_rect=(960,0,1920,1080)` is a HUD composition boundary, not the boun
 
 `tools/dual_display/test_shared_bounds.py` reproduces this numerical counterexample using current production geometry. It is a structural bounds audit, not a screenshot or proof that every shared screen uses the photo path.
 
-A wrapper-only crop cannot recover the discarded composition. Fitting the full 32:9 frame into each monitor would preserve its pixels but would not implement the requested centered 16:9 shared composition. Changing producer-side shared canvas geometry could resolve this, but changes generated game images; changing the shared 3D view also needs explicit review against the no-projection-change constraint. No such change was made under this task's byte-identical image requirement.
+A wrapper-only crop cannot recover the discarded composition. Fitting the full 32:9 frame into each monitor would preserve its pixels but would not implement the requested centered 16:9 shared composition. Changing producer-side shared canvas geometry could resolve this, but changes generated game images; changing the shared 3D view also needs explicit review against the no-projection-change constraint. No such change was made under the checkpoint requirement to preserve byte-identical images.
 
 A future implementation must latch the producer's presentation selection with the completed surface generation. Reading current game modes when presenting a texture is insufficient: a texture may predate the current game state. The existing surface lock/upload boundary is the integration point to investigate, not permission to invent a speculative state hook.
 

@@ -91,4 +91,4 @@ reconstructions, startup activation, display selection/fallback, F5 transactions
 presentation API doubles and Retail/JPRE Apply/Restore. These tests do not prove
 physical monitor timings, every display pairing or Windows GUI acceptance. The
 [validated hardware inventory](../../README.md#validated-hardware) records the
-maintainer's supplied scope; final integrated-package acceptance remains pending.
+recorded physical-test scope; final integrated-package acceptance remains pending.

@@ -1,10 +1,10 @@
 # DUX-V1.0 — Display Configuration and Presentation
 
-This is the canonical frozen design specification, confirmed by the project
-owner. Requirements below define the intended behavior; they do not establish
+This is the approved canonical frozen design specification. Requirements below
+define the intended behavior; they do not establish
 implementation completion or physical validation.
 
-For the current shipped-source behavior and file boundaries, see
+For current implementation and source boundaries, see
 [Display Expansion implementation](IMPLEMENTATION.md). The checkpoint tables below
 are historical requirements and evidence, not a current installation guide.
 
@@ -50,20 +50,19 @@ Overlay must use the same configuration authority. Changes requiring display
 reinitialization apply on the next launch unless live switching is validated.
 Original upstream functionality must be preserved.
 
-### F04 scope
+### Historical F04 scope
 
-Implement mode-aware rendering selection and correct movie centering while
-preserving the physically validated F03C dual-display implementation. F04 does
-not begin F-key integration or Unified Overlay. Development remains private and
-local; no push or publication is authorized.
+F04 introduced mode-aware rendering selection and movie centering while
+preserving the physically validated F03C dual-display implementation. F-key
+integration and Unified Overlay were outside that private checkpoint.
 
-## Implementation and validation status
+## Historical F04 implementation and validation status
 
-This section describes the current checkpoint separately from the frozen contract.
+This section records F04 evidence, not the current integration acceptance status.
 
 | Area | Status at F04 checkpoint `0a65238d19b346dffba646422f44e4b675e05ed1` |
 |---|---|
-| F03C baseline | Physical movie visibility, audio/skip, single and dual gameplay confirmed by the project owner |
+| F03C baseline | Physical validation confirmed movie visibility, audio/skip, single and dual gameplay |
 | F04 selection and movie geometry | Implemented; internal tests passed; Windows acceptance pending |
 | Existing F-key menus | Retained; expanded display-setting integration remains deferred |
 | F04 private setup interface | Temporary launch-time selector for UAT, not completion of the frozen F-key interface requirement |
@@ -72,7 +71,7 @@ This section describes the current checkpoint separately from the frozen contrac
 | Dual failure after startup | Retains F03C composed-window fallback; changing the rendering profile requires another launch |
 | Unified Overlay | Deferred; no implementation in F04 |
 
-The private test package is internally verified, not physically accepted.
+At F04, the private test package was internally verified, not physically accepted.
 Implementation details and test boundaries are recorded in the
 [F04 engineering record](PRIVATE-DUAL-DISPLAY-P05-F04.md). The current settings
 schema is documented separately in [F04 configuration storage](DISPLAY-UX-V1.md).
@@ -98,8 +97,8 @@ Controller participation and camera ownership do not change with presentation.
 Startup/menu remain primary-only; dual secondary is black. Existing movie
 presentation is preserved; F04A did not implement movie enlargement.
 
-These are requirements. The reported physical P1 duplication has not yet been
-reproduced by the existing internal routing tests; it is not established as fixed.
+At F04A, internal routing tests had not reproduced the reported physical P1
+duplication; that checkpoint did not establish a fix.
 
 ## Approved F04B amendment — complete presentation Mirror
 
@@ -119,6 +118,6 @@ Display 1 retains native visible playback and Display 2 remains black.
 No Windows display-mode, camera, simulation or input ownership change is allowed.
 Saved preferences, session overrides and prelaunch recovery remain authoritative.
 
-**Implementation:** private F04B implements complete-source sampling using the
+**F04B checkpoint evidence:** the private implementation provides complete-source sampling using the
 existing output swapchains. **Validation:** internal API-double and generation
 checks; Windows physical acceptance pending. Native movie geometry is unchanged.

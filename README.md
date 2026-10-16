@@ -614,11 +614,16 @@ the connected controller. Then use the symptom below.
 
 The latest published CE pre-release is
 [v0.17.0-controller-expansion.2](https://github.com/hyp36rmax/VO_PATCH_CONTROLLER_EXPANSION/releases/tag/v0.17.0-controller-expansion.2).
-**Controller-Expansion** remains the remote default. **Experience** is the intended
-integrated product/default branch; **Display-Expansion** remains independent display
-development and **main** preserves the upstream foundation. The integrated prerelease remains unpublished. Hosted verification and native
-component building passed for the earlier baseline, but complete Windows packaging
-and integrated Windows acceptance remain gates; see the [draft release notes](docs/releases/v0.18.0-experience.1.md).
+**Experience** is the default and integrated product branch. **Controller-Expansion**
+preserves the controller release line; **Display-Expansion** remains independent
+display development and **main** preserves the upstream foundation.
+Unified Overlay development remains separate from this prerelease.
+
+The integrated prerelease remains unpublished. Experience commit
+`49a7e7359592d71e39c576ac3c1884bb5a80bb78` passed
+[hosted CI and Windows packaging](https://github.com/hyp36rmax/VO_PATCH_EX/actions/runs/38850298893).
+Final integrated Windows acceptance remains a separate gate; see the
+[draft release notes](docs/releases/v0.18.0-experience.1.md).
 
 [Build artifacts](https://github.com/hyp36rmax/VO_PATCH_EX/actions/workflows/build.yml)
 are development packages, not releases. CE releases remain explicitly approved

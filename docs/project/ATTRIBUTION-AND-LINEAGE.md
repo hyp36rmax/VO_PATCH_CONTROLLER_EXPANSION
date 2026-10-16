@@ -16,7 +16,7 @@ widescreen, XInput, original F-key configuration, audio improvements and other
 upstream features. VO PATCH EX extends these systems; it does not claim their
 original authorship. See the [current display implementation](../display/IMPLEMENTATION.md).
 
-## Existing and added attribution
+## Historical G02 attribution implementation
 
 Upstream exposes an About card in the patcher, a tile-font title-screen version
 hook, and two ending-roll bitmap lines. The original game's SEGA About resource
@@ -28,7 +28,7 @@ state gates and patch-generation path. The About card leads with VO PATCH EX, hy
 scope, followed by Pairomaniac and original artist SirRockEmSockEm.
 `0.1-dev` denotes a local development identity, not a published release.
 
-### Ending-roll addition: BLOCKED
+### Ending-roll addition: NEEDS VALIDATION
 
 The original SEGA staff and both upstream lines are preserved byte-for-byte.
 No VO PATCH EX/hyp36rmax ending line is claimed as implemented.
@@ -94,8 +94,7 @@ module authority, run complete tests and Windows acceptance, then merge the
 validated descendant into Experience. Never force-push or rewrite upstream
 history. No new upstream changes are automatically merged.
 
-Experience is the integrated Controllers + Display source branch. This document
-does not authorize changes to repository settings or publication.
+Experience is the integrated Controllers + Display source branch. Its documentation describes implementation and lineage separately from release acceptance.
 
 ## Patcher branding
 
@@ -111,5 +110,5 @@ Experience includes B01-F02 through adf46270ce1b7922f5bca3677387a801469caa2c.
 The G02 byte-size discussion above records that attribution change, not every later
 Experience modification. Controller-Expansion remains the public controller authority;
 Controllers-Expansion is an existing local alias. The canonical repository is
-hyp36rmax/VO_PATCH_EX; its remote default remains Controller-Expansion as verified
-during G04-P02. Experience is the intended future default, not a published release.
+hyp36rmax/VO_PATCH_EX; its remote default was Controller-Expansion during G04-P02. Experience is now
+the default; the integrated prerelease remains staged, not published.

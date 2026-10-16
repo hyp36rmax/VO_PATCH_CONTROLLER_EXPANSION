@@ -1,5 +1,10 @@
 # D04-P02 dual-display implementation checkpoint
 
+> Historical engineering record. Findings and pending tests below belong to the
+> named checkpoint; they are not a current release checklist. The
+> [DUX specification](DUX-V1.0.md) defines the display contract, including the
+> F04B complete-presentation Mirror amendment.
+
 Status: **BLOCKED for UAT delivery**, implementation retained for validation.
 Starting private HEAD: `735f453b5b594c2c1c0031d3d0b841c43d22076a`.
 Controller Expansion baseline: `73639a4d369dba02c97842906828f588ee4602f5`.
@@ -57,10 +62,10 @@ The mandatory real-game-frame integration gate cannot be satisfied by the host
 API doubles or synthetic primitive tests. No claim is made that cnc-ddraw cannot
 support the design; this is a validation blocker.
 
-The next work remains **D04-P02 Windows integration and lifecycle validation**,
-then consolidation into one package with the original Local VS control and
-`RETURN-THIS-D04-P02.zip`. Do not begin D04-P03. Do not ask the user to copy DLLs,
-edit INIs or assemble this checkpoint manually.
+The next gate at this checkpoint was D04-P02 Windows integration and lifecycle
+validation using one ready-to-run package and automatic collection of
+`RETURN-THIS-D04-P02.zip`. Manual DLL copying, configuration edits and backend
+selection were excluded from the test procedure.
 
 Only private display tooling/documentation changed. No public branch, controller
 implementation, main, Unified Overlay, camera selection or game simulation was

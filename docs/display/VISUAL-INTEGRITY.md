@@ -1,6 +1,11 @@
 # Private visual integrity probe — D02-V01
 
-The probe supplies bounded static geometry diagnostics to the existing UAT collection path. It does **not** detect live clipping. The user reports S05 1920 startup and 2560 startup/gameplay PASS, initial HUD/camera PASS, and clipping observed at an unknown location. DirectDraw initialization logs do not establish its cause. Measured latency and pacing remain unknown.
+> Historical engineering record. Findings and pending tests below belong to the
+> named checkpoint; they are not a current release checklist. The
+> [DUX specification](DUX-V1.0.md) defines the display contract, including the
+> F04B complete-presentation Mirror amendment.
+
+The probe supplies bounded static geometry diagnostics to the existing UAT collection path. It does **not** detect live clipping. Recorded S05 physical results show 1920 startup and 2560 startup/gameplay PASS, initial HUD/camera PASS, and clipping observed at an unknown location. DirectDraw initialization logs do not establish its cause. Measured latency and pacing remain unknown.
 
 ## Implemented evidence
 

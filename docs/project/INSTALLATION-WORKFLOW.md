@@ -63,6 +63,8 @@ patch data and redistributables, never original game executables or assets.
 
 The canonical [VO PATCH EX Build workflow](https://github.com/hyp36rmax/VO_PATCH_EX/actions/workflows/build.yml)
 is prepared to produce a complete Experience Windows ZIP with the existing
-`v-on-patcher.exe` and `_internal` structure. Complete hosted Windows packaging
-and final integrated UAT remain acceptance gates. This is separate from the published
+`v-on-patcher.exe` and `_internal` structure. Hosted Windows packaging passed for Experience commit
+`49a7e7359592d71e39c576ac3c1884bb5a80bb78` in
+[run 38850298893](https://github.com/hyp36rmax/VO_PATCH_EX/actions/runs/38850298893).
+Final integrated physical UAT remains a separate acceptance gate. This is separate from the published
 Controller Expansion pre-release; no Experience release is announced.
