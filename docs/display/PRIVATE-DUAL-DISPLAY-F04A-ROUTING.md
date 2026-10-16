@@ -19,7 +19,7 @@ transition. The game starts the selected Single executable with dual output off.
 
 **UNKNOWN:** root cause of the reported physical P1 duplication. Current internal
 routing tests produce P1/P2 for Versus and P1/P1 only for Mirror. Single bypasses
-the dual presentation path. No returned runtime evidence accompanying this brief
+the dual presentation path. No runtime evidence available at this checkpoint
 establishes the selected mode, producer phase or sampled source at the failure.
 Do not claim that the physical duplication is fixed by the recovery change.
 

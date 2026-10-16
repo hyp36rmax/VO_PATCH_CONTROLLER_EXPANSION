@@ -1,5 +1,8 @@
 # Private intro-movie window observer
 
+Historical F03B diagnostic. The findings below describe the investigation before
+the later [F03C visibility correction](../../docs/display/PRIVATE-DUAL-DISPLAY-P05-F03C.md).
+
 F03B observes the unchanged F02 game externally. It opens and flushes its own
 log before launching `game/v_on.exe` with an explicit executable path and working
 directory. There is no debugger, injection, target memory access, input hook,
@@ -11,7 +14,7 @@ the target process's children. Records include process/thread identity, window
 class/title, structural parent/owner, sibling order, root, visibility/iconic/cloaked
 state, style flags, screen/client bounds, foreground and target-thread active HWND,
 and nearest monitor device/bounds/primary flag. Saved player assignment is copied
-from the owner's returned evidence and included in collected results.
+from the recorded physical-test evidence and included in collected results.
 
 Presentation windows have explicit role hints from their known class/title.
 Movie class and active game-window hints remain candidates, not asserted identities.

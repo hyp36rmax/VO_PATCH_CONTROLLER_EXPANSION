@@ -1,6 +1,7 @@
 # DUX-V1.0 — Display Configuration and Presentation
 
-This is the approved canonical frozen design specification. Requirements below define the intended behavior; they do not establish
+This is the approved canonical frozen design specification. Requirements below
+define the intended behavior; they do not establish
 implementation completion or physical validation.
 
 ## Original frozen requirements (Mirror revised by F04B)

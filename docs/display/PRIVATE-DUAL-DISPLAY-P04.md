@@ -17,7 +17,7 @@ The D02 `hud_rect=(960,0,1920,1080)` is a HUD composition boundary, not the boun
 
 `tools/dual_display/test_shared_bounds.py` reproduces this numerical counterexample using current production geometry. It is a structural bounds audit, not a screenshot or proof that every shared screen uses the photo path.
 
-A wrapper-only crop cannot recover the discarded composition. Fitting the full 32:9 frame into each monitor would preserve its pixels but would not implement the requested centered 16:9 shared composition. Changing producer-side shared canvas geometry could resolve this, but changes generated game images; changing the shared 3D view also needs explicit review against the no-projection-change constraint. No such change was made under this task's byte-identical image requirement.
+A wrapper-only crop cannot recover the discarded composition. Fitting the full 32:9 frame into each monitor would preserve its pixels but would not implement the requested centered 16:9 shared composition. Changing producer-side shared canvas geometry could resolve this, but changes generated game images; changing the shared 3D view also needs explicit review against the no-projection-change constraint. No such change was made under the checkpoint requirement to preserve byte-identical images.
 
 A future implementation must latch the producer's presentation selection with the completed surface generation. Reading current game modes when presenting a texture is insufficient: a texture may predate the current game state. The existing surface lock/upload boundary is the integration point to investigate, not permission to invent a speculative state hook.
 

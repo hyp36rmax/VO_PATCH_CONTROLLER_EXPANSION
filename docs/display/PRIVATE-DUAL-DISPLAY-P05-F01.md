@@ -112,5 +112,5 @@ startup/black secondary, Local VS selection/pre-fight mirroring, independent
 play, Mirror P1, return-to-menu, mixed displays, controller ownership and exit.
 Movie visibility remains the known non-blocking limitation; no decoder changed.
 
-The next milestone is this consolidated physical acceptance run. Nothing is pushed
-or published; main, public Controller-Expansion and Unified Overlay remain untouched.
+The next gate at F01 was consolidated physical acceptance. The checkpoint
+changed no main, Controller-Expansion or Unified Overlay implementation.

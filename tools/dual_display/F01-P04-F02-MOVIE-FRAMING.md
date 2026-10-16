@@ -9,7 +9,7 @@ rows outside it. The visible band is 320×180, or 16:9. The local Retail and JPR
 files have identical 16,488,200-byte content and SHA-256
 `cf5094ec93879089b2544aa5bc1ff83764a6ab120fb8eac0c77c4b5492fe0c38`.
 AVI headers independently confirm 320×240. Pixel boundaries were not independently
-remeasured in this task; their measurement provenance is upstream's source record.
+remeasured during this correction; their measurement provenance is upstream's source record.
 
 The legacy caller passes a 640×400 or 320×200 movie window. Upstream instead asks
 MCI_WHERE for the maximum source size, scales the measured band proportionally,

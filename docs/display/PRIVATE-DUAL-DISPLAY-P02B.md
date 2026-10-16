@@ -84,6 +84,5 @@ Alt+Tab and minimize/restore. Exit and confirm both outputs disappear. Run
 archive with observations. Fallback to one composed window is not dual-output
 success. The package required no manual configuration edits or DLL copying.
 
-The next milestone remains D04-P02B acceptance and corrections supported by its
-results. D04-P03 is not started. No controller/game/camera code, public branch,
-main or Unified Overlay is changed. Nothing is pushed or published.
+At P02B, the next gate was physical acceptance and corrections supported by its
+results. D04-P03 had not begun. Controller, game and camera code were unchanged.
