@@ -1,6 +1,7 @@
 """Test promotion authorization without network, credentials or release writes."""
 import json
 import unittest
+from unittest.mock import patch, MagicMock
 from pathlib import Path
 import experience as guard
 
@@ -132,6 +133,17 @@ class AuthorizationTests(unittest.TestCase):
         self.assertEqual(actual['windows_acceptance']['application_commit'], actual['application_commit'])
         self.assertEqual(actual['windows_acceptance']['artifact_sha256'], actual['artifact_sha256'])
         self.assertEqual(guard.digest(Path('docs/releases/' + guard.VERSION + '.md').read_bytes()), actual['notes_sha256'])
+
+    def test_download_api_media_types(self):
+        for path, expected in (('/actions/artifacts/1/zip', 'application/vnd.github+json'),
+                               ('/releases/assets/1', 'application/octet-stream')):
+            with self.subTest(path=path), patch.dict(guard.os.environ, {'GH_TOKEN': 'test-token'}):
+                opener = MagicMock()
+                opener.open.return_value.__enter__.return_value.read.return_value = b'ZIP'
+                with patch.object(guard.urllib.request, 'build_opener', return_value=opener):
+                    self.assertEqual(guard.request(path, binary=True), b'ZIP')
+                request = opener.open.call_args.args[0]
+                self.assertEqual(request.get_header('Accept'), expected)
 
     def test_workflow_contract(self):
         workflow = Path(guard.WORKFLOW).read_text()

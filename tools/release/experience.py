@@ -88,7 +88,8 @@ def request(path, method='GET', data=None, binary=False):
         require(urllib.parse.urlparse(path).netloc == 'uploads.github.com', 'unexpected upload host')
         url = path
     headers = {'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
-               'Accept': 'application/octet-stream' if binary else 'application/vnd.github+json',
+               'Accept': ('application/octet-stream' if binary and path.startswith('/releases/assets/')
+                          else 'application/vnd.github+json'),
                'X-GitHub-Api-Version': '2022-11-28'}
     body = data if isinstance(data, bytes) else (json.dumps(data).encode() if data is not None else None)
     if body is not None:
