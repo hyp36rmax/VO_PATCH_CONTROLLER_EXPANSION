@@ -30,6 +30,12 @@ for value in ('Controller-Expansion, Experience', 'tools/experience/package_norm
               'tools/experience/test_normal_package.py', 'Experience publication guard',
               'tools/experience/catalog_input.py', 'PYTHONUTF8', '--prerelease'):
     assert value in workflow, value
+# Catalog hashes cover exact bytes, including headers on Windows checkouts.
+locked_sources = catalog_input.sources()
+for name in locked_sources:
+    attribute = git('check-attr', 'eol', '--', name).decode().strip()
+    assert attribute == name + ': eol: lf', (name, attribute)
+
 source = root/'tools/experience/ci/catalog.json.xz'
 with tempfile.TemporaryDirectory() as directory:
     folder = Path(directory)

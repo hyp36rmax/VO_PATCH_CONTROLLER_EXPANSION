@@ -64,11 +64,12 @@ See [display requirements](docs/display/DUX-V1.0.md) and
 [installation](docs/project/INSTALLATION-WORKFLOW.md). Windows acceptance for the
 current integrated package remains pending.
 
-### Display hardware inventory
+### Validated display configurations
 
-This frozen inventory records hardware specifications supplied by the maintainer.
-It is not a matrix of physically validated gameplay modes, monitor pairings or
-refresh-rate configurations. Integrated Windows acceptance remains separate.
+The maintainer reports these eight display configurations as validated. This is
+not an exclusive compatibility list or evidence that every gameplay mode, monitor
+pairing or refresh-rate combination was tested. Acceptance of the current
+integrated Windows package remains pending.
 
 | Display | Resolution | Refresh Rate |
 |---|---|---|
@@ -78,7 +79,7 @@ refresh-rate configurations. Integrated Windows acceptance remains separate.
 | Samsung Odyssey CRG9 49" | 5120×1440 | 120 Hz |
 | HyperX Armada 27 | 2560×1440 | 165 Hz |
 | HyperX Armada 24 | 1920×1080 | 240 Hz |
-| ASUS ROG Strix XG17 | 1920×1080 | 240 Hz |
+| ASUS ROG Strix XG17 17.3" | 1920×1080 | 240 Hz |
 | LG UltraGear 32" | 2560×1440 | 165 Hz |
 
 ## Diagnostics and Privacy
