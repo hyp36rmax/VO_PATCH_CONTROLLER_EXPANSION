@@ -1,8 +1,13 @@
 # D04-P05-F04 — mode selection and movie geometry
 
+> Historical engineering record. Findings and pending tests below belong to the
+> named checkpoint; they are not a current release checklist. The
+> [DUX specification](DUX-V1.0.md) defines the display contract, including the
+> F04B complete-presentation Mirror amendment.
+
 Status: **VERIFIED internally; NEEDS VALIDATION on Windows**.
 Protected physical baseline: F03C, `18c87a0ac0463badcbaa0fdbdd1d6c4a2a587ff4`.
-The user confirms visible movie, audio/skip, single and dual gameplay at that baseline.
+Physical validation confirmed visible movie, audio/skip, single and dual gameplay at that baseline.
 
 ## Selection and preservation
 

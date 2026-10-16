@@ -1,5 +1,10 @@
 # Private HUD and presentation contract
 
+> Historical engineering record. Findings and pending tests below belong to the
+> named checkpoint; they are not a current release checklist. The
+> [DUX specification](DUX-V1.0.md) defines the display contract, including the
+> F04B complete-presentation Mirror amendment.
+
 D02-S04 connects the existing D01 HUD cap to the D02 resolution contract. It deliberately preserves generated game images, compositor instructions, projection, controller behavior and display startup. Research dimensions describe policy; they do not authorize new modes.
 
 ## Composition and integer boundaries
@@ -64,7 +69,7 @@ Photo staging copies only 496×384; the uniform 16.16 sampling step is the small
 
 ## Evidence and remaining gates
 
-VERIFIED: S05 user evidence confirms successful wrapped 1920 and 2560 initialization; 2560 reached gameplay. Returned logs resolve methods to local ddraw.dll and finish normally (3 calls at 1920, 9 at 2560). The preserved gameplay screenshot shows the centered composition and letterboxing. HUD was accepted; camera, input response and pacing appeared normal. The screenshot's instantaneous FPS overlay does not measure frame pacing or latency.
+VERIFIED: S05 physical evidence confirms successful wrapped 1920 and 2560 initialization; 2560 reached gameplay. Returned logs resolve methods to local ddraw.dll and finish normally (3 calls at 1920, 9 at 2560). The preserved gameplay screenshot shows the centered composition and letterboxing. HUD was accepted; camera, input response and pacing appeared normal. The screenshot's instantaneous FPS overlay does not measure frame pacing or latency.
 
 NEEDS VALIDATION: complete boot/title/select/hangar/encounter/transition/results/credits sequences, photo crop acceptability, HUD/marker behavior throughout gameplay, and later integrated visual UAT. Measured latency and frame pacing remain UNKNOWN.
 

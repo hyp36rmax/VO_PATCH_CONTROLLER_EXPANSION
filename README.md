@@ -1,5 +1,12 @@
 # Virtual-On PC Controller Expansion
 
+This is the Display-Expansion development checkpoint. Its display contract is
+[DUX-V1.0](docs/display/DUX-V1.0.md); the associated engineering records retain
+checkpoint-specific validation findings. The controller documentation below is
+the preserved Controller Expansion foundation. Integrated installation and
+release status belong to [Experience](https://github.com/hyp36rmax/VO_PATCH_EX/tree/Experience).
+
+
 Expanded controller compatibility for *Cyber Troopers Virtual-On* (PC, 1997).
 Maintained by [hyp36rmax](https://github.com/hyp36rmax/VO_PATCH_CONTROLLER_EXPANSION), built on
 [Pairomaniac's V-On Patcher](https://github.com/pairomaniac/v-on-patcher) for

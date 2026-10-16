@@ -1,5 +1,10 @@
 # F04B complete presentation Mirror
 
+> Historical engineering record. Findings and pending tests below belong to the
+> named checkpoint; they are not a current release checklist. The
+> [DUX specification](DUX-V1.0.md) defines the display contract, including the
+> F04B complete-presentation Mirror amendment.
+
 Baseline: `1bdab554816c2154ab0d071e420a62010b6278dc`.
 
 Mirror previously selected the dedicated 3840×1080 VS image and cropped P1's

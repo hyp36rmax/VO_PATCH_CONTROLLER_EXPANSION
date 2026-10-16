@@ -1,5 +1,10 @@
 # D04-P05-F03C — movie-window visibility
 
+> Historical engineering record. Findings and pending tests below belong to the
+> named checkpoint; they are not a current release checklist. The
+> [DUX specification](DUX-V1.0.md) defines the display contract, including the
+> F04B complete-presentation Mirror amendment.
+
 Status: **VERIFIED internally; NEEDS VALIDATION on Windows**.
 Starting private HEAD: `938b7928c08129aa7a2840f113cd1ed7f72c07bd`.
 Physically validated display baseline: `81f1eae4dfcfbb5698ac98b971e9071c96af8a15`.

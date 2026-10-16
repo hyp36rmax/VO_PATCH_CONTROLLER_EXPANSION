@@ -1,8 +1,12 @@
 # D04-P05-F02 — desktop compatibility and shared composition
 
+> Historical engineering record. Findings and pending tests below belong to the
+> named checkpoint; they are not a current release checklist. The
+> [DUX specification](DUX-V1.0.md) defines the display contract, including the
+> F04B complete-presentation Mirror amendment.
+
 Status: **VERIFIED internally; NEEDS VALIDATION on Windows**. Private only.
-Baseline: `09ff7f8aa74284820e6de88a5b56e6b0bef4217c` (F01, physically validated
-by the owner). Pinned cnc-ddraw: `279a057ee7e1e4d584b56141c014ab01f3c6ee6d`.
+Baseline: `09ff7f8aa74284820e6de88a5b56e6b0bef4217c` (F01, physically validated). Pinned cnc-ddraw: `279a057ee7e1e4d584b56141c014ab01f3c6ee6d`.
 
 ## Geometry contract
 

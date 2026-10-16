@@ -1,22 +1,27 @@
 # D04-P03 independent P1 presentation candidate
 
+> Historical engineering record. Findings and pending tests below belong to the
+> named checkpoint; they are not a current release checklist. The
+> [DUX specification](DUX-V1.0.md) defines the display contract, including the
+> F04B complete-presentation Mirror amendment.
+
 Previous private HEAD: `d33104b1eac615601bad60d50c9cca3634768b85`.
 Wrapper base remains `279a057ee7e1e4d584b56141c014ab01f3c6ee6d`.
 Status: internal checks VERIFIED; corrected physical P1 output NEEDS VALIDATION.
 
 ## Physical evidence recovered
 
-The user's LF01 return archive reports successful discovery, assignment and
+The LF01 return archive reports successful discovery, assignment and
 observer exits. Two presentation lifetimes recorded 426 and 12,812 successful
 pairs, no fallback, HRESULT zero and equal final P1/P2 generations. Sources were
 exactly (0,0,1920,1080) and (1920,0,1920,1080). Destinations were the 2560×1440
 laptop at (0,0) and 1920×1080 external display at (2560,0).
 
-The user confirms working Local VS and independent P2 on the external display,
+Physical testing confirmed working Local VS and independent P2 on the external display,
 while the laptop showed the combined frame. The return logs establish successful
 render/present calls, not visible window order. No successful dual-display
 screenshot was located in the supplied review directory; the visual finding is
-attributed to the user's report.
+supported by the physical test report rather than a screenshot.
 
 ## Smallest correction
 
@@ -43,7 +48,7 @@ Native focus races and window behavior remain part of physical acceptance.
 
 | Item | Status / boundary |
 |---|---|
-| P2 on external display, mixed resolutions | Physical LF01 result reported by user; preserved implementation |
+| P2 on external display, mixed resolutions | Physical LF01 test report; preserved implementation |
 | P1/P2 source and GPU presentation code | VERIFIED source-identical from initialization through cleanup |
 | P1 stacking, re-raise, no redundant positioning | VERIFIED with production-code API doubles |
 | Original window untouched, focus, minimize/restore | VERIFIED with API doubles; Windows retest pending |

@@ -1,5 +1,10 @@
 # F04 display configuration storage
 
+> Historical engineering record. Findings and pending tests below belong to the
+> named checkpoint; they are not a current release checklist. The
+> [DUX specification](DUX-V1.0.md) defines the display contract, including the
+> F04B complete-presentation Mirror amendment.
+
 The authoritative design is [DUX-V1.0](DUX-V1.0.md). This document describes the
 current F04 implementation, not additional frozen requirements.
 

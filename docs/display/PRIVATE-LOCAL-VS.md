@@ -1,5 +1,10 @@
 # Private 3840 × 1080 local VS candidate
 
+> Historical engineering record. Findings and pending tests below belong to the
+> named checkpoint; they are not a current release checklist. The
+> [DUX specification](DUX-V1.0.md) defines the display contract, including the
+> F04B complete-presentation Mirror amendment.
+
 The dedicated `tools/engineering_vs.py` generator extends the private 3840
 image with two 1920 × 1080 viewports using the original split renderer.
 Normal generators and existing single-player images remain unchanged.

@@ -1,5 +1,10 @@
 # F04A: explicit private display-mode sessions
 
+> Historical engineering record. Findings and pending tests below belong to the
+> named checkpoint; they are not a current release checklist. The
+> [DUX specification](DUX-V1.0.md) defines the display contract, including the
+> F04B complete-presentation Mirror amendment.
+
 Status: **VERIFIED** internally; **NEEDS VALIDATION** on Windows. Movie enlargement is **BLOCKED** under the full-frame, no-crop/no-stretch requirements. F04 playback is preserved.
 
 Baseline: `b168d5d29db4868cf0afeacb04e37c8cb7bf1e2d`. Frozen requirements remain in [DUX-V1.0](DUX-V1.0.md).
@@ -32,4 +37,4 @@ Default Single uses the existing 1920×1080 profile. Original 640×480, 21:9 and
 
 The 33 baseline regressions pass. Targeted host/API-double tests cover session selection, immutable preferences, missing monitors, mixed geometry, Versus/Mirror routing, strict failure closure, movie identity/lifecycle and centering. Package verification regenerates profiles, compares assets/helpers, inspects i386 dependencies/manifests, checks hashes/ZIP CRC and extracts under a relocated Unicode path. These checks do not replace physical Windows acceptance.
 
-The private package contains all three launchers and automatically selects `RETURN-THIS-D04-P05-F04A.zip`; raw diagnostics survive compression failure. Windows mode selection, presentation, focus/restore, playback/audio/skip, controllers and shutdown require acceptance. Keep this checkpoint local; no publication or F-key/overlay integration is included.
+The private package contains all three launchers and automatically selects `RETURN-THIS-D04-P05-F04A.zip`; raw diagnostics survive compression failure. Windows mode selection, presentation, focus/restore, playback/audio/skip, controllers and shutdown require acceptance. This checkpoint preceded F-key and overlay integration.
