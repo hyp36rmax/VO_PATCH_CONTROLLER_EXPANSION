@@ -347,11 +347,14 @@ jobs:
       - name: Assemble Experience Windows package
         if: github.ref_name == 'Experience'
         shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
         run: |
           python tools/experience/catalog_input.py unpack tools/experience/ci/catalog.json.xz build/catalog
           python tools/experience/package_normal.py dist/experience dist/v-on-patcher build/catalog build/experience-native build/experience-native/vodisplay.dll
           python tools/experience/test_normal_package.py dist/experience
           timeout 60 dist/experience/v-on-patcher.exe --selfcheck
+          python tools/experience/test_normal_package.py dist/experience
           python - <<'PYCODE'
           import shutil, zipfile
           path = shutil.make_archive('dist/VO-PATCH-EX-Experience', 'zip', 'dist/experience')
