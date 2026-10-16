@@ -39,6 +39,6 @@ patch data and redistributables, never original game executables or assets.
 
 The canonical [VO PATCH EX Build workflow](https://github.com/hyp36rmax/VO_PATCH_EX/actions/workflows/build.yml)
 is prepared to produce a complete Experience Windows ZIP with the existing
-`v-on-patcher.exe` and `_internal` structure. Its first GitHub Windows execution
-and final integrated UAT remain pending. This is separate from the published
+`v-on-patcher.exe` and `_internal` structure. This branch does not establish the hosted build or physical acceptance status
+of the separate Experience candidate; those results must be tied to its exact commit. This is separate from the published
 Controller Expansion pre-release; no Experience release is announced.

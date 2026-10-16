@@ -1,5 +1,10 @@
 # D04-P05-F01 state capture correction
 
+> Historical engineering record. Findings and pending tests below belong to the
+> named checkpoint; they are not a current release checklist. The
+> [DUX specification](DUX-V1.0.md) defines the display contract, including the
+> F04B complete-presentation Mirror amendment.
+
 **VERIFIED:** missing Flip capture, deterministic reproduction, targeted correction
 and host regressions. **NEEDS VALIDATION:** corrected Windows presentation.
 Starting HEAD: `13c402c7e513bd948ff05b6a54f2470a271eeb70`.
@@ -9,7 +14,7 @@ Starting HEAD: `13c402c7e513bd948ff05b6a54f2470a271eeb70`.
 The returned P05 archive matches the committed candidate and its packaged game,
 wrapper and controller-helper hashes. It records two render lifetimes of 341 and
 4306 presented pairs. Every pair used primary-only; errors were zero. The
-maintainer reports combined gameplay on Display 1 and black Display 2.
+physical test report records combined gameplay on Display 1 and black Display 2.
 
 P05 captured state only when the unlocked surface equaled `g_ddraw.primary`.
 The original game renders into a distinct attached backbuffer, unlocks it, then

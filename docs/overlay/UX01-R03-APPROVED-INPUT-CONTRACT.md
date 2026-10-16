@@ -1,5 +1,9 @@
 # Unified Overlay input contract — F03 revision
 
+> Historical P01/F03 checkpoint. The placeholder-page limitations below were
+> superseded by settings integration. See the [current implementation index](README.md)
+> for later changes and separate physical acceptance requirements.
+
 The UX01-P01-F02 acceptance brief supersedes P01's Start activation and native
 Raphnet Pause-toggle exception. Configuration pages remain outside this milestone.
 

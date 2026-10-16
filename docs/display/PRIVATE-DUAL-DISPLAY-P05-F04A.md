@@ -1,5 +1,10 @@
 # F04A: explicit private display-mode sessions
 
+> Historical engineering record. Findings and pending tests below belong to the
+> named checkpoint; they are not a current release checklist. The
+> [DUX specification](DUX-V1.0.md) defines the display contract, including the
+> F04B complete-presentation Mirror amendment.
+
 Status: **VERIFIED** internally; **NEEDS VALIDATION** on Windows. Movie enlargement is **BLOCKED** under the full-frame, no-crop/no-stretch requirements. F04 playback is preserved.
 
 Baseline: `b168d5d29db4868cf0afeacb04e37c8cb7bf1e2d`. Frozen requirements remain in [DUX-V1.0](DUX-V1.0.md).

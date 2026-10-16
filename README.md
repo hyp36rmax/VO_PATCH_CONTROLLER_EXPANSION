@@ -4,11 +4,6 @@ VO PATCH EX expands *Cyber Troopers Virtual-On* (PC, 1997) for modern Windows
 systems with Controllers Expansion and Display Expansion. Independently maintained
 by [hyp36rmax](https://github.com/hyp36rmax/VO_PATCH_EX), it builds on
 [Pairomaniac's V-On Patcher](https://github.com/pairomaniac/v-on-patcher).
-The private Experience build integrates Controllers Expansion and Display Expansion
-through the original patcher. Configure displays in **F5 → Graphic Settings →
-Display...**; saved changes apply on next launch. The development identity is
-**0.1-dev**. Windows integration acceptance remains pending; the published
-Controller Expansion pre-release is a separate distribution.
 
 VO PATCH EX is an independent community project, not affiliated with or endorsed
 by SEGA. Original patcher logo and icon: **SirRockEmSockEm**. The header combines
@@ -17,6 +12,15 @@ the unchanged upstream artwork with the approved red EX lettering.
 See [installation](docs/project/INSTALLATION-WORKFLOW.md),
 [attribution and lineage](docs/project/ATTRIBUTION-AND-LINEAGE.md), and
 [branding assets](assets/BRANDING.md).
+
+## Development status
+
+This is the Unified-Overlay-Menu-Expansion development branch. Its overlay work
+is separate from the staged Controllers + Display Expansion prerelease on Experience.
+The [overlay implementation index](docs/overlay/README.md) distinguishes current
+source behavior from historical findings and pending Windows acceptance.
+Display settings remain available through **F5 → Graphic Settings → Display...**;
+saved display changes apply on next launch.
 
 ## Overview
 
@@ -526,10 +530,16 @@ the connected controller. Then use the symptom below.
 
 The latest published CE pre-release is
 [v0.17.0-controller-expansion.2](https://github.com/hyp36rmax/VO_PATCH_CONTROLLER_EXPANSION/releases/tag/v0.17.0-controller-expansion.2).
-**Controller-Expansion** remains the remote default. **Experience** is the intended
-integrated product/default branch; **Display-Expansion** remains independent display
-development and **main** preserves the upstream foundation. Experience CI preparation
-is local, with its first remote build and integrated Windows acceptance pending.
+**Experience** is the remote default and integrated product branch.
+**Controller-Expansion** preserves the controller release line,
+**Display-Expansion** remains independent display development, and **main**
+preserves the upstream foundation. Unified Overlay remains on its separate
+active development branch.
+
+Experience commit `49a7e7359592d71e39c576ac3c1884bb5a80bb78` passed
+[hosted CI](https://github.com/hyp36rmax/VO_PATCH_EX/actions/runs/38850298893).
+That result does not establish physical Windows acceptance or validate this
+branch's overlay. `v0.18.0-experience.1` remains staged, not published.
 
 [Build artifacts](https://github.com/hyp36rmax/VO_PATCH_EX/actions/workflows/build.yml)
 are development packages, not releases. CE releases remain explicitly approved

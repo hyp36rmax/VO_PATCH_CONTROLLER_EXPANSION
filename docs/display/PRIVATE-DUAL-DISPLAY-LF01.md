@@ -1,5 +1,10 @@
 # D04-P02B-LF01 launcher and collection correction
 
+> Historical engineering record. Findings and pending tests below belong to the
+> named checkpoint; they are not a current release checklist. The
+> [DUX specification](DUX-V1.0.md) defines the display contract, including the
+> F04B complete-presentation Mirror amendment.
+
 Previous HEAD: `701836ff28f3596e135e4297756509b4b4f46b30`.
 Physical P02B result: launch/elevation and compression errors; no dual-display
 acceptance result can be inferred from this attempt.

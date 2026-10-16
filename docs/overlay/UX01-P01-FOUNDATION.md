@@ -1,5 +1,9 @@
 # Unified Overlay foundation — private P01-F03
 
+> Historical P01/F03 checkpoint. The placeholder-page limitations below were
+> superseded by settings integration. See the [current implementation index](README.md)
+> for later changes and separate physical acceptance requirements.
+
 The seven-entry menu adds optional access during verified title, attract-demo and
 offline gameplay states. Installation, controller profiles and configuration
 remain with their existing authorities. Physical Windows acceptance is pending.
@@ -72,7 +76,7 @@ separate display system is added.
 GDI drawing is explicitly flushed before releasing the composed surface. The
 pinned wrapper's ReleaseDC does not flush GDI's per-thread batch; the flush closes
 that CPU-drawing/publication race. The regression models delayed drawing and
-rejects an unflushed surface. The user confirmed active-gameplay overlay presentation without flicker in F02.
+rejects an unflushed surface. Physical testing confirmed active-gameplay overlay presentation without flicker in F02.
 The remaining paused-only conflict was forcing FRAME/Flip while the original
 pause screen draws on PRIMARY without flipping. F03 composes on PRIMARY after
 the original pause drawing, within the same surface lock used by the pinned

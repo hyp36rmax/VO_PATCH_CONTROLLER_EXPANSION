@@ -10,10 +10,10 @@ It does not imply endorsement by SEGA, Pairomaniac or earlier patch authors.
 | V-On Patcher | Pairomaniac foundation, MIT copyright 2026 pairo; original source history, in-game version label, upstream repository link and artwork credits retained |
 | Controllers Expansion | hyp36rmax controller work and measured hardware records, inherited intact from Controller-Expansion |
 | Display Expansion | Private rendering/presentation work through F04B; automated validation is distinct from pending Windows acceptance |
-| Unified Overlay Menu Expansion | Not included in Experience. Existing R3 experimental source remains in its original worktree and recovery archive |
+| Unified Overlay Menu Expansion | Not included in Experience. Developed separately on Unified-Overlay-Menu-Expansion; the older Unified-Overlay branch is an ancestor, with its history retained |
 | Native Experience component | Separate proprietary repository; not imported or relicensed |
 
-## Existing and added attribution
+## Historical G02 attribution implementation
 
 Upstream exposes an About card in the patcher, a tile-font title-screen version
 hook, and two ending-roll bitmap lines. The original game's SEGA About resource
@@ -25,7 +25,7 @@ state gates and patch-generation path. The About card leads with VO PATCH EX, hy
 scope, followed by Pairomaniac and original artist SirRockEmSockEm.
 `0.1-dev` denotes a local development identity, not a published release.
 
-### Ending-roll addition: BLOCKED
+### Ending-roll addition: NEEDS VALIDATION
 
 The original SEGA staff and both upstream lines are preserved byte-for-byte.
 No VO PATCH EX/hyp36rmax ending line is claimed as implemented.
@@ -47,7 +47,7 @@ Missing either credit resource retains upstream's skip-all-attribution behavior.
 Resource backup, Restore Original and original About resources are unchanged.
 No modified game asset is included in Git or a public package.
 
-## Expected generated-image changes
+## Historical G02 generated-image changes
 
 Only the TITLEVER assembly blob changes; every other assembly/table blob and all
 ending bitmaps remain exact. The blob grows from 109 to 155 bytes. Annex alignment
@@ -81,9 +81,9 @@ Experience starts at reviewed F04B `0737ebf99bf3f1bdfe672eab83e47d0b6261a8a6`,
 which already contains Controller HEAD `73639a4d369dba02c97842906828f588ee4602f5`.
 No duplicate merge or cherry-pick is needed. `Controllers-Expansion` preserves
 that controller authority while singular `Controller-Expansion` remains for
-existing workflow/public links. Display-Expansion remains independent. No empty
-Unified-Overlay-Menu-Expansion branch is created; the untracked implementation
-must first receive an authorized preservation/resume checkpoint.
+existing workflow/public links. Display-Expansion remains independent. Unified-Overlay-Menu-Expansion preserves the older Unified-Overlay ancestry.
+Its current implementation and historical checkpoints are indexed in
+[the overlay documentation](../overlay/README.md); neither branch is merged into Experience.
 
 Local `upstream/pairomaniac` tracks remote `upstream/main` at
 `441921828611fa0d159525939c50d6ad4ab00d43`. Keep it free of project commits.
@@ -93,8 +93,8 @@ module authority, run complete tests and Windows acceptance, then merge the
 validated descendant into Experience. Never force-push or rewrite upstream
 history. No new upstream changes are automatically merged.
 
-Experience is intended as the future default/release authority. Remote settings,
-CI branch triggers and public branch names remain unchanged in G02.
+At G02, Experience was the intended future default/release authority. Remote
+settings, CI triggers and public branch names were unchanged by that checkpoint.
 
 ## Patcher branding
 
@@ -110,5 +110,5 @@ Experience includes B01-F02 through adf46270ce1b7922f5bca3677387a801469caa2c.
 The G02 byte-size discussion above records that attribution change, not every later
 Experience modification. Controller-Expansion remains the public controller authority;
 Controllers-Expansion is an existing local alias. The canonical repository is
-hyp36rmax/VO_PATCH_EX; its remote default remains Controller-Expansion as verified
-during G04-P02. Experience is the intended future default, not a published release.
+hyp36rmax/VO_PATCH_EX; its remote default was Controller-Expansion during G04-P02. Experience is now
+the remote default; the Controllers + Display Expansion release remains staged.

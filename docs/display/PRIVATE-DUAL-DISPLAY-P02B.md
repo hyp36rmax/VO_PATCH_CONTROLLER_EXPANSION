@@ -1,5 +1,10 @@
 # D04-P02B Windows integration candidate
 
+> Historical engineering record. Findings and pending tests below belong to the
+> named checkpoint; they are not a current release checklist. The
+> [DUX specification](DUX-V1.0.md) defines the display contract, including the
+> F04B complete-presentation Mirror amendment.
+
 Starting HEAD: `3cdf6624dd57e71a8592530bb8a9f162aed7711a`.
 Pinned cnc-ddraw: `279a057ee7e1e4d584b56141c014ab01f3c6ee6d`.
 Status: **private UAT candidate; Windows and physical acceptance NEEDS VALIDATION**.
@@ -77,7 +82,7 @@ cameras, HUD/targeting and controller ownership. Observe pacing/responsiveness,
 Alt+Tab and minimize/restore. Exit and confirm both outputs disappear. Run
 `START-LOCAL-VS-CONTROL.cmd` for comparison, then return the automatically selected
 archive with observations. Fallback to one composed window is not dual-output
-success. Do not ask the tester to edit configuration or copy DLLs.
+success. The package required no manual configuration edits or DLL copying.
 
 The next milestone remains D04-P02B acceptance and corrections supported by its
 results. D04-P03 is not started. No controller/game/camera code, public branch,

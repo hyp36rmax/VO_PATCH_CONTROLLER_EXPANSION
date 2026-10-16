@@ -6,6 +6,8 @@ other game features; this index covers development.
 
 | Read | For |
 | --- | --- |
+| [overlay/](overlay/README.md) | current overlay implementation, frozen layouts and historical input/pause findings |
+| [Display specification](display/DUX-V1.0.md) | authoritative display requirements and revision history; other display records describe their named checkpoints |
 | [controllers/](controllers/README.md) | hardware characterization, profile implementation, validation records and testing methodology |
 | [MAP.md](MAP.md) | where things are: the repository, the regions of `v-on-patcher.py`, and the executable's layout - stock sections, the game's code and data as far as it is mapped, the sections the patcher appends, the annex blob by blob, sites by patch |
 | [DEVELOPING.md](DEVELOPING.md) | setup, the daily loop, the checks and what each catches, adding a blob, a site or a build, netplay development, releasing, signing and the Windows build, troubleshooting |

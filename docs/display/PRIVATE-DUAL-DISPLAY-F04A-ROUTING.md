@@ -1,5 +1,10 @@
 # F04A Local VS routing recovery
 
+> Historical engineering record. Findings and pending tests below belong to the
+> named checkpoint; they are not a current release checklist. The
+> [DUX specification](DUX-V1.0.md) defines the display contract, including the
+> F04B complete-presentation Mirror amendment.
+
 Baseline: `221e5ccd843a27c6b3263387270a89a2108ec80f`.
 
 ## Findings

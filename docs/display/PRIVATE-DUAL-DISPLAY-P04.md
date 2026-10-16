@@ -1,8 +1,13 @@
 # D04-P04 shared presentation gate
 
+> Historical engineering record. Findings and pending tests below belong to the
+> named checkpoint; they are not a current release checklist. The
+> [DUX specification](DUX-V1.0.md) defines the display contract, including the
+> F04B complete-presentation Mirror amendment.
+
 Status: **BLOCKED — shared composition; D04-P03 runtime preserved.**
 
-Baseline: `7c676682175489adfa57c23e6b1335539878547c`, clean `Display-Expansion` checkout. Its complete-history recovery bundle verified successfully. The user reports D04-P03 independent P1/P2 physical UAT passed; this is physical evidence, distinct from the host API-double tests. The intro has audio and can be skipped, but its picture is not visible according to the same brief.
+Baseline: `7c676682175489adfa57c23e6b1335539878547c`, clean `Display-Expansion` checkout. Its complete-history recovery bundle verified successfully. Physical testing confirmed D04-P03 independent P1/P2 operation; this is physical evidence, distinct from the host API-double tests. The intro has audio and can be skipped, but its picture is not visible according to the same physical test record.
 
 ## Verified dependency
 

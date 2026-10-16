@@ -1,7 +1,6 @@
 # UX01-R04 — Approved Unified Overlay layouts and editors
 
-Status: **APPROVED & FROZEN**. Recorded from the owner's complete specification
-provided on 2026-10-15. This document specifies the interface; it does not claim
+Status: **APPROVED & FROZEN**. Approved specification dated 2026-10-15. This document specifies the interface; it does not claim
 implementation or Windows acceptance. Original F5, F6, F7 and F11 behavior,
 configuration formats, controller ownership and installation remain authoritative.
 

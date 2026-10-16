@@ -1,5 +1,10 @@
 # D03-P01 — offline 3840×1080 single-player proof
 
+> Historical engineering record. Findings and pending tests below belong to the
+> named checkpoint; they are not a current release checklist. The
+> [DUX specification](DUX-V1.0.md) defines the display contract, including the
+> F04B complete-presentation Mirror amendment.
+
 3840×1080 generation is available only through `tools/engineering3840.py --private-proof`. It loads a separate patcher module and opts that instance into `_PRIVATE_3840`. Ordinary UI, CLI, configuration, environment and normal module loads do not enable it. No public resolution list changes. 3440×1440, 5120×1440 and other unapproved dimensions remain rejected. This is not a Windows handoff or local VS implementation.
 
 ## Geometry and consumers

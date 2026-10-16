@@ -1,6 +1,11 @@
 # D02-V02 — visual clipping investigation
 
-**Outcome C: ROOT CAUSE UNRESOLVED.** The user observed clipping during S05 2560 gameplay, but its location, affected object/layer, camera state and reproducibility are unknown. No rendering correction is justified. This audit preserves the implementation and narrows specific hypotheses without claiming to reproduce the physical defect.
+> Historical engineering record. Findings and pending tests below belong to the
+> named checkpoint; they are not a current release checklist. The
+> [DUX specification](DUX-V1.0.md) defines the display contract, including the
+> F04B complete-presentation Mirror amendment.
+
+**Outcome C: ROOT CAUSE UNRESOLVED.** Physical testing recorded clipping during S05 2560 gameplay, but its location, affected object/layer, camera state and reproducibility are unknown. No rendering correction is justified. This audit preserves the implementation and narrows specific hypotheses without claiming to reproduce the physical defect.
 
 ## Evidence inventory
 
@@ -8,7 +13,7 @@ The accessible display outputs and review folder contain one distinct gameplay i
 
 No 1920 gameplay screenshot, matched-scene pair or video was found in those evidence locations. Wrapper project flag icons are not gameplay evidence. The screenshot filename and proportions are consistent with the accepted 2560 presentation, but are not an exact framebuffer dump. It cannot establish temporal popping or compare culling across camera angles.
 
-S04's preserved wrapped logs record 1920/2560 successful DirectDraw calls and normal exits. S05 physical outcomes supplied in the task establish 1920 startup PASS; 2560 startup/gameplay PASS; initial HUD/camera PASS; clipping OBSERVED. These are separate evidence records. Initialization logs cannot localize clipping; the image's instantaneous FPS counter does not measure pacing or input latency.
+S04's preserved wrapped logs record 1920/2560 successful DirectDraw calls and normal exits. Recorded S05 physical outcomes establish 1920 startup PASS; 2560 startup/gameplay PASS; initial HUD/camera PASS; clipping OBSERVED. These are separate evidence records. Initialization logs cannot localize clipping; the image's instantaneous FPS counter does not measure pacing or input latency.
 
 ## Renderer path and observation limits
 
