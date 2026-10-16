@@ -1,6 +1,7 @@
 """Assemble the installable private distribution using upstream's Windows launcher."""
 import argparse,hashlib,json,shutil,subprocess,zipfile
 from pathlib import Path
+from optimize_package import compress_recipes
 HERE=Path(__file__).resolve().parent;ROOT=HERE.parents[1]
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def main():
@@ -13,6 +14,7 @@ def main():
  shutil.rmtree(internal/'tcl/nmake',ignore_errors=True)
  experience=internal/'experience';experience.mkdir()
  shutil.copytree(a.catalog,experience/'catalog',ignore=shutil.ignore_patterns('*.log'))
+ compress_recipes(experience/'catalog')
  # The original UI/source is used verbatim except for binding Apply/Restore's
  # private distribution adapter before main. No second installer or game launcher.
  source=(ROOT/'v-on-patcher.py').read_text();needle="if __name__ == '__main__':"
