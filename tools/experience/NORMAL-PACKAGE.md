@@ -95,3 +95,7 @@ Provide `MinGW-runtime.txt` beside the wrapper DLL and LICENSE: use the compiler
 installation's MinGW-w64 runtime notice for local LLVM-MinGW builds. The Ubuntu CI
 build copies mingw-w64-common's copyright file for its GCC runtime. The assembler
 requires and distributes this build-specific notice; no runtime code changes.
+
+## Recipe compression
+
+Package assembly losslessly compresses every sparse recipe with ZIP LZMA, supported by the bundled Python runtime. Entry names and decoded recipe checksums remain unchanged. Keep `_lzma.pyd` and the standard library codec; no player dependency download is required. See the [release package benchmark](../../docs/packaging/release-package-benchmark.md) for measurements, dependency decisions and validation boundaries.
