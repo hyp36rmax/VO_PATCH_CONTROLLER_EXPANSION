@@ -139,7 +139,7 @@ class AuthorizationTests(unittest.TestCase):
                                ('/releases/assets/1', 'application/octet-stream')):
             with self.subTest(path=path), patch.dict(guard.os.environ, {'GH_TOKEN': 'test-token'}):
                 opener = MagicMock()
-                opener.open.return_value.__enter__.return_value.read.return_value = b'ZIP'
+                opener.open.return_value.read.return_value = b'ZIP'
                 with patch.object(guard.urllib.request, 'build_opener', return_value=opener):
                     self.assertEqual(guard.request(path, binary=True), b'ZIP')
                 request = opener.open.call_args.args[0]
